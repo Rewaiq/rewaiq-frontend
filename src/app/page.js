@@ -1,23 +1,25 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import SplashScreen from '@/components/SplashScreen';
 
 export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
+  const router = useRouter();
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+    const token = localStorage.getItem('rewaiq_token');
+    if (token) {
+      router.push('/home');
+    } else {
+      router.push('/welcome');
+    }
+  };
 
   return (
     <main>
-      {showSplash && (
-        <SplashScreen onComplete={() => setShowSplash(false)} />
-      )}
-      {!showSplash && (
-        <div>
-          {/* Next screen goes here */}
-          <p style={{ color: 'white', textAlign: 'center', marginTop: '50vh' }}>
-            App Loading...
-          </p>
-        </div>
-      )}
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
     </main>
   );
 }
