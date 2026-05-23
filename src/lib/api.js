@@ -1,10 +1,9 @@
 import axios from 'axios';
 
-const API = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://rewaiq-backend-production.up.railway.app',
-});
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://rewaiq-backend-production.up.railway.app';
 
-// Auto attach token
+const API = axios.create({ baseURL });
+
 API.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('rewaiq_token');

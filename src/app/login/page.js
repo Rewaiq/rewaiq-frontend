@@ -79,7 +79,7 @@ export default function LoginPage() {
         </div>
 
         <button
-          onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`}
+          onClick={() => window.location.href = `https://rewaiq-backend-production.up.railway.app/api/auth/google`}
           style={{ width: '100%', padding: '14px', borderRadius: 10, marginBottom: 12, border: '1.5px solid #E0E8F0', background: '#fff', color: '#0A1628', fontSize: 15, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
         >
           <span>🔵</span> Continue with Google
