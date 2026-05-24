@@ -5,21 +5,26 @@ import SplashScreen from '@/components/SplashScreen';
 
 export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
-  const handleSplashComplete = () => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleComplete = () => {
     setShowSplash(false);
-    const token = localStorage.getItem('rewaiq_token');
-    if (token) {
-      router.push('/home');
-    } else {
-      router.push('/welcome');
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('rewaiq_token');
+      router.push(token ? '/home' : '/welcome');
     }
   };
 
+  if (!mounted) return null;
+
   return (
     <main>
-      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      {showSplash && <SplashScreen onComplete={handleComplete} />}
     </main>
   );
 }
