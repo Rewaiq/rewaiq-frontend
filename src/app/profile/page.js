@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Bell, Lock, HelpCircle, FileText, ChevronRight, Copy, LogOut, Coins, Users } from 'lucide-react';
 import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
+import Spinner from '@/components/Spinner';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -37,13 +38,13 @@ export default function ProfilePage() {
   };
 
   const menuItems = [
-    { icon: Bell, label: 'Notifications', action: () => {} },
+    { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
     { icon: Lock, label: 'Change Password', action: () => router.push('/forgot-password') },
     { icon: HelpCircle, label: 'Help & Support', action: () => {} },
     { icon: FileText, label: 'Terms of Service', action: () => {} },
   ];
-
-  if (loading) return <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A9BB0' }}>Loading...</div>;
+if (loading) return <Spinner />;
+<Spinner />
 
   return (
     <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 80 }}>

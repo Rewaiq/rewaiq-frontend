@@ -11,8 +11,17 @@ export default function VerifyPage() {
   const [error, setError] = useState('');
   const [timer, setTimer] = useState(60);
   const refs = useRef([]);
-  const email = typeof window !== 'undefined' ? localStorage.getItem('rewaiq_pending_email') : '';
+  const [email, setEmail] = useState('');
 
+useEffect(() => {
+  const storedEmail = localStorage.getItem('rewaiq_pending_email');
+
+  if (storedEmail) {
+    setEmail(storedEmail);
+  } else {
+    router.push('/register');
+  }
+}, [router]);
   useEffect(() => {
     if (timer > 0) { const t = setTimeout(() => setTimer(p => p - 1), 1000); return () => clearTimeout(t); }
   }, [timer]);

@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SplashScreen from '@/components/SplashScreen';
+import OnboardingScreen from '@/components/OnboardingScreen';
 
 export default function Home() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [phase, setPhase] = useState('splash');
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
@@ -12,19 +13,34 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  const handleComplete = () => {
-    setShowSplash(false);
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('rewaiq_token');
-      router.push(token ? '/home' : '/welcome');
+  const handleSplashComplete = () => {
+    // Check if user has seen onboarding before
+    const seen = localStorage.getItem('rewaiq_onboarded');
+    const token = localStorage.getItem('rewaiq_token');
+    if (token) {
+      router.push('/home');
+    } else if (seen) {
+      router.push('/welcome');
+    } else {
+      setPhase('onboarding');
     }
+  };
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('rewaiq_onboarded', 'true');
+    router.push('/welcome');
   };
 
   if (!mounted) return null;
 
   return (
     <main>
-      {showSplash && <SplashScreen onComplete={handleComplete} />}
+      {phase === 'splash' && (
+        <SplashScreen onComplete={handleSplashComplete} />
+      )}
+      {phase === 'onboarding' && (
+        <OnboardingScreen onComplete={handleOnboardingComplete} />
+      )}
     </main>
   );
 }

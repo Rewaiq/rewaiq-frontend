@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Coins, Play, Square } from 'lucide-react';
 import API from '@/lib/api';
+import Spinner from '@/components/Spinner';
 
 function StreamContent() {
   const router = useRouter();
@@ -155,7 +156,7 @@ function StreamContent() {
 }
 
 export default function StreamPage() {
-  return <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A9BB0' }}>Loading...</div>}>
+  return <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A9BB0' }}><Spinner /></div>}>
     <StreamContent />
   </Suspense>;
 }

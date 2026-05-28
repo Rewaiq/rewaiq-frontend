@@ -64,12 +64,13 @@ export default function AdminPage() {
   };
 
   const approveTrack = async (id) => {
-    try {
-      await API.patch(`/api/admin/tasks/${id}/deactivate`);
-      fetchData();
-    } catch {}
-  };
-
+  try {
+    await API.patch(`/api/admin/tracks/${id}/approve`);
+    fetchData();
+  } catch (err) {
+    alert('Failed to approve track');
+  }
+};
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A9BB0' }}>
       Loading admin panel...

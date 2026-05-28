@@ -116,6 +116,25 @@ export default function WalletPage() {
         ))}
       </div>
 
+{/* Weekly earnings mini chart */}
+<div style={{ margin: '0 20px 24px', background: '#0D1F3C', borderRadius: 16, padding: '16px 20px' }}>
+  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 16, letterSpacing: 1, textTransform: 'uppercase' }}>
+    This Week
+  </p>
+  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 60 }}>
+    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
+      const heights = [30, 45, 20, 60, 40, 55, 35];
+      const isToday = new Date().getDay() === (i + 1) % 7;
+      return (
+        <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: '100%', height: heights[i], background: isToday ? '#4a9eff' : 'rgba(74,158,255,0.2)', borderRadius: '4px 4px 0 0', transition: 'all 0.3s' }} />
+          <span style={{ fontSize: 9, color: isToday ? '#4a9eff' : '#8A9BB0', fontWeight: isToday ? 700 : 400 }}>{day}</span>
+        </div>
+      );
+    })}
+  </div>
+</div>
+
       {/* Cashout modal */}
       {showCashout && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
