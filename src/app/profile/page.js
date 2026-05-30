@@ -42,6 +42,7 @@ export default function ProfilePage() {
     { icon: Lock, label: 'Change Password', action: () => router.push('/forgot-password') },
     { icon: HelpCircle, label: 'Help & Support', action: () => {} },
     { icon: FileText, label: 'Terms of Service', action: () => {} },
+{ icon: Music2, label: 'Upload Music — Artist Portal', action: () => router.push('/artist/upload') },
   ];
 if (loading) return <Spinner />;
 <Spinner />
