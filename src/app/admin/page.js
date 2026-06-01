@@ -63,12 +63,7 @@ export default function AdminPage() {
     } catch {}
   };
 
-  const parsed = JSON.parse(u);
-if (parsed.role !== 'admin') { 
-  router.push('/home'); 
-  return; 
-};
-
+ 
   const approveTrack = async (id) => {
   try {
     await API.patch(`/api/admin/tracks/${id}/approve`);
