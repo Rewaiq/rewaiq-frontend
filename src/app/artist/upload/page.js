@@ -1,20 +1,341 @@
-{/* Artist guide */}
-<div style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 24, border: '1px solid rgba(212,160,23,0.2)' }}>
-  <p style={{ fontSize: 12, fontWeight: 700, color: '#D4A017', marginBottom: 12, letterSpacing: 1, textTransform: 'uppercase' }}>
-    How It Works for Artists
-  </p>
-  {[
-    { num: '01', text: 'Upload your track link from Audiomack, YouTube, TikTok or Facebook' },
-    { num: '02', text: 'Set how many coins users earn per stream (min 5, max 50)' },
-    { num: '03', text: 'Our team reviews and approves your track within 24 hours' },
-    { num: '04', text: 'Your track appears in the Stream Feed — thousands of users stream it' },
-    { num: '05', text: 'You get real streams and engagement on your music' },
-  ].map(item => (
-    <div key={item.num} style={{ display: 'flex', gap: 12, marginBottom: 10, alignItems: 'flex-start' }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: '#D4A017', background: 'rgba(212,160,23,0.1)', padding: '2px 8px', borderRadius: 10, flexShrink: 0 }}>
-        {item.num}
-      </span>
-      <span style={{ fontSize: 13, color: '#8A9BB0', lineHeight: 1.5 }}>{item.text}</span>
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Upload, CheckCircle, Info, TrendingUp, Coins, Search } from 'lucide-react';
+import API from '@/lib/api';
+import Spinner from '@/components/Spinner';
+
+const parseAudiomackUrl = (url) => {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes('audiomack.com')) return { valid: false, error: 'Please use an Audiomack link' };
+    const parts = u.pathname.split('/').filter(Boolean);
+    if (parts.length < 2) return { valid: false, error: 'Invalid Audiomack link. Copy the full URL from the song page.' };
+    const title = parts[2] ? parts[2].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+    const artist = parts[0].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return {
+      valid: true,
+      artist,
+      title,
+      type: parts[1],
+      embed: `https://audiomack.com/embed/${parts.join('/')}`,
+    };
+  } catch { return { valid: false, error: 'Invalid URL. Please paste a valid Audiomack link.' }; }
+};
+
+const CAMPAIGN_PACKAGES = [
+  { id: 'starter', name: 'Starter', coins: 10, streams: 500, price: '₦15,000', desc: 'Perfect for new artists' },
+  { id: 'growth', name: 'Growth', coins: 20, streams: 1500, price: '₦35,000', desc: 'Boost your reach', badge: 'POPULAR' },
+  { id: 'viral', name: 'Viral', coins: 35, streams: 5000, price: '₦80,000', desc: 'Maximum exposure', badge: 'BEST VALUE' },
+];
+
+export default function ArtistUploadPage() {
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [url, setUrl] = useState('');
+  const [urlInfo, setUrlInfo] = useState(null);
+  const [urlError, setUrlError] = useState('');
+  const [form, setForm] = useState({
+    title: '', description: '', genre: '',
+    content_type: 'audiomack', original_url: '',
+    embed_url: '', campaign_coins: 10, target_streams: 500,
+  });
+  const [selectedPackage, setSelectedPackage] = useState('starter');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const u = localStorage.getItem('rewaiq_user');
+    if (!u) { router.push('/login'); return; }
+    setUser(JSON.parse(u));
+  }, []);
+
+  const handleUrlChange = (val) => {
+    setUrl(val);
+    setUrlError('');
+    setUrlInfo(null);
+    if (val.includes('audiomack.com')) {
+      const info = parseAudiomackUrl(val);
+      if (info.valid) {
+        setUrlInfo(info);
+        setForm(f => ({
+          ...f,
+          original_url: val,
+          embed_url: info.embed,
+          title: info.title || f.title,
+        }));
+      } else {
+        setUrlError(info.error);
+      }
+    }
+  };
+
+  const handlePackageSelect = (pkg) => {
+    setSelectedPackage(pkg.id);
+    setForm(f => ({ ...f, campaign_coins: pkg.coins, target_streams: pkg.streams }));
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true); setError('');
+    try {
+      await API.post('/api/tracks/upload', form);
+      setSuccess(true);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Upload failed. Please try again.');
+    } finally { setLoading(false); }
+  };
+
+  if (success) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ width: 100, height: 100, borderRadius: '50%', background: 'rgba(26,122,74,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, border: '2px solid rgba(26,122,74,0.3)' }}>
+          <CheckCircle size={50} color="#4ADE80" />
+        </div>
+        <h2 style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 8, fontFamily: 'Montserrat, sans-serif', textAlign: 'center' }}>Track Submitted</h2>
+        <p style={{ fontSize: 14, color: '#8A9BB0', textAlign: 'center', marginBottom: 12, lineHeight: 1.7, maxWidth: 280 }}>
+          Your track is under review. Once approved it goes live in the Stream Feed and users start earning coins by listening.
+        </p>
+        <div style={{ background: 'rgba(74,158,255,0.08)', border: '1px solid rgba(74,158,255,0.2)', borderRadius: 12, padding: '14px 20px', marginBottom: 32, width: '100%', textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: '#4a9eff', margin: 0 }}>Approval within 24 hours</p>
+          <p style={{ fontSize: 12, color: '#8A9BB0', margin: '4px 0 0' }}>You will be notified once it is live</p>
+        </div>
+        <button onClick={() => router.push('/artist/tracks')}
+          style={{ width: '100%', maxWidth: 320, padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
+          View My Tracks
+        </button>
+        <button onClick={() => { setSuccess(false); setStep(1); setUrl(''); setUrlInfo(null); setForm({ title: '', description: '', genre: '', content_type: 'audiomack', original_url: '', embed_url: '', campaign_coins: 10, target_streams: 500 }); }}
+          style={{ background: 'none', color: '#8A9BB0', fontSize: 14, padding: '10px' }}>
+          Upload Another Track
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 40 }}>
+      {/* Header */}
+      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, background: '#0A1628', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <button onClick={() => step > 1 ? setStep(s => s - 1) : router.back()} style={{ background: 'none', display: 'flex' }}>
+          <ArrowLeft size={22} color="#fff" />
+        </button>
+        <div style={{ flex: 1 }}>
+          <p style={{ color: '#fff', fontWeight: 600, fontSize: 16, margin: 0 }}>Artist Portal</p>
+          <p style={{ color: '#8A9BB0', fontSize: 11, margin: 0 }}>Step {step} of 3</p>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[1, 2, 3].map(s => (
+            <div key={s} style={{ width: s <= step ? 20 : 8, height: 8, borderRadius: 4, background: s <= step ? '#4a9eff' : 'rgba(255,255,255,0.15)', transition: 'all 0.3s' }} />
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: '20px' }}>
+
+        {/* STEP 1 — Track Link */}
+        {step === 1 && (
+          <>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>Add Your Track</h3>
+            <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 24, lineHeight: 1.6 }}>
+              Paste your Audiomack link below. We will automatically detect your track details.
+            </p>
+
+            {/* How to get the link */}
+            <div style={{ background: 'rgba(74,158,255,0.06)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#4a9eff', marginBottom: 8 }}>How to get your Audiomack link</p>
+              {[
+                'Open Audiomack and go to your track',
+                'Tap the share button on the track',
+                'Select Copy Link',
+                'Paste it below',
+              ].map((step, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 6, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#4a9eff', background: 'rgba(74,158,255,0.15)', padding: '1px 7px', borderRadius: 10, flexShrink: 0 }}>{i + 1}</span>
+                  <span style={{ fontSize: 12, color: '#8A9BB0' }}>{step}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* URL input */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Audiomack Track Link</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="url"
+                  placeholder="https://audiomack.com/your-name/song/track-title"
+                  value={url}
+                  onChange={e => handleUrlChange(e.target.value)}
+                  style={{ width: '100%', padding: '14px 44px 14px 14px', borderRadius: 10, border: `1.5px solid ${urlInfo ? '#4ADE80' : urlError ? '#F87171' : 'rgba(255,255,255,0.1)'}`, fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
+                />
+                <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
+                  {urlInfo ? <CheckCircle size={18} color="#4ADE80" /> : <Search size={18} color="#8A9BB0" />}
+                </div>
+              </div>
+              {urlError && <p style={{ fontSize: 12, color: '#F87171', marginTop: 6 }}>{urlError}</p>}
+            </div>
+
+            {/* Auto-detected info */}
+            {urlInfo && (
+              <div style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: '#4ADE80', marginBottom: 12 }}>Track detected</p>
+                <div style={{ marginBottom: 8 }}>
+                  <p style={{ fontSize: 11, color: '#8A9BB0', margin: '0 0 2px' }}>Artist</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>{urlInfo.artist}</p>
+                </div>
+                {urlInfo.title && (
+                  <div style={{ marginBottom: 8 }}>
+                    <p style={{ fontSize: 11, color: '#8A9BB0', margin: '0 0 2px' }}>Track</p>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>{urlInfo.title}</p>
+                  </div>
+                )}
+                <div>
+                  <p style={{ fontSize: 11, color: '#8A9BB0', margin: '0 0 2px' }}>Type</p>
+                  <p style={{ fontSize: 13, color: '#fff', margin: 0, textTransform: 'capitalize' }}>{urlInfo.type}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Manual fields */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 6 }}>Track Title</label>
+              <input type="text" placeholder="Confirm or enter track title"
+                value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+                style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 6 }}>Genre</label>
+              <input type="text" placeholder="e.g. Afrobeats, Highlife, Gospel, Amapiano"
+                value={form.genre} onChange={e => setForm({ ...form, genre: e.target.value })}
+                style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 28 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 6 }}>About This Track</label>
+              <textarea placeholder="Tell listeners what this track is about..."
+                value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                rows={3} style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)', resize: 'none', fontFamily: 'Inter, sans-serif' }}
+              />
+            </div>
+
+            <button onClick={() => {
+              if (!urlInfo) { setUrlError('Please paste a valid Audiomack link first'); return; }
+              if (!form.title) { setUrlError('Please enter a track title'); return; }
+              setStep(2);
+            }}
+              style={{ width: '100%', padding: '16px', borderRadius: 14, background: urlInfo ? 'linear-gradient(135deg, #4a9eff, #2d6be4)' : 'rgba(255,255,255,0.08)', color: urlInfo ? '#fff' : '#8A9BB0', fontSize: 16, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+              Next — Choose Campaign
+            </button>
+          </>
+        )}
+
+        {/* STEP 2 — Campaign */}
+        {step === 2 && (
+          <>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>Choose Your Campaign</h3>
+            <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 24, lineHeight: 1.6 }}>
+              Select how aggressively you want to promote your track. More coins means more users will stream it.
+            </p>
+
+            {CAMPAIGN_PACKAGES.map(pkg => (
+              <div key={pkg.id}
+                onClick={() => handlePackageSelect(pkg)}
+                style={{ background: selectedPackage === pkg.id ? 'rgba(74,158,255,0.1)' : '#0D1F3C', border: `2px solid ${selectedPackage === pkg.id ? '#4a9eff' : 'rgba(255,255,255,0.06)'}`, borderRadius: 16, padding: '16px 18px', marginBottom: 12, cursor: 'pointer', position: 'relative', transition: 'all 0.2s' }}>
+                {pkg.badge && (
+                  <div style={{ position: 'absolute', top: -1, right: 16, background: pkg.badge === 'POPULAR' ? '#4a9eff' : '#D4A017', color: pkg.badge === 'POPULAR' ? '#fff' : '#0A1628', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 0 8px 8px', letterSpacing: 1 }}>
+                    {pkg.badge}
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: 0 }}>{pkg.name}</p>
+                  <p style={{ fontSize: 18, fontWeight: 900, color: '#4a9eff', margin: 0 }}>{pkg.price}</p>
+                </div>
+                <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 10 }}>{pkg.desc}</p>
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Coins size={13} color="#D4A017" />
+                    <span style={{ fontSize: 12, color: '#D4A017', fontWeight: 600 }}>{pkg.coins} coins per stream</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <TrendingUp size={13} color="#4a9eff" />
+                    <span style={{ fontSize: 12, color: '#4a9eff', fontWeight: 600 }}>{pkg.streams.toLocaleString()} streams</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 24, marginTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Custom coins per stream</label>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#4a9eff' }}>{form.campaign_coins}</span>
+              </div>
+              <input type="range" min={5} max={50} step={5} value={form.campaign_coins}
+                onChange={e => setForm(f => ({ ...f, campaign_coins: parseInt(e.target.value) }))}
+                style={{ width: '100%', accentColor: '#4a9eff' }}
+              />
+              <p style={{ fontSize: 11, color: '#8A9BB0', marginTop: 6, textAlign: 'center' }}>
+                Each user earns approximately N{(form.campaign_coins / 2).toFixed(0)} per stream
+              </p>
+            </div>
+
+            <button onClick={() => setStep(3)}
+              style={{ width: '100%', padding: '16px', borderRadius: 14, background: 'linear-gradient(135deg, #4a9eff, #2d6be4)', color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+              Next — Review and Submit
+            </button>
+          </>
+        )}
+
+        {/* STEP 3 — Review */}
+        {step === 3 && (
+          <>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>Review and Submit</h3>
+            <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 20 }}>Confirm your track details before submitting for review.</p>
+
+            <div style={{ background: '#0D1F3C', borderRadius: 16, padding: '20px', marginBottom: 20 }}>
+              {[
+                { label: 'Track Title', value: form.title },
+                { label: 'Genre', value: form.genre || 'Not specified' },
+                { label: 'Platform', value: 'Audiomack' },
+                { label: 'Coins per stream', value: `${form.campaign_coins} coins` },
+                { label: 'Target streams', value: form.target_streams.toLocaleString() },
+                { label: 'Package', value: CAMPAIGN_PACKAGES.find(p => p.id === selectedPackage)?.name || 'Custom' },
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                  <span style={{ fontSize: 13, color: '#8A9BB0' }}>{item.label}</span>
+                  <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Embed preview */}
+            {form.embed_url && (
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#8A9BB0', marginBottom: 8 }}>Track Preview</p>
+                <div style={{ borderRadius: 12, overflow: 'hidden' }}>
+                  <iframe src={form.embed_url} width="100%" height="160" frameBorder="0" allow="autoplay" style={{ display: 'block' }} />
+                </div>
+              </div>
+            )}
+
+            <div style={{ background: 'rgba(74,158,255,0.06)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 12, padding: '14px 16px', marginBottom: 24, display: 'flex', gap: 10 }}>
+              <Info size={16} color="#4a9eff" style={{ flexShrink: 0, marginTop: 2 }} />
+              <p style={{ fontSize: 13, color: '#8A9BB0', margin: 0, lineHeight: 1.6 }}>
+                After approval your track goes live in the Stream Feed. Payment is arranged after approval. Our team will contact you at <strong style={{ color: '#4a9eff' }}>{user?.email}</strong>
+              </p>
+            </div>
+
+            {error && <div style={{ background: 'rgba(192,57,43,0.1)', border: '1px solid rgba(192,57,43,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#F87171', fontSize: 13 }}>{error}</div>}
+
+            <button onClick={handleSubmit} disabled={loading}
+              style={{ width: '100%', padding: '16px', borderRadius: 14, background: loading ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #4a9eff, #2d6be4)', color: loading ? '#8A9BB0' : '#fff', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontFamily: 'Montserrat, sans-serif' }}>
+              {loading ? <><Spinner size={20} /> Submitting...</> : <><Upload size={18} /> Submit Track for Review</>}
+            </button>
+          </>
+        )}
+      </div>
     </div>
-  ))}
-</div>
+  );
+}

@@ -1,13 +1,18 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Eye, EyeOff, User, Mail, Phone, Tag } from 'lucide-react';
 import API from '@/lib/api';
 import RewaiqLogo from '@/components/RewaiqLogo';
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', phone: '', referral_code: '' });
+  const searchParams = useSearchParams();
+  const isArtist = searchParams.get('type') === 'artist';
+
+  const [form, setForm] = useState({
+    full_name: '', email: '', password: '', phone: '', referral_code: ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -18,8 +23,12 @@ export default function RegisterPage() {
     }
     setLoading(true); setError('');
     try {
-      await API.post('/api/auth/register', form);
+      await API.post('/api/auth/register', {
+        ...form,
+        role: isArtist ? 'artist' : 'user'
+      });
       localStorage.setItem('rewaiq_pending_email', form.email);
+      localStorage.setItem('rewaiq_pending_role', isArtist ? 'artist' : 'user');
       router.push('/verify');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
@@ -30,11 +39,12 @@ export default function RegisterPage() {
     { label: 'Full Name', name: 'full_name', type: 'text', placeholder: 'Enter your full name', icon: User },
     { label: 'Email Address', name: 'email', type: 'email', placeholder: 'Enter your email', icon: Mail },
     { label: 'Phone Number', name: 'phone', type: 'tel', placeholder: '+234 800 000 0000', icon: Phone },
-    { label: 'Referral Code (optional)', name: 'referral_code', type: 'text', placeholder: 'Enter referral code', icon: Tag },
+    { label: isArtist ? 'Promo Code (optional)' : 'Referral Code (optional)', name: 'referral_code', type: 'text', placeholder: isArtist ? 'Enter promo code' : 'Enter referral code', icon: Tag },
   ];
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
       <div style={{ background: '#0A1628', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
         <button onClick={() => router.back()} style={{ background: 'none', color: '#fff', display: 'flex', alignItems: 'center' }}>
           <ArrowLeft size={22} color="#fff" />
@@ -43,8 +53,22 @@ export default function RegisterPage() {
       </div>
 
       <div style={{ flex: 1, padding: '28px 24px' }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A1628', marginBottom: 4, fontFamily: 'Montserrat, sans-serif' }}>Create Account</h2>
-        <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 24 }}>Join Rewaiq and start earning today</p>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A1628', marginBottom: 4, fontFamily: 'Montserrat, sans-serif' }}>
+          {isArtist ? '🎵 Artist Registration' : 'Create Account'}
+        </h2>
+        <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 20 }}>
+          {isArtist ? 'Promote your music to thousands of Nigerian youth' : 'Join Rewaiq and start earning today'}
+        </p>
+
+        {/* Artist banner */}
+        {isArtist && (
+          <div style={{ background: 'rgba(212,160,23,0.08)', border: '1px solid rgba(212,160,23,0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#D4A017', margin: '0 0 4px' }}>Artist Account</p>
+            <p style={{ fontSize: 12, color: '#8A9BB0', margin: 0 }}>
+              Upload your music, run campaigns and get real streams from Nigerian youth. After registering you'll go straight to the Artist Portal.
+            </p>
+          </div>
+        )}
 
         {error && (
           <div style={{ background: '#FFF0F0', border: '1px solid #ffcccc', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#C0392B', fontSize: 13 }}>
@@ -85,7 +109,8 @@ export default function RegisterPage() {
         </div>
 
         {/* Google */}
-        <button onClick={() => window.location.href = `https://rewaiq-backend-production.up.railway.app/api/auth/google`}
+        <button
+          onClick={() => { window.location.href = 'https://rewaiq-backend-production.up.railway.app/api/auth/google'; }}
           style={{ width: '100%', padding: '13px', borderRadius: 10, marginBottom: 12, border: '1.5px solid #E0E8F0', background: '#fff', color: '#0A1628', fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <svg width="18" height="18" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -97,8 +122,8 @@ export default function RegisterPage() {
         </button>
 
         <button onClick={handleSubmit} disabled={loading}
-          style={{ width: '100%', padding: '15px', borderRadius: 12, background: loading ? '#ccc' : '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, marginBottom: 14, fontFamily: 'Montserrat, sans-serif' }}>
-          {loading ? 'Creating Account...' : 'Create Account'}
+          style={{ width: '100%', padding: '15px', borderRadius: 12, background: loading ? '#ccc' : isArtist ? '#D4A017' : '#4a9eff', color: loading ? '#888' : isArtist ? '#0A1628' : '#fff', fontSize: 16, fontWeight: 700, marginBottom: 14, fontFamily: 'Montserrat, sans-serif' }}>
+          {loading ? 'Creating Account...' : isArtist ? '🎵 Create Artist Account' : 'Create Account'}
         </button>
 
         <p style={{ textAlign: 'center', fontSize: 13, color: '#8A9BB0' }}>
@@ -107,5 +132,13 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#fff' }} />}>
+      <RegisterContent />
+    </Suspense>
   );
 }

@@ -44,7 +44,13 @@ useEffect(() => {
       const res = await API.post('/api/auth/verify-otp', { email, otp: code });
       localStorage.setItem('rewaiq_token', res.data.token);
       localStorage.setItem('rewaiq_user', JSON.stringify(res.data.user));
-      router.push('/interests');
+      const pendingRole = localStorage.getItem('rewaiq_pending_role');
+if (res.data.user.role === 'artist' || pendingRole === 'artist') {
+  localStorage.removeItem('rewaiq_pending_role');
+  router.push('/artist/upload');
+} else {
+  router.push('/interests');
+}
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid OTP');
     } finally { setLoading(false); }

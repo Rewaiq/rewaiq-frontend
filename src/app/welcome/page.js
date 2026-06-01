@@ -43,14 +43,26 @@ export default function WelcomePage() {
         </div>
 
         {/* Buttons */}
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <button onClick={() => router.push('/register')} style={{ width: '100%', padding: '16px', background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 600, borderRadius: 12, fontFamily: 'Montserrat, sans-serif' }}>
-            Create an Account
-          </button>
-          <button onClick={() => router.push('/login')} style={{ width: '100%', padding: '16px', background: '#F0F4F8', color: '#0A1628', fontSize: 16, fontWeight: 600, borderRadius: 12, fontFamily: 'Montserrat, sans-serif' }}>
-            Login
-          </button>
-        </div>
+<div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+  <button
+    onClick={() => router.push('/register')}
+    style={{ width: '100%', padding: '16px', background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 600, borderRadius: 12, fontFamily: 'Montserrat, sans-serif' }}
+  >
+    🎯 Join & Start Earning
+  </button>
+  <button
+    onClick={() => router.push('/register?type=artist')}
+    style={{ width: '100%', padding: '16px', background: 'rgba(212,160,23,0.1)', color: '#D4A017', fontSize: 16, fontWeight: 600, borderRadius: 12, fontFamily: 'Montserrat, sans-serif', border: '1.5px solid rgba(212,160,23,0.3)' }}
+  >
+    🎵 I'm an Artist — Promote My Music
+  </button>
+  <button
+    onClick={() => router.push('/login')}
+    style={{ width: '100%', padding: '16px', background: '#F0F4F8', color: '#0A1628', fontSize: 16, fontWeight: 600, borderRadius: 12, fontFamily: 'Montserrat, sans-serif' }}
+  >
+    Login
+  </button>
+</div>
         <p style={{ fontSize: 11, color: '#ccc', marginTop: 16 }}>Version 1.0.0</p>
       </div>
     </div>
