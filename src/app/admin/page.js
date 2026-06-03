@@ -295,21 +295,21 @@ const resumeTrack = (id) => action(async () => {
                   Preview track on {track.content_type}
                 </a>
 
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {!track.is_active ? (
-                    <button onClick={() => approveTrack(track.id)}
-                      disabled={actionLoading === `t${track.id}`}
-                      style={{ flex: 1, padding: '10px', borderRadius: 10, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.2)', color: '#4ADE80', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                      {actionLoading === `t${track.id}` ? '...' : 'Approve Track'}
-                    </button>
-                  ) : (
-                    <button onClick={() => pauseTrack(track.id)}
-                      disabled={actionLoading === `pause${track.id}`}
-                      style={{ flex: 1, padding: '10px', borderRadius: 10, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', color: '#F87171', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                      {actionLoading === `pause${track.id}` ? '...' : 'Pause Campaign'}
-                    </button>
-                  )}
-                </div>
+               <div style={{ display: 'flex', gap: 8 }}>
+  {!track.is_active ? (
+    <button onClick={() => approveTrack(track.id)}
+      disabled={actionLoading === `t${track.id}`}
+      style={{ flex: 1, padding: '10px', borderRadius: 10, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.2)', color: '#4ADE80', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none' }}>
+      {actionLoading === `t${track.id}` ? '...' : 'Approve and Go Live'}
+    </button>
+  ) : (
+    <button onClick={() => pauseTrack(track.id)}
+      disabled={actionLoading === `pause${track.id}`}
+      style={{ flex: 1, padding: '10px', borderRadius: 10, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', color: '#F87171', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+      {actionLoading === `pause${track.id}` ? '...' : 'Pause Campaign'}
+    </button>
+  )}
+</div>
               </div>
             );
           })
