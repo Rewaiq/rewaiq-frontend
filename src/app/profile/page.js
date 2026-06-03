@@ -5,6 +5,7 @@ import { Bell, Lock, HelpCircle, FileText, ChevronRight, Copy, LogOut, Coins, Us
 import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import Spinner from '@/components/Spinner';
+import { Tag } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export default function ProfilePage() {
     { icon: HelpCircle, label: 'Help & Support', action: () => {} },
     { icon: FileText, label: 'Terms of Service', action: () => {} },
 { icon: Lock, label: 'Upload Music — Artist Portal', action: () => router.push('/artist/upload') },
+{ icon: Tag, label: 'Redeem Promo Code', action: () => router.push('/promo') },
   ];
 if (loading) return <Spinner />;
 <Spinner />

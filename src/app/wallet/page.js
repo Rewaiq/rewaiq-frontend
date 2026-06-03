@@ -75,6 +75,30 @@ export default function WalletPage() {
           </button>
         </div>
       </div>
+      
+      {/* Artist payment info */}
+{user?.role === 'artist' && (
+  <div style={{ margin: '0 20px 20px', background: 'rgba(212,160,23,0.06)', border: '1px solid rgba(212,160,23,0.15)', borderRadius: 16, padding: '18px 20px' }}>
+    <p style={{ fontSize: 12, fontWeight: 700, color: '#D4A017', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Artist Payment</p>
+    <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 12, lineHeight: 1.6 }}>
+      After your track is approved, payment is arranged directly. Contact us to complete payment for your selected campaign package.
+    </p>
+    {[
+      { name: 'Starter', price: 'N15,000', streams: '500 streams' },
+      { name: 'Growth', price: 'N35,000', streams: '1,500 streams' },
+      { name: 'Viral', price: 'N80,000', streams: '5,000 streams' },
+    ].map(pkg => (
+      <div key={pkg.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{pkg.name}</span>
+        <span style={{ fontSize: 13, color: '#D4A017', fontWeight: 700 }}>{pkg.price}</span>
+        <span style={{ fontSize: 12, color: '#8A9BB0' }}>{pkg.streams}</span>
+      </div>
+    ))}
+    <a href="mailto:info@rewaiq.com.ng?subject=Campaign Payment" style={{ display: 'block', marginTop: 14, padding: '12px', borderRadius: 10, background: 'rgba(212,160,23,0.1)', border: '1px solid rgba(212,160,23,0.2)', color: '#D4A017', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none' }}>
+      Contact us to pay
+    </a>
+  </div>
+)}
 
       {/* Info cards */}
       <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 24 }}>
