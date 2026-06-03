@@ -70,9 +70,13 @@ export default function AdminPage() {
     await API.patch(`/api/admin/tracks/${id}/approve`);
   }, `t${id}`);
 
-  const deactivateTrack = (id) => action(async () => {
-    await API.patch(`/api/admin/tasks/${id}/deactivate`);
-  }, `d${id}`);
+  const pauseTrack = (id) => action(async () => {
+  await API.patch(`/api/admin/tracks/${id}/pause`);
+}, `pause${id}`);
+
+const resumeTrack = (id) => action(async () => {
+  await API.patch(`/api/admin/tracks/${id}/resume`);
+}, `resume${id}`);
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -229,14 +233,14 @@ export default function AdminPage() {
           tracks.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>
               <Music2 size={40} color="#8A9BB0" style={{ marginBottom: 12 }} />
-              <p>No tracks uploaded yet</p>
+              <p>No tracks available</p>
             </div>
           ) : tracks.map(track => {
-            const progress = track.target_streams > 0
-              ? Math.min((track.total_streams / track.target_streams) * 100, 100)
-              : 0;
-            const nearTarget = progress >= 80;
+            const total = track.total_streams || 0;
+            const target = track.target_streams || 0;
+            const progress = target > 0 ? (total / target) * 100 : 0;
             const hitTarget = progress >= 100;
+            const nearTarget = progress >= 75 && progress < 100;
 
             return (
               <div key={track.id} style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
@@ -255,11 +259,11 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 11, color: '#8A9BB0' }}>Campaign progress</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: hitTarget ? '#4ADE80' : nearTarget ? '#D4A017' : '#4a9eff' }}>
-                      {track.total_streams || 0} / {track.target_streams} streams ({Math.round(progress)}%)
+                      {total} / {target || '—'} streams ({Math.round(progress)}%)
                     </span>
                   </div>
                   <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${progress}%`, background: hitTarget ? '#4ADE80' : nearTarget ? '#D4A017' : '#4a9eff', borderRadius: 3, transition: 'width 0.3s' }} />
+                    <div style={{ height: '100%', width: `${Math.min(progress, 100)}%`, background: hitTarget ? '#4ADE80' : nearTarget ? '#D4A017' : '#4a9eff', borderRadius: 3, transition: 'width 0.3s' }} />
                   </div>
                   {nearTarget && !hitTarget && (
                     <p style={{ fontSize: 11, color: '#D4A017', marginTop: 4 }}>Approaching target — consider pausing or extending</p>
@@ -271,16 +275,16 @@ export default function AdminPage() {
 
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px', textAlign: 'center' }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: '#4a9eff', margin: 0 }}>{track.total_streams || 0}</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#4a9eff', margin: 0 }}>{total}</p>
                     <p style={{ fontSize: 10, color: '#8A9BB0', margin: 0 }}>Streams</p>
                   </div>
                   <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px', textAlign: 'center' }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: '#D4A017', margin: 0 }}>{track.campaign_coins}</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#D4A017', margin: 0 }}>{track.campaign_coins || 0}</p>
                     <p style={{ fontSize: 10, color: '#8A9BB0', margin: 0 }}>Coins/stream</p>
                   </div>
                   <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px', textAlign: 'center' }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: '#F87171', margin: 0 }}>
-                      N{Math.floor(((track.total_streams || 0) * track.campaign_coins) / 2).toLocaleString()}
+                      N{Math.floor((total * (track.campaign_coins || 0)) / 2).toLocaleString()}
                     </p>
                     <p style={{ fontSize: 10, color: '#8A9BB0', margin: 0 }}>Paid out</p>
                   </div>
@@ -299,10 +303,10 @@ export default function AdminPage() {
                       {actionLoading === `t${track.id}` ? '...' : 'Approve Track'}
                     </button>
                   ) : (
-                    <button onClick={() => deactivateTrack(track.id)}
-                      disabled={actionLoading === `d${track.id}`}
+                    <button onClick={() => pauseTrack(track.id)}
+                      disabled={actionLoading === `pause${track.id}`}
                       style={{ flex: 1, padding: '10px', borderRadius: 10, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', color: '#F87171', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                      {actionLoading === `d${track.id}` ? '...' : 'Pause Campaign'}
+                      {actionLoading === `pause${track.id}` ? '...' : 'Pause Campaign'}
                     </button>
                   )}
                 </div>
