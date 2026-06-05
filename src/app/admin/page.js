@@ -35,7 +35,7 @@ export default function AdminPage() {
         API.get('/api/admin/completions/pending'),
         API.get('/api/admin/cashouts/pending'),
         API.get('/api/admin/users'),
-        API.get('/api/tracks'),
+        API.get('/api/tracks?admin=true'),
       ]);
       setStats(s.data.stats);
       setCompletions(c.data.completions || []);
