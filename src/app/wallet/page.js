@@ -73,7 +73,7 @@ export default function WalletPage() {
     if (!coins || !bank_name || !account_number || !account_name) {
       setCashoutError('Please fill all fields'); return;
     }
-    if (parseInt(coins) < 1000) {
+    if (parseInt(coins) < 10) {
       setCashoutError('Minimum cashout is 1,000 coins (N500)'); return;
     }
     if (parseInt(coins) > balance) {
