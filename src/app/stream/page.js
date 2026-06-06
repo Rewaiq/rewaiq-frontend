@@ -38,16 +38,20 @@ function StreamContent() {
     } catch {}
   };
 
-  const startStream = async () => {
-    setLoading(true);
-    try {
-      const res = await API.post('/api/streams/start', { track_id: trackId, track_url: track?.original_url || '' });
-      setSession(res.data.session);
-      setStreaming(true);
-      setTimer(60);
-    } catch (err) { alert(err.response?.data?.message || 'Failed to start'); }
-    finally { setLoading(false); }
-  };
+ const startStream = async () => {
+  setLoading(true);
+  try {
+    const res = await API.post('/api/streams/start', {
+      track_id: trackId,
+      track_url: track?.original_url || ''
+    });
+    setSession(res.data.session);
+    setTimer(60);
+    setStreaming(true); // This triggers iframe reload with autoplay=1
+  } catch (err) {
+    alert(err.response?.data?.message || 'Failed to start stream');
+  } finally { setLoading(false); }
+};
 
   const endStream = async () => {
     if (!session) return;
@@ -95,7 +99,15 @@ function StreamContent() {
         {/* Embed player */}
         <div style={{ width: '100%', borderRadius: 16, overflow: 'hidden', marginBottom: 24, background: '#0D1F3C', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {track?.embed_url ? (
-            <iframe src={track.embed_url} width="100%" height="200" frameBorder="0" allow="autoplay" style={{ display: 'block' }} />
+           <iframe
+  src={`${track.embed_url || ''}${(track.embed_url || '').includes('?') ? '&' : '?'}autoplay=${streaming ? 1 : 0}`}
+  width="100%"
+  height="160"
+  frameBorder="0"
+  allow="autoplay; encrypted-media"
+  allowFullScreen
+  style={{ display: 'block' }}
+/>
           ) : (
             <div style={{ textAlign: 'center', color: '#8A9BB0', padding: 40 }}>
               <Play size={48} color="#8A9BB0" />

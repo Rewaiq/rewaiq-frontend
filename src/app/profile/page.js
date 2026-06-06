@@ -39,13 +39,17 @@ export default function ProfilePage() {
   };
 
   const menuItems = [
-    { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
-    { icon: Lock, label: 'Change Password', action: () => router.push('/forgot-password') },
-    { icon: HelpCircle, label: 'Help & Support', action: () => {} },
-    { icon: FileText, label: 'Terms of Service', action: () => {} },
-{ icon: Lock, label: 'Upload Music — Artist Portal', action: () => router.push('/artist/upload') },
-{ icon: Tag, label: 'Redeem Promo Code', action: () => router.push('/promo') },
-  ];
+  { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
+  { icon: Lock, label: 'Change Password', action: () => router.push('/forgot-password') },
+  { icon: Tag, label: 'Promo Code', action: () => router.push('/promo') },
+  // Artist only items
+  ...(user?.role === 'artist' ? [
+    { icon: Music2, label: 'Artist Portal — Upload Music', action: () => router.push('/artist/upload') },
+    { icon: List, label: 'My Tracks', action: () => router.push('/artist/tracks') },
+  ] : []),
+  { icon: HelpCircle, label: 'Help and Support', action: () => {} },
+  { icon: LogOut, label: 'Logout', action: handleLogout, danger: true },
+];
 if (loading) return <Spinner />;
 <Spinner />
 

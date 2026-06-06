@@ -208,24 +208,38 @@ const resumeTrack = (id) => action(async () => {
               <Wallet size={40} color="#8A9BB0" style={{ marginBottom: 12 }} />
               <p>No pending cashout requests</p>
             </div>
-          ) : cashouts.map(c => (
-            <div key={c.id} style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>
-                  N{Math.floor(c.amount / 2).toLocaleString()} NGN
-                </p>
-                <span style={{ fontSize: 11, background: 'rgba(248,113,113,0.1)', color: '#F87171', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>Pending</span>
-              </div>
-              <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 2 }}>{c.full_name}</p>
-              <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 4 }}>{c.email}</p>
-              <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 12 }}>{c.amount} coins · {new Date(c.created_at).toLocaleDateString()}</p>
-              <button onClick={() => approveCashout(c.id)}
-                disabled={actionLoading === `c${c.id}`}
-                style={{ width: '100%', padding: '12px', borderRadius: 10, background: '#4a9eff', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                {actionLoading === `c${c.id}` ? 'Processing...' : <><Check size={16} /> Mark as Paid</>}
-              </button>
-            </div>
-          ))
+          ) : cashouts.map(c => {
+  const meta = c.metadata ? (typeof c.metadata === 'string' ? JSON.parse(c.metadata) : c.metadata) : {};
+  return (
+    <div key={c.id} style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+        <p style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: 0 }}>
+          N{Math.floor(c.amount / 2).toLocaleString()} NGN
+        </p>
+        <span style={{ fontSize: 11, background: 'rgba(248,113,113,0.1)', color: '#F87171', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>Pending</span>
+      </div>
+      <p style={{ fontSize: 13, color: '#fff', marginBottom: 2, fontWeight: 600 }}>{c.full_name}</p>
+      <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 2 }}>{c.email}</p>
+      <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 8 }}>{c.amount} coins · {new Date(c.created_at).toLocaleDateString()}</p>
+      
+      {/* Bank details */}
+      {meta.account_number && (
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
+          <p style={{ fontSize: 11, color: '#8A9BB0', marginBottom: 6, letterSpacing: 1, textTransform: 'uppercase' }}>Bank Details</p>
+          <p style={{ fontSize: 13, color: '#fff', margin: '0 0 2px', fontWeight: 600 }}>{meta.bank_name}</p>
+          <p style={{ fontSize: 13, color: '#4a9eff', margin: '0 0 2px', letterSpacing: 2, fontWeight: 700 }}>{meta.account_number}</p>
+          <p style={{ fontSize: 13, color: '#fff', margin: 0 }}>{meta.account_name}</p>
+        </div>
+      )}
+      
+      <button onClick={() => approveCashout(c.id)}
+        disabled={actionLoading === `c${c.id}`}
+        style={{ width: '100%', padding: '12px', borderRadius: 10, background: '#4a9eff', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        {actionLoading === `c${c.id}` ? 'Processing...' : <><Check size={16} /> Mark as Paid</>}
+      </button>
+    </div>
+  );
+})
         )}
 
         {/* TRACKS — with analytics */}
