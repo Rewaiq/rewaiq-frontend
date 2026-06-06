@@ -5,6 +5,7 @@ import { Coins, SlidersHorizontal, Play, CheckCircle, Circle, Bell } from 'lucid
 import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import RewaiqLogo from '@/components/RewaiqLogo';
+import { Users } from "lucide-react";
 
 export default function HomePage() {
   const [unreadCount, setUnreadCount] = useState(0);
