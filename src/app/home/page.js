@@ -184,6 +184,16 @@ function TrackCard({ track, router }) {
   </div>
 </div>
 
+{/* Promote banner */}
+<div onClick={() => router.push('/promote')}
+  style={{ background: 'linear-gradient(135deg, #D4A017, #F0C040)', borderRadius: 14, padding: '14px 16px', marginBottom: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+  <div>
+    <p style={{ fontSize: 14, fontWeight: 700, color: '#0A1628', margin: 0 }}>Promote Your Brand</p>
+    <p style={{ fontSize: 12, color: '#0A1628', opacity: 0.7, margin: '2px 0 0' }}>Reach 500+ engaged Nigerian youth</p>
+  </div>
+  <span style={{ fontSize: 13, fontWeight: 700, color: '#0A1628', background: 'rgba(0,0,0,0.1)', padding: '6px 12px', borderRadius: 20 }}>From N15k</span>
+</div>
+
 function TaskCard({ task, router }) {
   return (
     <div onClick={() => !task.completed && router.push(`/task?id=${task.id}`)}
