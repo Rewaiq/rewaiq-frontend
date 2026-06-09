@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Music2, Coins, TrendingUp, CheckCircle, Play } from 'lucide-react';
 import API from '@/lib/api';
 import Spinner from '@/components/Spinner';
+import Script from 'next/script';
 
 const COIN_PACKAGES = [
   {
@@ -59,22 +60,9 @@ export default function ArtistPromotePage() {
     if (!u) { router.push('/login'); return; }
     setUser(JSON.parse(u));
     fetchTracks();
-    loadPaystack();
   }, []);
 
-  const loadPaystack = () => {
-    if (window.PaystackPop) {
-      setPaystackReady(true);
-      return;
-    }
-    if (document.getElementById('paystack-script')) return;
-    const script = document.createElement('script');
-    script.id = 'paystack-script';
-    script.src = 'https://js.paystack.co/v1/inline.js';
-    script.onload = () => setPaystackReady(true);
-    script.onerror = () => console.error('Paystack failed to load');
-    document.head.appendChild(script);
-  };
+
 
   const fetchTracks = async () => {
     try {
@@ -99,11 +87,10 @@ export default function ArtistPromotePage() {
       return;
     }
 
-    if (!window.PaystackPop) {
-      loadPaystack();
-      setError('Payment loading — please try again in 3 seconds.');
-      return;
-    }
+    if (!window.PaystackPop || !paystackReady) {
+  setError('Payment system still loading. Please try again.');
+  return;
+}
 
     if (!currentPkg) {
       setError('Package not selected.');
@@ -145,7 +132,7 @@ export default function ArtistPromotePage() {
             '\n\nPlease activate my campaign.'
           );
           setTimeout(function() {
-            window.open('https://wa.me/2348168099351?text=' + msg, '_blank');
+            window.open('https://wa.me/2348158934171?text=' + msg, '_blank');
           }, 1000);
         });
       },
@@ -176,8 +163,18 @@ export default function ArtistPromotePage() {
     );
   }
 
-  return (
+  
+   return (
+  <>
+    <Script
+      src="https://js.paystack.co/v1/inline.js"
+      onLoad={() => setPaystackReady(true)}
+      onError={() =>
+        setError('Payment system failed to load. Use WhatsApp option.')
+      }
+    />
     <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 40 }}>
+
       {/* Header */}
       <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, background: '#0D1F3C', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, zIndex: 10 }}>
         <button onClick={() => step > 1 ? setStep(s => s - 1) : router.back()}
@@ -358,7 +355,7 @@ export default function ArtistPromotePage() {
                   '\nEmail: ' + (user ? user.email : '') +
                   '\n\nPlease send payment details.'
                 );
-                window.open('https://wa.me/2348168099351?text=' + msg, '_blank');
+                window.open('https://wa.me/2348158934171?text=' + msg, '_blank');
               }}
               style={{ width: '100%', padding: '14px', borderRadius: 12, background: 'rgba(37,211,102,0.08)', border: '1px solid rgba(37,211,102,0.2)', color: '#25D366', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               Pay via WhatsApp Instead
@@ -366,6 +363,7 @@ export default function ArtistPromotePage() {
           </>
         )}
       </div>
-    </div>
-  );
+       </div>
+  </>
+);
 }
