@@ -1,12 +1,12 @@
 {
   "name": "Rewaiq",
   "short_name": "Rewaiq",
-  "description": "Africa's digital earning platform. Stream music, complete tasks and earn real NGN.",
+  "description": "Africa's digital earning platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A1628",
   "theme_color": "#4a9eff",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -20,8 +20,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "categories": ["finance", "entertainment", "productivity"],
-  "lang": "en-NG",
-  "scope": "/"
+  ]
 }

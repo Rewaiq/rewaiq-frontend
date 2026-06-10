@@ -5,6 +5,9 @@ import { ArrowLeft, ExternalLink, Upload, CheckCircle, Coins, Camera } from 'luc
 import API from '@/lib/api';
 import Spinner from '@/components/Spinner';
 
+const CLOUDINARY_CLOUD_NAME = 'dz9br2ju7'; 
+const CLOUDINARY_UPLOAD_PRESET = 'rewaiq_proofs';
+
 function TaskContent() {
   const router = useRouter();
   const params = useSearchParams();
@@ -12,6 +15,8 @@ function TaskContent() {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [proof, setProof] = useState('');
+  const [proofPreview, setProofPreview] = useState('');
+  const [uploadingProof, setUploadingProof] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -27,47 +32,80 @@ function TaskContent() {
     } catch {} finally { setLoading(false); }
   };
 
+  const handleProofUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingProof(true);
+    setError('');
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onload = (ev) => setProofPreview(ev.target.result);
+    reader.readAsDataURL(file);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+      );
+      const data = await res.json();
+
+      if (data.secure_url) {
+        setProof(data.secure_url);
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch {
+      setError('Image upload failed. Please paste a link instead.');
+      setProofPreview('');
+    } finally { setUploadingProof(false); }
+  };
+
   const handleSubmit = async () => {
-    if (!proof) { setError('Please provide proof of completion'); return; }
+    if (!proof) { setError('Please upload a screenshot or paste a link'); return; }
     setSubmitting(true); setError('');
     try {
       await API.post(`/api/tasks/${taskId}/complete`, { proof_url: proof });
       setSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Submission failed');
+      setError(err.response?.data?.message || 'Submission failed. Try again.');
     } finally { setSubmitting(false); }
   };
 
   const getInstructions = (task) => {
     switch (task.task_type) {
       case 'follow': return [
-        `Open the link below and follow the account`,
-        `Take a screenshot showing you followed`,
-        `Paste the screenshot link or describe below`,
-        `Submit for review`,
+        'Open the link below and follow the account',
+        'Take a screenshot showing you followed',
+        'Upload the screenshot below',
+        'Submit for review',
       ];
       case 'watch': return [
-        `Click the link below to watch the video`,
-        `Watch for at least 60 seconds`,
-        `Screenshot the video showing progress`,
-        `Submit screenshot link below`,
+        'Click the link below to watch the video',
+        'Watch for at least 60 seconds',
+        'Screenshot the video showing progress',
+        'Upload screenshot and submit',
       ];
       case 'share': return [
-        `Click the link below`,
-        `Share to your WhatsApp status or any social media`,
-        `Screenshot your share`,
-        `Submit screenshot link below`,
+        'Click the link below',
+        'Share to your WhatsApp status or any social media',
+        'Screenshot your share confirmation',
+        'Upload screenshot and submit',
       ];
       case 'review': return [
-        `Click the link below to leave a review`,
-        `Write an honest review`,
-        `Screenshot your submitted review`,
-        `Submit screenshot link below`,
+        'Click the link below to leave a review',
+        'Write an honest review',
+        'Screenshot your submitted review',
+        'Upload screenshot and submit',
       ];
       default: return [
-        `Complete the task using the link below`,
-        `Take a screenshot as proof`,
-        `Submit your proof below`,
+        'Complete the task using the link below',
+        'Take a screenshot as proof',
+        'Upload screenshot and submit',
       ];
     }
   };
@@ -84,7 +122,7 @@ function TaskContent() {
           Submitted for Review
         </h2>
         <p style={{ fontSize: 14, color: '#8A9BB0', textAlign: 'center', marginBottom: 8, lineHeight: 1.7, maxWidth: 280 }}>
-          Your submission is being reviewed. Coins will be credited once approved by our team.
+          Your submission is being reviewed. Coins will be credited once approved.
         </p>
         <div style={{ background: 'rgba(74,158,255,0.08)', border: '1px solid rgba(74,158,255,0.2)', borderRadius: 12, padding: '14px 20px', marginBottom: 28, textAlign: 'center' }}>
           <p style={{ fontSize: 13, color: '#4a9eff', margin: 0 }}>Usually reviewed within 2-4 hours</p>
@@ -119,6 +157,7 @@ function TaskContent() {
       </div>
 
       <div style={{ padding: '20px' }}>
+
         {/* Task card */}
         <div style={{ background: '#0D1F3C', borderRadius: 16, padding: '20px', marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -135,9 +174,8 @@ function TaskContent() {
               <span style={{ fontSize: 16, fontWeight: 700, color: '#4a9eff' }}>+{task.reward_coins}</span>
             </div>
           </div>
-
           {task.description && (
-            <p style={{ fontSize: 14, color: '#8A9BB0', lineHeight: 1.6, marginBottom: 0 }}>{task.description}</p>
+            <p style={{ fontSize: 14, color: '#8A9BB0', lineHeight: 1.6, margin: 0 }}>{task.description}</p>
           )}
         </div>
 
@@ -156,7 +194,7 @@ function TaskContent() {
           ))}
         </div>
 
-        {/* Action button if target URL exists */}
+        {/* Task link */}
         {task.target_url && (
           <a href={task.target_url} target="_blank" rel="noreferrer"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '15px', borderRadius: 12, background: '#0D1F3C', border: '1px solid rgba(74,158,255,0.3)', color: '#4a9eff', fontSize: 15, fontWeight: 600, textDecoration: 'none', marginBottom: 20 }}>
@@ -165,25 +203,59 @@ function TaskContent() {
           </a>
         )}
 
-        {/* Proof submission */}
+        {/* Proof upload */}
         <div style={{ marginBottom: 24 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>
-            Proof of Completion
+            Upload Screenshot as Proof
           </label>
-          <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 10 }}>
-            Upload your screenshot to any image hosting (Imgur, Google Drive, WhatsApp) and paste the link below. Or describe your proof.
-          </p>
-          <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Camera size={16} color="#8A9BB0" />
-            <span style={{ fontSize: 12, color: '#8A9BB0' }}>Take a screenshot and upload to</span>
-            <a href="https://imgur.com/upload" target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#4a9eff', fontWeight: 600 }}>imgur.com</a>
+
+          {/* Upload box */}
+          <label style={{ display: 'block', cursor: 'pointer', marginBottom: 12 }}>
+            <div style={{ border: `2px dashed ${proofPreview ? '#4ADE80' : 'rgba(74,158,255,0.3)'}`, borderRadius: 12, padding: '20px', textAlign: 'center', background: proofPreview ? 'rgba(74,222,128,0.04)' : 'rgba(74,158,255,0.04)', transition: 'all 0.2s' }}>
+              {proofPreview ? (
+                <>
+                  <img src={proofPreview} alt="proof preview" style={{ width: '100%', maxHeight: 220, objectFit: 'contain', borderRadius: 8, marginBottom: 8 }} />
+                  <p style={{ fontSize: 12, color: '#4ADE80', margin: 0, fontWeight: 600 }}>
+                    {uploadingProof ? 'Uploading to cloud...' : 'Screenshot uploaded — tap to change'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Camera size={36} color="#4a9eff" style={{ marginBottom: 10 }} />
+                  <p style={{ fontSize: 14, color: '#4a9eff', fontWeight: 600, margin: '0 0 4px' }}>
+                    {uploadingProof ? 'Uploading...' : 'Tap to upload screenshot'}
+                  </p>
+                  <p style={{ fontSize: 12, color: '#8A9BB0', margin: 0 }}>JPG or PNG — from your gallery or camera</p>
+                </>
+              )}
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleProofUpload}
+              style={{ display: 'none' }}
+              disabled={uploadingProof}
+            />
+          </label>
+
+          {/* OR divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+            <span style={{ fontSize: 11, color: '#8A9BB0' }}>OR paste a link</span>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
           </div>
-          <textarea
-            placeholder="Paste screenshot link here, or describe how you completed the task..."
-            value={proof}
-            onChange={e => setProof(e.target.value)}
-            rows={4}
-            style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: `1.5px solid ${proof ? '#4a9eff' : 'rgba(255,255,255,0.1)'}`, fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)', resize: 'none', fontFamily: 'Inter, sans-serif' }}
+
+          {/* Paste link */}
+          <input
+            type="url"
+            placeholder="https://... (paste screenshot link from Imgur, Drive, etc)"
+            value={proofPreview ? '' : proof}
+            onChange={e => {
+              setProof(e.target.value);
+              setProofPreview('');
+            }}
+            style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${proof && !proofPreview ? '#4a9eff' : 'rgba(255,255,255,0.1)'}`, fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
           />
         </div>
 
@@ -193,10 +265,12 @@ function TaskContent() {
           </div>
         )}
 
-        <button onClick={handleSubmit} disabled={submitting || !proof}
-          style={{ width: '100%', padding: '16px', borderRadius: 14, background: submitting || !proof ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #4a9eff, #2d6be4)', color: submitting || !proof ? '#8A9BB0' : '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: proof ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'Montserrat, sans-serif' }}>
+        <button
+          onClick={handleSubmit}
+          disabled={submitting || uploadingProof || (!proof && !proofPreview)}
+          style={{ width: '100%', padding: '16px', borderRadius: 14, background: submitting || uploadingProof || (!proof && !proofPreview) ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #4a9eff, #2d6be4)', color: submitting || uploadingProof || (!proof && !proofPreview) ? '#8A9BB0' : '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: (!proof && !proofPreview) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'Montserrat, sans-serif' }}>
           <Upload size={18} />
-          {submitting ? 'Submitting...' : 'Submit for Review'}
+          {uploadingProof ? 'Uploading image...' : submitting ? 'Submitting...' : 'Submit for Review'}
         </button>
 
         <p style={{ fontSize: 11, color: '#8A9BB0', textAlign: 'center', marginTop: 12, lineHeight: 1.6 }}>

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Lock, HelpCircle, ChevronRight, Copy, LogOut, Coins, Users, Tag, Zap, Music2, List } from 'lucide-react';
+import { Bell, Lock, HelpCircle, ChevronRight, Copy, LogOut, Coins, Users, Tag, Zap, Music2, List, Sun, Moon } from 'lucide-react';
 import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import Spinner from '@/components/Spinner';
@@ -12,14 +12,22 @@ export default function ProfilePage() {
   const [referrals, setReferrals] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [theme, setTheme] = useState('dark');
 
-  useEffect(() => { fetchProfile(); }, []);
+  useEffect(() => {
+    // Load theme
+    const savedTheme = localStorage.getItem('rewaiq_theme') || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    // Load profile
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
     try {
       const u = localStorage.getItem('rewaiq_user');
       if (!u) { router.push('/login'); return; }
-      
+
       const [profileRes, referralRes] = await Promise.all([
         API.get('/api/profile'),
         API.get('/api/referrals'),
@@ -28,16 +36,23 @@ export default function ProfilePage() {
       localStorage.setItem('rewaiq_user', JSON.stringify(freshUser));
       setUser(freshUser);
       setReferrals(referralRes.data.total_referrals || 0);
-    } catch (err) {
-      // If API fails use cached user
+    } catch {
       const u = localStorage.getItem('rewaiq_user');
       if (u) setUser(JSON.parse(u));
     } finally { setLoading(false); }
   };
 
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('rewaiq_theme', newTheme);
+  };
+
   const handleCopy = () => {
-    if (user?.referral_code) {
-      navigator.clipboard?.writeText(user.referral_code);
+    const code = user?.referral_code || JSON.parse(localStorage.getItem('rewaiq_user') || '{}')?.referral_code;
+    if (code && code !== 'undefined') {
+      navigator.clipboard?.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -51,6 +66,7 @@ export default function ProfilePage() {
   if (loading) return <Spinner fullscreen />;
 
   const menuItems = [
+    { icon: theme === 'dark' ? Sun : Moon, label: `Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`, action: toggleTheme },
     { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
     { icon: Lock, label: 'Change Password', action: () => router.push('/forgot-password') },
     { icon: Tag, label: 'Promo Code', action: () => router.push('/promo') },
@@ -116,24 +132,24 @@ export default function ProfilePage() {
         <p style={{ fontSize: 11, color: '#8A9BB0', marginBottom: 8, letterSpacing: 1.5, textTransform: 'uppercase' }}>
           Your Referral Code
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <p style={{ fontSize: 22, fontWeight: 700, color: '#4a9eff', letterSpacing: 3, fontFamily: 'Montserrat, sans-serif', margin: 0 }}>
-            {user?.referral_code || 'Loading...'}
+            {user?.referral_code && user.referral_code !== 'undefined' ? user.referral_code : 'Loading...'}
           </p>
           <button onClick={handleCopy}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: copied ? 'rgba(26,122,74,0.15)' : 'rgba(74,158,255,0.12)', color: copied ? '#4ADE80' : '#4a9eff', padding: '8px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
             <Copy size={14} /> {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        <p style={{ fontSize: 12, color: '#8A9BB0', marginTop: 8 }}>
+        <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 12 }}>
           Share your code and earn 100 coins for each friend who joins
         </p>
-        {/* Share via WhatsApp */}
         <button onClick={() => {
-          const msg = encodeURIComponent(`Join Rewaiq and start earning money online!\n\nUse my referral code: ${user?.referral_code}\n\nSign up at app.rewaiq.com.ng`);
+          const code = user?.referral_code;
+          const msg = encodeURIComponent(`Join Rewaiq and start earning money online!\n\nUse my referral code: ${code}\n\nSign up at app.rewaiq.com.ng`);
           window.open(`https://wa.me/?text=${msg}`, '_blank');
         }}
-          style={{ width: '100%', marginTop: 12, padding: '11px', borderRadius: 10, background: 'rgba(37,211,102,0.08)', border: '1px solid rgba(37,211,102,0.2)', color: '#25D366', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ width: '100%', padding: '11px', borderRadius: 10, background: 'rgba(37,211,102,0.08)', border: '1px solid rgba(37,211,102,0.2)', color: '#25D366', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           Share on WhatsApp
         </button>
       </div>

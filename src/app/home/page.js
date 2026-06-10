@@ -6,6 +6,7 @@ import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import RewaiqLogo from '@/components/RewaiqLogo';
 import { Users } from "lucide-react";
+import InstallPrompt from '@/components/InstallPrompt';
 
 export default function HomePage() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -117,7 +118,7 @@ useEffect(() => {
           ) : tracks.map(track => <TrackCard key={track.id} track={track} router={router} />)
         )}
       </div>
-
+<InstallPrompt />
       <BottomNav active="home" />
     </div>
   );

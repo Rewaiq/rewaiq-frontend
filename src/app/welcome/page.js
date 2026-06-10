@@ -68,3 +68,8 @@ export default function WelcomePage() {
     </div>
   );
 }
+{/* Install hint */}
+<p style={{ fontSize: 12, color: '#8A9BB0', textAlign: 'center', marginTop: 16 }}>
+  On Android: tap browser menu → "Add to Home Screen"<br/>
+  On iPhone: tap Share → "Add to Home Screen"
+</p>
