@@ -8,7 +8,7 @@ export default function WelcomePage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
       {/* Header */}
-      <div style={{ background: '#0A1628', padding: '18px 24px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ background: 'var(--bg-primary)', padding: '18px 24px', display: 'flex', justifyContent: 'center' }}>
         <RewaiqLogo size={28} />
       </div>
 
@@ -17,7 +17,7 @@ export default function WelcomePage() {
         <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0A1628', textAlign: 'center', marginBottom: 8, fontFamily: 'Montserrat, sans-serif' }}>
           Set Up Your Account
         </h1>
-        <p style={{ fontSize: 14, color: '#8A9BB0', textAlign: 'center', lineHeight: 1.7, maxWidth: 280, marginBottom: 40 }}>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.7, maxWidth: 280, marginBottom: 40 }}>
           Sign up to start building, learning and earning money with every engagement
         </p>
 
@@ -46,7 +46,7 @@ export default function WelcomePage() {
 <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
   <button
     onClick={() => router.push('/register')}
-    style={{ width: '100%', padding: '16px', background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 600, borderRadius: 12, fontFamily: 'Montserrat, sans-serif' }}
+    style={{ width: '100%', padding: '16px', background: '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 600, borderRadius: 12, fontFamily: 'Montserrat, sans-serif' }}
   >
     🎯 Join & Start Earning
   </button>
@@ -69,7 +69,7 @@ export default function WelcomePage() {
   );
 }
 {/* Install hint */}
-<p style={{ fontSize: 12, color: '#8A9BB0', textAlign: 'center', marginTop: 16 }}>
+<p style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center', marginTop: 16 }}>
   On Android: tap browser menu → "Add to Home Screen"<br/>
   On iPhone: tap Share → "Add to Home Screen"
 </p>

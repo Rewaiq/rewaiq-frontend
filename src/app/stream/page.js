@@ -68,18 +68,19 @@ function StreamContent() {
 
   if (earned) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)'
+, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
         <div style={{ width: 100, height: 100, borderRadius: '50%', background: 'rgba(74,158,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, border: '2px solid #4a9eff' }}>
           <Coins size={44} color="#4a9eff" />
         </div>
-        <h2 style={{ fontSize: 28, fontWeight: 700, color: '#fff', marginBottom: 8, fontFamily: 'Montserrat, sans-serif' }}>You earned!</h2>
+        <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, fontFamily: 'Montserrat, sans-serif' }}>You earned!</h2>
         <div style={{ fontSize: 52, fontWeight: 900, color: '#4a9eff', marginBottom: 4, fontFamily: 'Montserrat, sans-serif' }}>+{coins}</div>
-        <p style={{ color: '#8A9BB0', marginBottom: 40, fontSize: 15 }}>Rewaiq Coins added to your wallet</p>
-        <button onClick={() => router.push('/home')} style={{ width: '100%', maxWidth: 320, padding: '16px', borderRadius: 14, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 40, fontSize: 15 }}>Rewaiq Coins added to your wallet</p>
+        <button onClick={() => router.push('/home')} style={{ width: '100%', maxWidth: 320, padding: '16px', borderRadius: 14, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
           Back to Feed
         </button>
         <button onClick={() => { setEarned(false); setStreaming(false); setTimer(60); setSession(null); }}
-          style={{ background: 'none', color: '#8A9BB0', fontSize: 14, padding: '10px' }}>
+          style={{ background: 'none', color: 'var(--text-secondary)', fontSize: 14, padding: '10px' }}>
           Stream Another
         </button>
       </div>
@@ -87,17 +88,18 @@ function StreamContent() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)'
+, display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={() => router.back()} style={{ background: 'none', display: 'flex' }}>
           <ArrowLeft size={22} color="#fff" />
         </button>
-        <span style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>Stream & Earn</span>
+        <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16 }}>Stream & Earn</span>
       </div>
 
       <div style={{ flex: 1, padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {/* Embed player */}
-        <div style={{ width: '100%', borderRadius: 16, overflow: 'hidden', marginBottom: 24, background: '#0D1F3C', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '100%', borderRadius: 16, overflow: 'hidden', marginBottom: 24, background: 'var(--bg-card)', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {track?.embed_url ? (
            <iframe
   src={`${track.embed_url || ''}${(track.embed_url || '').includes('?') ? '&' : '?'}autoplay=${streaming ? 1 : 0}`}
@@ -109,7 +111,7 @@ function StreamContent() {
   style={{ display: 'block' }}
 />
           ) : (
-            <div style={{ textAlign: 'center', color: '#8A9BB0', padding: 40 }}>
+            <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 40 }}>
               <Play size={48} color="#8A9BB0" />
               <p style={{ marginTop: 12 }}>Music player</p>
             </div>
@@ -118,8 +120,8 @@ function StreamContent() {
 
         {/* Track info */}
         <div style={{ width: '100%', marginBottom: 32, textAlign: 'center' }}>
-          <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{track?.title || 'Track'}</h3>
-          <p style={{ fontSize: 14, color: '#8A9BB0' }}>{track?.artist_name || 'Artist'}</p>
+          <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{track?.title || 'Track'}</h3>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{track?.artist_name || 'Artist'}</p>
         </div>
 
         {/* Timer circle */}
@@ -133,11 +135,11 @@ function StreamContent() {
                   strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s linear' }} />
               </svg>
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 34, fontWeight: 900, color: '#fff', fontFamily: 'Montserrat, sans-serif' }}>{timer}</span>
-                <span style={{ fontSize: 11, color: '#8A9BB0' }}>seconds</span>
+                <span style={{ fontSize: 34, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif' }}>{timer}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>seconds</span>
               </div>
             </div>
-            <p style={{ fontSize: 14, color: '#8A9BB0' }}>Keep streaming to earn coins...</p>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Keep streaming to earn coins...</p>
           </div>
         )}
 
@@ -145,7 +147,7 @@ function StreamContent() {
         <div style={{ background: 'rgba(74,158,255,0.08)', border: '1px solid rgba(74,158,255,0.2)', borderRadius: 14, padding: '14px 28px', marginBottom: 32, textAlign: 'center', display: 'flex', alignItems: 'center', gap: 10 }}>
           <Coins size={20} color="#4a9eff" />
           <div>
-            <p style={{ fontSize: 12, color: '#8A9BB0' }}>You will earn</p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>You will earn</p>
             <p style={{ fontSize: 22, fontWeight: 700, color: '#4a9eff' }}>+{track?.campaign_coins || 10} coins</p>
           </div>
         </div>
@@ -153,12 +155,12 @@ function StreamContent() {
         {/* Button */}
         {!streaming ? (
           <button onClick={startStream} disabled={loading}
-            style={{ width: '100%', padding: '16px', borderRadius: 14, background: loading ? '#ccc' : 'linear-gradient(135deg, #4a9eff, #2d6be4)', color: '#fff', fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            style={{ width: '100%', padding: '16px', borderRadius: 14, background: loading ? '#ccc' : 'linear-gradient(135deg, #4a9eff, #2d6be4)', color: 'var(--text-primary)', fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             <Play size={20} fill="#fff" /> {loading ? 'Starting...' : 'Start Streaming'}
           </button>
         ) : (
           <button onClick={endStream}
-            style={{ width: '100%', padding: '16px', borderRadius: 14, background: 'rgba(255,255,255,0.06)', color: '#8A9BB0', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            style={{ width: '100%', padding: '16px', borderRadius: 14, background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <Square size={16} /> Stop Stream (forfeit coins)
           </button>
         )}
@@ -168,7 +170,8 @@ function StreamContent() {
 }
 
 export default function StreamPage() {
-  return <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A9BB0' }}><Spinner /></div>}>
+  return <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg-primary)'
+, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}><Spinner /></div>}>
     <StreamContent />
   </Suspense>;
 }

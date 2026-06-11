@@ -147,16 +147,16 @@ export default function ArtistPromotePage() {
 
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <CheckCircle size={64} color="#4ADE80" style={{ marginBottom: 20 }} />
-        <h2 style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 8, fontFamily: 'Montserrat, sans-serif', textAlign: 'center' }}>
+        <h2 style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 8, fontFamily: 'Montserrat, sans-serif', textAlign: 'center' }}>
           Campaign Activated!
         </h2>
-        <p style={{ fontSize: 14, color: '#8A9BB0', textAlign: 'center', marginBottom: 28, lineHeight: 1.7, maxWidth: 300 }}>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 28, lineHeight: 1.7, maxWidth: 300 }}>
           Your track is now being promoted to Rewaiq users. They earn coins by streaming your music.
         </p>
         <button onClick={() => router.push('/artist/tracks')}
-          style={{ width: '100%', maxWidth: 320, padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+          style={{ width: '100%', maxWidth: 320, padding: '15px', borderRadius: 12, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
           View My Tracks
         </button>
       </div>
@@ -173,17 +173,17 @@ export default function ArtistPromotePage() {
         setError('Payment system failed to load. Use WhatsApp option.')
       }
     />
-    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 40 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 40 }}>
 
       {/* Header */}
-      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, background: '#0D1F3C', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, zIndex: 10 }}>
+      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-card)', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, zIndex: 10 }}>
         <button onClick={() => step > 1 ? setStep(s => s - 1) : router.back()}
           style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
           <ArrowLeft size={22} color="#fff" />
         </button>
         <div style={{ flex: 1 }}>
-          <p style={{ color: '#fff', fontWeight: 600, fontSize: 16, margin: 0 }}>Promote Your Music</p>
-          <p style={{ color: '#8A9BB0', fontSize: 11, margin: 0 }}>Step {step} of 3</p>
+          <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16, margin: 0 }}>Promote Your Music</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 11, margin: 0 }}>Step {step} of 3</p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {[1, 2, 3].map(s => (
@@ -197,18 +197,18 @@ export default function ArtistPromotePage() {
         {/* STEP 1 — Select track */}
         {step === 1 && (
           <>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>
               Select Your Track
             </h3>
-            <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 20 }}>Choose which track to promote.</p>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20 }}>Choose which track to promote.</p>
 
             {tracksLoading ? <Spinner /> : tracks.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <Music2 size={40} color="#8A9BB0" style={{ marginBottom: 12 }} />
-                <p style={{ color: '#fff', fontWeight: 600, marginBottom: 8 }}>No tracks yet</p>
-                <p style={{ color: '#8A9BB0', fontSize: 13, marginBottom: 20 }}>Upload a track first before promoting</p>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8 }}>No tracks yet</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 20 }}>Upload a track first before promoting</p>
                 <button onClick={() => router.push('/artist/upload')}
-                  style={{ padding: '12px 24px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                  style={{ padding: '12px 24px', borderRadius: 12, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                   Upload Track
                 </button>
               </div>
@@ -222,8 +222,8 @@ export default function ArtistPromotePage() {
                         <Music2 size={20} color="#4a9eff" />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>{track.title}</p>
-                        <p style={{ fontSize: 12, color: '#8A9BB0', margin: '2px 0 0' }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{track.title}</p>
+                        <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
                           {track.genre || 'No genre'} · {track.total_streams || 0} streams
                         </p>
                       </div>
@@ -251,10 +251,10 @@ export default function ArtistPromotePage() {
         {/* STEP 2 — Select package */}
         {step === 2 && (
           <>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>
               Choose Campaign
             </h3>
-            <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 20 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20 }}>
               More coins per stream means more users motivated to listen.
             </p>
 
@@ -267,10 +267,10 @@ export default function ArtistPromotePage() {
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: 0 }}>{pkg.name}</p>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{pkg.name}</p>
                   <p style={{ fontSize: 20, fontWeight: 900, color: '#4a9eff', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>{pkg.display}</p>
                 </div>
-                <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 12 }}>{pkg.desc}</p>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>{pkg.desc}</p>
                 <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Play size={12} color="#4ADE80" />
@@ -304,11 +304,11 @@ export default function ArtistPromotePage() {
         {/* STEP 3 — Review and pay */}
         {step === 3 && currentPkg && selectedTrack && (
           <>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 16, fontFamily: 'Montserrat, sans-serif' }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16, fontFamily: 'Montserrat, sans-serif' }}>
               Review and Pay
             </h3>
 
-            <div style={{ background: '#0D1F3C', borderRadius: 16, padding: '20px', marginBottom: 20 }}>
+            <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: '20px', marginBottom: 20 }}>
               {[
                 { label: 'Track', value: selectedTrack.title },
                 { label: 'Package', value: currentPkg.name },
@@ -318,8 +318,8 @@ export default function ArtistPromotePage() {
                 { label: 'Amount to Pay', value: currentPkg.display },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize: 13, color: '#8A9BB0' }}>{item.label}</span>
-                  <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{item.value}</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item.label}</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>{item.value}</span>
                 </div>
               ))}
             </div>
@@ -343,7 +343,7 @@ export default function ArtistPromotePage() {
               {loading ? 'Opening Paystack...' : 'Pay ' + currentPkg.display}
             </button>
 
-            <p style={{ fontSize: 11, color: '#8A9BB0', textAlign: 'center', marginBottom: 16 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 16 }}>
               Secured by Paystack. Campaign activates within 2 hours of payment.
             </p>
 
