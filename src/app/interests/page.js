@@ -35,7 +35,7 @@ export default function InterestsPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{ padding: '48px 24px 24px' }}>
         {/* Step indicator */}
@@ -47,10 +47,10 @@ export default function InterestsPage() {
         <p style={{ fontSize: 12, color: '#4a9eff', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
           Final Step
         </p>
-        <h2 style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 8, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.2 }}>
+        <h2 style={{ fontSize: 26, fontWeight: 900, color: '#fff', marginBottom: 8, fontFamily: 'Montserrat, sans-serif', lineHeight: 1.2 }}>
           What are you into? 🎯
         </h2>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: '#8A9BB0', lineHeight: 1.6 }}>
           Choose your interests so we show you the best earning opportunities. The more you pick the better your feed.
         </p>
       </div>
@@ -59,8 +59,8 @@ export default function InterestsPage() {
       <div style={{ margin: '0 24px 20px', background: 'rgba(74,158,255,0.08)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 12, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <Sparkles size={18} color="#4a9eff" style={{ flexShrink: 0, marginTop: 2 }} />
         <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>Personalised for you</p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>We'll show you music, tasks and opportunities matching what you love — so every minute on Rewaiq is worth more.</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 3 }}>Personalised for you</p>
+          <p style={{ fontSize: 12, color: '#8A9BB0', lineHeight: 1.5 }}>We'll show you music, tasks and opportunities matching what you love — so every minute on Rewaiq is worth more.</p>
         </div>
       </div>
 
@@ -89,7 +89,7 @@ export default function InterestsPage() {
               >
                 {sel && (
                   <div style={{ position: 'absolute', top: 10, right: 10, width: 18, height: 18, borderRadius: '50%', background: '#4a9eff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color: 'var(--text-primary)', fontSize: 10, fontWeight: 700 }}>✓</span>
+                    <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>✓</span>
                   </div>
                 )}
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: sel ? 'rgba(74,158,255,0.2)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -137,7 +137,7 @@ export default function InterestsPage() {
         </button>
         <p
           onClick={() => router.push('/home')}
-          style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13, marginTop: 12, cursor: 'pointer' }}
+          style={{ textAlign: 'center', color: '#8A9BB0', fontSize: 13, marginTop: 12, cursor: 'pointer' }}
         >
           Skip — I'll set this up later
         </p>

@@ -51,9 +51,9 @@ useEffect(() => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 80 }}>
     {/* Header */}
-<div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-primary)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+<div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0A1628', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
   {/* Left — Logo */}
   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
     <svg width="24" height="20" viewBox="0 0 100 80">
@@ -61,7 +61,7 @@ useEffect(() => {
       <path d="M12.2466 20.8923C9.56504 17.9523 8.61661 13.8979 9.13672 10.6093C9.62504 7.52173 11.9248 5.00455 14.5282 3.27418C15.9203 2.34889 17.5956 1.50727 19.4373 0.975666C20.5603 0.651546 21.7464 1.00602 22.6382 1.76144L98.8583 66.325C99.196 66.611 99.1179 67.1516 98.712 67.3279C90.4102 70.9338 84.6197 72.1928 72.4271 71.665C71.9846 71.6459 71.5565 71.4777 71.2195 71.1903L12.2466 20.8923Z" fill="#4a9eff"/>
       <path d="M72.4608 71.6478C84.77 72.2692 90.6026 71.0456 98.9505 67.478C99.3591 67.3034 99.4388 66.76 99.0994 66.4732L63.7412 36.6038C53.6976 40.1309 47.5016 40.9898 35.5864 40.7853L71.2682 71.1746C71.6014 71.4583 72.0237 71.6257 72.4608 71.6478Z" fill="#2d6be4"/>
     </svg>
-    <span style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>Rewaiq</span>
+    <span style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 18, color: '#fff', letterSpacing: '-0.5px' }}>Rewaiq</span>
   </div>
 
   {/* Right — coins + notification + avatar */}
@@ -76,14 +76,14 @@ useEffect(() => {
     <div onClick={() => router.push('/notifications')} style={{ position: 'relative', cursor: 'pointer', width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <Bell size={18} color="#8A9BB0" />
       {unreadCount > 0 && (
-        <div style={{ position: 'absolute', top: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#F87171', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div style={{ position: 'absolute', top: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#F87171', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
           {unreadCount > 9 ? '9+' : unreadCount}
         </div>
       )}
     </div>
 
     {/* Avatar */}
-    <div onClick={() => router.push('/profile')} style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #4a9eff, #1a3a8f)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', cursor: 'pointer', flexShrink: 0 }}>
+    <div onClick={() => router.push('/profile')} style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #4a9eff, #1a3a8f)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
       {user?.profile_picture
         ? <img src={user.profile_picture} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
         : user?.full_name?.[0] || 'U'}
@@ -107,7 +107,7 @@ useEffect(() => {
       {/* Content */}
       <div style={{ padding: '0 20px' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>Loading feed...</div>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>Loading feed...</div>
         ) : tab === 'tasks' ? (
           tasks.length === 0 ? (
             <Empty icon="📋" title="No tasks yet" sub="Tasks will appear here" />
@@ -126,9 +126,9 @@ useEffect(() => {
 
 function Empty({ icon, title, sub }) {
   return (
-    <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
+    <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>
       <div style={{ fontSize: 44, marginBottom: 12 }}>{icon}</div>
-      <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{title}</p>
+      <p style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>{title}</p>
       <p style={{ fontSize: 13 }}>{sub}</p>
     </div>
   );
@@ -136,25 +136,25 @@ function Empty({ icon, title, sub }) {
 
 function TrackCard({ track, router }) {
   return (
-    <div onClick={() => router.push(`/stream?id=${track.id}`)} style={{ background: 'var(--bg-card)', borderRadius: 16, marginBottom: 16, overflow: 'hidden', cursor: 'pointer' }}>
+    <div onClick={() => router.push(`/stream?id=${track.id}`)} style={{ background: '#0D1F3C', borderRadius: 16, marginBottom: 16, overflow: 'hidden', cursor: 'pointer' }}>
       <div style={{ height: 180, background: 'linear-gradient(135deg, #0D1F3C, #1a3a8f, #0D1F3C)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Play size={24} color="#fff" fill="#fff" />
         </div>
-        <div style={{ position: 'absolute', top: 12, right: 12, background: '#4a9eff', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ position: 'absolute', top: 12, right: 12, background: '#4a9eff', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 4 }}>
           <Coins size={12} /> +{track.campaign_coins}
         </div>
       </div>
       <div style={{ padding: '14px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#4a9eff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#4a9eff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
             {track.artist_name?.[0] || 'A'}
           </div>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{track.artist_name || 'Artist'}</span>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 'auto', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 10 }}>{track.content_type}</span>
+          <span style={{ fontSize: 13, color: '#8A9BB0' }}>{track.artist_name || 'Artist'}</span>
+          <span style={{ fontSize: 11, color: '#8A9BB0', marginLeft: 'auto', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 10 }}>{track.content_type}</span>
         </div>
-        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{track.title}</p>
-        {track.description && <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{track.description?.slice(0, 80)}...</p>}
+        <p style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{track.title}</p>
+        {track.description && <p style={{ fontSize: 12, color: '#8A9BB0', lineHeight: 1.5 }}>{track.description?.slice(0, 80)}...</p>}
       </div>
     </div>
   );
@@ -169,8 +169,8 @@ function TrackCard({ track, router }) {
         <Users size={22} color="#4a9eff" />
       </div>
       <div>
-        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Follow Rewaiq</p>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '2px 0 0' }}>Follow us on Instagram and earn</p>
+        <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>Follow Rewaiq</p>
+        <p style={{ fontSize: 11, color: '#8A9BB0', margin: '2px 0 0' }}>Follow us on Instagram and earn</p>
       </div>
     </div>
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(74,158,255,0.15)', padding: '4px 10px', borderRadius: 20 }}>
@@ -180,7 +180,7 @@ function TrackCard({ track, router }) {
   </div>
   <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 10 }} />
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Takes 30 seconds</span>
+    <span style={{ fontSize: 12, color: '#8A9BB0' }}>Takes 30 seconds</span>
     <span style={{ fontSize: 12, color: '#4a9eff', fontWeight: 600 }}>Do this now</span>
   </div>
 </div>
@@ -198,16 +198,16 @@ function TrackCard({ track, router }) {
 function TaskCard({ task, router }) {
   return (
     <div onClick={() => !task.completed && router.push(`/task?id=${task.id}`)}
-      style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14, cursor: task.completed ? 'default' : 'pointer', opacity: task.completed ? 0.6 : 1 }}>
+      style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14, cursor: task.completed ? 'default' : 'pointer', opacity: task.completed ? 0.6 : 1 }}>
       <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(74,158,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {task.completed ? <CheckCircle size={24} color="#1A7A4A" /> : <Circle size={24} color="#4a9eff" />}
       </div>
       <div style={{ flex: 1 }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{task.title}</p>
+        <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 3 }}>{task.title}</p>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{task.task_type}</span>
+          <span style={{ fontSize: 11, color: '#8A9BB0', textTransform: 'capitalize' }}>{task.task_type}</span>
           {task.completion_count > 0 && (
-            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{task.completion_count} completed</span>
+            <span style={{ fontSize: 11, color: '#8A9BB0' }}>{task.completion_count} completed</span>
           )}
         </div>
       </div>

@@ -40,19 +40,19 @@ export default function CreateTaskPage() {
 
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <CheckCircle size={56} color="#4ADE80" style={{ marginBottom: 16 }} />
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, fontFamily: 'Montserrat, sans-serif' }}>Task Created!</h2>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 28, textAlign: 'center' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 8, fontFamily: 'Montserrat, sans-serif' }}>Task Created!</h2>
+        <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 28, textAlign: 'center' }}>
           The task is now live and users can start completing it.
         </p>
         <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 320 }}>
           <button onClick={() => { setSuccess(false); setForm({ title: '', description: '', reward_coins: 30, task_type: 'follow', target_url: '' }); }}
-            style={{ flex: 1, padding: '13px', borderRadius: 12, background: 'rgba(255,255,255,0.08)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '13px', borderRadius: 12, background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
             Create Another
           </button>
           <button onClick={() => router.push('/admin')}
-            style={{ flex: 1, padding: '13px', borderRadius: 12, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '13px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
             Back to Admin
           </button>
         </div>
@@ -61,12 +61,12 @@ export default function CreateTaskPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 40 }}>
-      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-card)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 40 }}>
+      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, background: '#0D1F3C', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
           <ArrowLeft size={22} color="#fff" />
         </button>
-        <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16 }}>Create New Task</span>
+        <span style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>Create New Task</span>
       </div>
 
       <div style={{ padding: '24px 20px' }}>
@@ -78,7 +78,7 @@ export default function CreateTaskPage() {
 
         {/* Task type */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>
             Task Type
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
@@ -94,35 +94,35 @@ export default function CreateTaskPage() {
 
         {/* Title */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Task Title *</label>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 6 }}>Task Title *</label>
           <input type="text" placeholder="e.g. Follow Rewaiq on Instagram"
             value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: `1.5px solid ${form.title ? '#4a9eff' : 'rgba(255,255,255,0.1)'}`, fontSize: 14, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)' }}
+            style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: `1.5px solid ${form.title ? '#4a9eff' : 'rgba(255,255,255,0.1)'}`, fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
           />
         </div>
 
         {/* Description */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Description</label>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 6 }}>Description</label>
           <textarea placeholder="Describe what users need to do to complete this task..."
             value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            rows={3} style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)', resize: 'none', fontFamily: 'Inter, sans-serif' }}
+            rows={3} style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)', resize: 'none', fontFamily: 'Inter, sans-serif' }}
           />
         </div>
 
         {/* Target URL */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Target URL (optional)</label>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 6 }}>Target URL (optional)</label>
           <input type="url" placeholder="https://instagram.com/rewaiq"
             value={form.target_url} onChange={e => setForm(f => ({ ...f, target_url: e.target.value }))}
-            style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)' }}
+            style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
           />
         </div>
 
         {/* Reward coins */}
-        <div style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '16px', marginBottom: 28 }}>
+        <div style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 28 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Reward per completion</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Reward per completion</label>
             <span style={{ fontSize: 16, fontWeight: 700, color: '#4a9eff' }}>{form.reward_coins} coins</span>
           </div>
           <input type="range" min={10} max={500} step={10} value={form.reward_coins}
@@ -130,9 +130,9 @@ export default function CreateTaskPage() {
             style={{ width: '100%', accentColor: '#4a9eff' }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>10 min</span>
-            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>= N{(form.reward_coins / 2).toFixed(0)} per user</span>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>500 max</span>
+            <span style={{ fontSize: 10, color: '#8A9BB0' }}>10 min</span>
+            <span style={{ fontSize: 11, color: '#8A9BB0' }}>= N{(form.reward_coins / 2).toFixed(0)} per user</span>
+            <span style={{ fontSize: 10, color: '#8A9BB0' }}>500 max</span>
           </div>
 
           {/* Quick presets */}

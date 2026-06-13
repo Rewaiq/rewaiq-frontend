@@ -28,16 +28,16 @@ export default function LoginPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ background: 'var(--bg-primary)', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={() => router.back()} style={{ background: 'none', color: 'var(--text-primary)', fontSize: 20 }}>←</button>
-        <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16, fontFamily: 'Montserrat, sans-serif' }}>Welcome Back</span>
+      <div style={{ background: '#0A1628', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button onClick={() => router.back()} style={{ background: 'none', color: '#fff', fontSize: 20 }}>←</button>
+        <span style={{ color: '#fff', fontWeight: 600, fontSize: 16, fontFamily: 'Montserrat, sans-serif' }}>Welcome Back</span>
       </div>
 
       <div style={{ flex: 1, padding: '40px 24px', background: '#fff' }}>
         <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0A1628', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>
           Welcome Back 👋
         </h2>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 32 }}>Login to continue earning</p>
+        <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 32 }}>Login to continue earning</p>
 
         {error && (
           <div style={{ background: '#FFF0F0', border: '1px solid #ffcccc', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#C0392B', fontSize: 13 }}>
@@ -66,7 +66,7 @@ export default function LoginPage() {
               onChange={e => setForm({ ...form, password: e.target.value })}
               style={{ width: '100%', padding: '14px 48px 14px 16px', borderRadius: 10, border: '1.5px solid #E0E8F0', fontSize: 15, color: '#0A1628', background: '#F8FAFC' }}
             />
-            <button onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', fontSize: 18, color: 'var(--text-secondary)' }}>
+            <button onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', fontSize: 18, color: '#8A9BB0' }}>
               {showPass ? '👁' : '👁‍🗨'}
             </button>
           </div>
@@ -88,12 +88,12 @@ export default function LoginPage() {
         <button
           onClick={handleSubmit}
           disabled={loading}
-          style={{ width: '100%', padding: '16px', borderRadius: 12, background: loading ? '#ccc' : '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', marginBottom: 16 }}
+          style={{ width: '100%', padding: '16px', borderRadius: 12, background: loading ? '#ccc' : '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'Montserrat, sans-serif', marginBottom: 16 }}
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
 
-        <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-secondary)' }}>
+        <p style={{ textAlign: 'center', fontSize: 14, color: '#8A9BB0' }}>
           Don't have an account?{' '}
           <span onClick={() => router.push('/register')} style={{ color: '#4a9eff', fontWeight: 600, cursor: 'pointer' }}>
             Create Account

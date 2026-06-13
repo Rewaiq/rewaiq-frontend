@@ -107,13 +107,13 @@ export default function WalletPage() {
   if (loading) return <Spinner fullscreen />;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 80 }}>
       {/* Header */}
       <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <button onClick={() => router.back()} style={{ background: 'none', display: 'flex' }}>
           <ArrowLeft size={22} color="#fff" />
         </button>
-        <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16 }}>My Wallet</span>
+        <span style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>My Wallet</span>
       </div>
 
       {/* Balance card */}
@@ -122,7 +122,7 @@ export default function WalletPage() {
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginBottom: 6, letterSpacing: 2, textTransform: 'uppercase' }}>Total Balance</p>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
           <Coins size={22} color="rgba(255,255,255,0.8)" />
-          <p style={{ fontSize: 46, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif', margin: 0 }}>
+          <p style={{ fontSize: 46, fontWeight: 900, color: '#fff', fontFamily: 'Montserrat, sans-serif', margin: 0 }}>
             {balance.toLocaleString()}
           </p>
         </div>
@@ -131,11 +131,11 @@ export default function WalletPage() {
         </p>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={() => { setShowCashout(true); setStep(1); setCashoutSuccess(false); setCashoutError(''); }}
-            style={{ flex: 1, padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.2)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
             Cashout
           </button>
           <button onClick={() => router.push('/home')}
-            style={{ flex: 1, padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
             Earn More
           </button>
         </div>
@@ -148,9 +148,9 @@ export default function WalletPage() {
           { label: 'Min Cashout', value: '1,000 coins' },
           { label: 'Rate', value: '2 coins = N1' },
         ].map(s => (
-          <div key={s.label} style={{ flex: 1, background: 'var(--bg-card)', borderRadius: 12, padding: '12px', textAlign: 'center' }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2, margin: 0 }}>{s.value}</p>
-            <p style={{ fontSize: 10, color: 'var(--text-secondary)', margin: '4px 0 0' }}>{s.label}</p>
+          <div key={s.label} style={{ flex: 1, background: '#0D1F3C', borderRadius: 12, padding: '12px', textAlign: 'center' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2, margin: 0 }}>{s.value}</p>
+            <p style={{ fontSize: 10, color: '#8A9BB0', margin: '4px 0 0' }}>{s.label}</p>
           </div>
         ))}
       </div>
@@ -159,7 +159,7 @@ export default function WalletPage() {
       {user?.role === 'artist' && (
         <div style={{ margin: '0 20px 20px', background: 'rgba(212,160,23,0.06)', border: '1px solid rgba(212,160,23,0.15)', borderRadius: 16, padding: '18px 20px' }}>
           <p style={{ fontSize: 12, fontWeight: 700, color: '#D4A017', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Artist Campaign Payment</p>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 12, lineHeight: 1.6 }}>
             To activate your campaign after approval, complete payment below.
           </p>
           {[
@@ -168,9 +168,9 @@ export default function WalletPage() {
             { name: 'Viral', price: 'N80,000', streams: '5,000 streams' },
           ].map(pkg => (
             <div key={pkg.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>{pkg.name}</span>
+              <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{pkg.name}</span>
               <span style={{ fontSize: 13, color: '#D4A017', fontWeight: 700 }}>{pkg.price}</span>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{pkg.streams}</span>
+              <span style={{ fontSize: 12, color: '#8A9BB0' }}>{pkg.streams}</span>
             </div>
           ))}
           <a href="mailto:info@rewaiq.com.ng?subject=Campaign Payment"
@@ -182,23 +182,23 @@ export default function WalletPage() {
 
       {/* Transaction history */}
       <div style={{ padding: '0 20px' }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 14 }}>Transaction History</p>
+        <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 14 }}>Transaction History</p>
         {transactions.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A9BB0' }}>
             <Coins size={36} color="#8A9BB0" style={{ marginBottom: 8 }} />
             <p>No transactions yet</p>
             <p style={{ fontSize: 12, marginTop: 4 }}>Start streaming to earn coins</p>
           </div>
         ) : transactions.map(tx => (
-          <div key={tx.id} style={{ background: 'var(--bg-card)', borderRadius: 12, padding: '14px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div key={tx.id} style={{ background: '#0D1F3C', borderRadius: 12, padding: '14px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(74,158,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {txIcon(tx.type)}
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize', marginBottom: 2 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#fff', textTransform: 'capitalize', marginBottom: 2 }}>
                 {tx.type.replace(/_/g, ' ')}
               </p>
-              <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+              <p style={{ fontSize: 11, color: '#8A9BB0' }}>
                 {new Date(tx.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
             </div>
@@ -212,10 +212,10 @@ export default function WalletPage() {
       {/* Cashout modal */}
       {showCashout && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
-          <div style={{ width: '100%', background: 'var(--bg-card)', borderRadius: '20px 20px 0 0', padding: '28px 24px 48px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ width: '100%', background: '#0D1F3C', borderRadius: '20px 20px 0 0', padding: '28px 24px 48px', maxHeight: '90vh', overflowY: 'auto' }}>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>
                 {cashoutSuccess ? 'Request Submitted' : step === 1 ? 'Enter Amount' : step === 2 ? 'Bank Details' : 'Confirm'}
               </h3>
               <button onClick={() => setShowCashout(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -228,15 +228,15 @@ export default function WalletPage() {
                 <div style={{ width: 70, height: 70, borderRadius: '50%', background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <Coins size={32} color="#4ADE80" />
                 </div>
-                <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Request Submitted!</p>
-                <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 8, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Request Submitted!</p>
+                <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 8, lineHeight: 1.6 }}>
                   Your cashout request of N{coinsToNaira(cashoutForm.coins).toLocaleString()} NGN has been submitted.
                 </p>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>
+                <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 24 }}>
                   Processing within 24-48 hours. You will be notified once complete.
                 </p>
                 <button onClick={() => setShowCashout(false)}
-                  style={{ padding: '13px 32px', borderRadius: 12, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                  style={{ padding: '13px 32px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                   Done
                 </button>
               </div>
@@ -246,12 +246,12 @@ export default function WalletPage() {
                 {step === 1 && (
                   <>
                     <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '16px', marginBottom: 20, textAlign: 'center' }}>
-                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>Available balance</p>
+                      <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 4 }}>Available balance</p>
                       <p style={{ fontSize: 28, fontWeight: 900, color: '#4a9eff', fontFamily: 'Montserrat, sans-serif', margin: 0 }}>{balance.toLocaleString()} coins</p>
-                      <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>= N{naira.toLocaleString()} NGN</p>
+                      <p style={{ fontSize: 14, color: '#8A9BB0', marginTop: 4 }}>= N{naira.toLocaleString()} NGN</p>
                     </div>
 
-                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>
                       Coins to cashout (min 1,000)
                     </label>
                     <input
@@ -259,7 +259,7 @@ export default function WalletPage() {
                       placeholder="Enter amount"
                       value={cashoutForm.coins}
                       onChange={e => setCashoutForm(f => ({ ...f, coins: e.target.value }))}
-                      style={{ width: '100%', padding: '14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 18, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)', marginBottom: 8, fontWeight: 700, textAlign: 'center', fontFamily: 'Montserrat, sans-serif' }}
+                      style={{ width: '100%', padding: '14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff', background: 'rgba(255,255,255,0.05)', marginBottom: 8, fontWeight: 700, textAlign: 'center', fontFamily: 'Montserrat, sans-serif' }}
                     />
 
                     {cashoutForm.coins && (
@@ -286,7 +286,7 @@ export default function WalletPage() {
                       setCashoutError('');
                       setStep(2);
                     }}
-                      style={{ width: '100%', padding: '15px', borderRadius: 12, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                      style={{ width: '100%', padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
                       Next — Enter Bank Details
                     </button>
                   </>
@@ -296,7 +296,7 @@ export default function WalletPage() {
                 {step === 2 && (
                   <>
                     <div style={{ marginBottom: 16 }}>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>Select Bank</label>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Select Bank</label>
                       <div style={{ position: 'relative' }}>
                         <select
                           value={cashoutForm.bank_name}
@@ -304,7 +304,7 @@ export default function WalletPage() {
                             const bank = NIGERIAN_BANKS.find(b => b.name === e.target.value);
                             if (bank) handleBankSelect(bank);
                           }}
-                          style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 15, color: cashoutForm.bank_name ? '#fff' : '#8A9BB0', background: 'var(--bg-primary)', appearance: 'none', cursor: 'pointer' }}
+                          style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 15, color: cashoutForm.bank_name ? '#fff' : '#8A9BB0', background: '#0A1628', appearance: 'none', cursor: 'pointer' }}
                         >
                           <option value="">Select your bank</option>
                           {NIGERIAN_BANKS.map(b => (
@@ -316,36 +316,36 @@ export default function WalletPage() {
                     </div>
 
                     <div style={{ marginBottom: 16 }}>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>Account Number</label>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Account Number</label>
                       <input
                         type="tel"
                         placeholder="10-digit account number"
                         maxLength={10}
                         value={cashoutForm.account_number}
                         onChange={e => setCashoutForm(f => ({ ...f, account_number: e.target.value }))}
-                        style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 16, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)', letterSpacing: 3, fontWeight: 700 }}
+                        style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 16, color: '#fff', background: 'rgba(255,255,255,0.05)', letterSpacing: 3, fontWeight: 700 }}
                       />
                     </div>
 
                     <div style={{ marginBottom: 24 }}>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>Account Name</label>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Account Name</label>
                       <input
                         type="text"
                         placeholder="As it appears on your bank account"
                         value={cashoutForm.account_name}
                         onChange={e => setCashoutForm(f => ({ ...f, account_name: e.target.value }))}
-                        style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 15, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)' }}
+                        style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 15, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
                       />
                     </div>
 
                     {cashoutError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{cashoutError}</p>}
 
                     <button onClick={() => setStep(3)}
-                      style={{ width: '100%', padding: '15px', borderRadius: 12, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer', marginBottom: 10 }}>
+                      style={{ width: '100%', padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer', marginBottom: 10 }}>
                       Next — Review
                     </button>
                     <button onClick={() => setStep(1)}
-                      style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'none', color: 'var(--text-secondary)', fontSize: 14, border: 'none', cursor: 'pointer' }}>
+                      style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'none', color: '#8A9BB0', fontSize: 14, border: 'none', cursor: 'pointer' }}>
                       Back
                     </button>
                   </>
@@ -363,14 +363,14 @@ export default function WalletPage() {
                         { label: 'Name', value: cashoutForm.account_name },
                       ].map(item => (
                         <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item.label}</span>
-                          <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>{item.value}</span>
+                          <span style={{ fontSize: 13, color: '#8A9BB0' }}>{item.label}</span>
+                          <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{item.value}</span>
                         </div>
                       ))}
                     </div>
 
                     <div style={{ background: 'rgba(74,158,255,0.06)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 10, padding: '12px 14px', marginBottom: 20 }}>
-                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+                      <p style={{ fontSize: 12, color: '#8A9BB0', margin: 0, lineHeight: 1.6 }}>
                         Processing takes 24-48 hours. You will receive a notification once your payment is sent. Make sure your bank details are correct.
                       </p>
                     </div>
@@ -382,7 +382,7 @@ export default function WalletPage() {
                       {submitting ? 'Submitting...' : 'Confirm Cashout Request'}
                     </button>
                     <button onClick={() => setStep(2)}
-                      style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'none', color: 'var(--text-secondary)', fontSize: 14, border: 'none', cursor: 'pointer' }}>
+                      style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'none', color: '#8A9BB0', fontSize: 14, border: 'none', cursor: 'pointer' }}>
                       Back
                     </button>
                   </>

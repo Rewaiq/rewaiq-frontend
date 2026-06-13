@@ -62,11 +62,11 @@ if (res.data.user.role === 'artist' || pendingRole === 'artist') {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ background: 'var(--bg-primary)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ background: '#0A1628', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
         <button onClick={() => router.back()} style={{ background: 'none', display: 'flex' }}>
           <ArrowLeft size={22} color="#fff" />
         </button>
-        <span style={{color: 'var(--text-primary)', fontWeight: 600, fontSize: 16 }}>Verify Email</span>
+        <span style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>Verify Email</span>
       </div>
 
       <div style={{ flex: 1, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -77,7 +77,7 @@ if (res.data.user.role === 'artist' || pendingRole === 'artist') {
         <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A1628', marginBottom: 8, fontFamily: 'Montserrat, sans-serif', textAlign: 'center' }}>
           We sent you a code
         </h2>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 4 }}>Enter the 6-digit code sent to</p>
+        <p style={{ fontSize: 13, color: '#8A9BB0', textAlign: 'center', marginBottom: 4 }}>Enter the 6-digit code sent to</p>
         <p style={{ fontSize: 14, fontWeight: 600, color: '#4a9eff', marginBottom: 36 }}>{email}</p>
 
         {error && <div style={{ background: '#FFF0F0', border: '1px solid #ffcccc', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#C0392B', fontSize: 13, width: '100%', textAlign: 'center' }}>{error}</div>}
@@ -92,11 +92,11 @@ if (res.data.user.role === 'artist' || pendingRole === 'artist') {
         </div>
 
         <button onClick={handleVerify} disabled={loading}
-          style={{ width: '100%', padding: '15px', borderRadius: 12, background: loading ? '#ccc' : '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
+          style={{ width: '100%', padding: '15px', borderRadius: 12, background: loading ? '#ccc' : '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
           {loading ? 'Verifying...' : 'Verify Email'}
         </button>
 
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+        <p style={{ fontSize: 13, color: '#8A9BB0' }}>
           {timer > 0 ? `Resend code in ${timer}s` :
             <span onClick={handleResend} style={{ color: '#4a9eff', cursor: 'pointer', fontWeight: 600 }}>Resend Code</span>}
         </p>

@@ -35,7 +35,7 @@ function AuthSuccessContent() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: 'var(--bg-primary)',
+      minHeight: '100vh', background: '#0A1628',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 20
     }}>
@@ -63,7 +63,7 @@ function AuthSuccessContent() {
 export default function AuthSuccessPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A9BB0' }}>
+      <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A9BB0' }}>
         Loading...
       </div>
     }>

@@ -45,8 +45,8 @@ function RegisterContent() {
   return (
     <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ background: 'var(--bg-primary)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button onClick={() => router.back()} style={{ background: 'none', color: 'var(--text-primary)', display: 'flex', alignItems: 'center' }}>
+      <div style={{ background: '#0A1628', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button onClick={() => router.back()} style={{ background: 'none', color: '#fff', display: 'flex', alignItems: 'center' }}>
           <ArrowLeft size={22} color="#fff" />
         </button>
         <RewaiqLogo size={22} />
@@ -56,7 +56,7 @@ function RegisterContent() {
         <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A1628', marginBottom: 4, fontFamily: 'Montserrat, sans-serif' }}>
           {isArtist ? '🎵 Artist Registration' : 'Create Account'}
         </h2>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
+        <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 20 }}>
           {isArtist ? 'Promote your music to thousands of Nigerian youth' : 'Join Rewaiq and start earning today'}
         </p>
 
@@ -64,7 +64,7 @@ function RegisterContent() {
         {isArtist && (
           <div style={{ background: 'rgba(212,160,23,0.08)', border: '1px solid rgba(212,160,23,0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: '#D4A017', margin: '0 0 4px' }}>Artist Account</p>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+            <p style={{ fontSize: 12, color: '#8A9BB0', margin: 0 }}>
               Upload your music, run campaigns and get real streams from Nigerian youth. After registering you'll go straight to the Artist Portal.
             </p>
           </div>
@@ -126,7 +126,7 @@ function RegisterContent() {
           {loading ? 'Creating Account...' : isArtist ? '🎵 Create Artist Account' : 'Create Account'}
         </button>
 
-        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
+        <p style={{ textAlign: 'center', fontSize: 13, color: '#8A9BB0' }}>
           Already have an account?{' '}
           <span onClick={() => router.push('/login')} style={{ color: '#4a9eff', fontWeight: 600, cursor: 'pointer' }}>Login</span>
         </p>

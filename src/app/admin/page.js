@@ -79,7 +79,7 @@ const resumeTrack = (id) => action(async () => {
 }, `resume${id}`);
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <Spinner />
     </div>
   );
@@ -93,21 +93,21 @@ const resumeTrack = (id) => action(async () => {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div style={{ minHeight: '100vh', background: '#0A1628' }}>
       {/* Header */}
-      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0D1F3C', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div>
-          <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif', margin: 0 }}>Admin Panel</p>
-          <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>Rewaiq Technologies</p>
+          <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: 'Montserrat, sans-serif', margin: 0 }}>Admin Panel</p>
+          <p style={{ fontSize: 11, color: '#8A9BB0', margin: 0 }}>Rewaiq Technologies</p>
         </div>
         <button onClick={() => { localStorage.clear(); router.push('/login'); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', padding: '7px 12px', borderRadius: 20, fontSize: 12, border: 'none', cursor: 'pointer' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.06)', color: '#8A9BB0', padding: '7px 12px', borderRadius: 20, fontSize: 12, border: 'none', cursor: 'pointer' }}>
           <LogOut size={14} /> Logout
         </button>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', overflowX: 'auto', padding: '12px 16px', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'var(--bg-card)' }}>
+      <div style={{ display: 'flex', overflowX: 'auto', padding: '12px 16px', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#0D1F3C' }}>
         {tabs.map(t => {
           const Icon = t.icon;
           const active = tab === t.id;
@@ -135,10 +135,10 @@ const resumeTrack = (id) => action(async () => {
               ].map(s => {
                 const Icon = s.icon;
                 return (
-                  <div key={s.label} style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '16px' }}>
+                  <div key={s.label} style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px' }}>
                     <Icon size={18} color={s.color} style={{ marginBottom: 8 }} />
-                    <p style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'Montserrat, sans-serif', margin: '0 0 4px' }}>{s.value}</p>
-                    <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>{s.label}</p>
+                    <p style={{ fontSize: 26, fontWeight: 900, color: '#fff', fontFamily: 'Montserrat, sans-serif', margin: '0 0 4px' }}>{s.value}</p>
+                    <p style={{ fontSize: 11, color: '#8A9BB0', margin: 0 }}>{s.label}</p>
                   </div>
                 );
               })}
@@ -151,10 +151,10 @@ const resumeTrack = (id) => action(async () => {
               { label: 'Review uploaded tracks', count: tracks.filter(t => !t.is_active).length, tab: 'tracks' },
             ].map(item => (
               <button key={item.label} onClick={() => setTab(item.tab)}
-                style={{ width: '100%', background: 'var(--bg-card)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, border: 'none', cursor: 'pointer' }}>
-                <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>{item.label}</span>
+                style={{ width: '100%', background: '#0D1F3C', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, border: 'none', cursor: 'pointer' }}>
+                <span style={{ fontSize: 14, color: '#fff' }}>{item.label}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {item.count > 0 && <span style={{ background: '#F87171', color: 'var(--text-primary)', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{item.count}</span>}
+                  {item.count > 0 && <span style={{ background: '#F87171', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{item.count}</span>}
                   <ChevronRight size={16} color="#8A9BB0" />
                 </div>
               </button>
@@ -171,15 +171,15 @@ const resumeTrack = (id) => action(async () => {
         {/* TASK COMPLETIONS */}
         {tab === 'tasks' && (
           completions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
+            <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>
               <CheckSquare size={40} color="#8A9BB0" style={{ marginBottom: 12 }} />
               <p>No pending task approvals</p>
             </div>
           ) : completions.map(c => (
-            <div key={c.id} style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
-              <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{c.title}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>By: {c.full_name} ({c.email})</p>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>Type: {c.task_type} · Reward: {c.reward_coins} coins</p>
+            <div key={c.id} style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
+              <p style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{c.title}</p>
+              <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 4 }}>By: {c.full_name} ({c.email})</p>
+              <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 4 }}>Type: {c.task_type} · Reward: {c.reward_coins} coins</p>
               {c.proof_url && (
                 <a href={c.proof_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#4a9eff', display: 'block', marginBottom: 12 }}>
                   View proof
@@ -204,37 +204,37 @@ const resumeTrack = (id) => action(async () => {
         {/* CASHOUTS */}
         {tab === 'cashouts' && (
           cashouts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
+            <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>
               <Wallet size={40} color="#8A9BB0" style={{ marginBottom: 12 }} />
               <p>No pending cashout requests</p>
             </div>
           ) : cashouts.map(c => {
   const meta = c.metadata ? (typeof c.metadata === 'string' ? JSON.parse(c.metadata) : c.metadata) : {};
   return (
-    <div key={c.id} style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
+    <div key={c.id} style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+        <p style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: 0 }}>
           N{Math.floor(c.amount / 2).toLocaleString()} NGN
         </p>
         <span style={{ fontSize: 11, background: 'rgba(248,113,113,0.1)', color: '#F87171', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>Pending</span>
       </div>
-      <p style={{ fontSize: 13, color: 'var(--text-primary)', marginBottom: 2, fontWeight: 600 }}>{c.full_name}</p>
-      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2 }}>{c.email}</p>
-      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{c.amount} coins · {new Date(c.created_at).toLocaleDateString()}</p>
+      <p style={{ fontSize: 13, color: '#fff', marginBottom: 2, fontWeight: 600 }}>{c.full_name}</p>
+      <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 2 }}>{c.email}</p>
+      <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 8 }}>{c.amount} coins · {new Date(c.created_at).toLocaleDateString()}</p>
       
       {/* Bank details */}
       {meta.account_number && (
         <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
-          <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, letterSpacing: 1, textTransform: 'uppercase' }}>Bank Details</p>
-          <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: '0 0 2px', fontWeight: 600 }}>{meta.bank_name}</p>
+          <p style={{ fontSize: 11, color: '#8A9BB0', marginBottom: 6, letterSpacing: 1, textTransform: 'uppercase' }}>Bank Details</p>
+          <p style={{ fontSize: 13, color: '#fff', margin: '0 0 2px', fontWeight: 600 }}>{meta.bank_name}</p>
           <p style={{ fontSize: 13, color: '#4a9eff', margin: '0 0 2px', letterSpacing: 2, fontWeight: 700 }}>{meta.account_number}</p>
-          <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: 0 }}>{meta.account_name}</p>
+          <p style={{ fontSize: 13, color: '#fff', margin: 0 }}>{meta.account_name}</p>
         </div>
       )}
       
       <button onClick={() => approveCashout(c.id)}
         disabled={actionLoading === `c${c.id}`}
-        style={{ width: '100%', padding: '12px', borderRadius: 10, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        style={{ width: '100%', padding: '12px', borderRadius: 10, background: '#4a9eff', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         {actionLoading === `c${c.id}` ? 'Processing...' : <><Check size={16} /> Mark as Paid</>}
       </button>
     </div>
@@ -245,7 +245,7 @@ const resumeTrack = (id) => action(async () => {
         {/* TRACKS — with analytics */}
         {tab === 'tracks' && (
           tracks.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
+            <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>
               <Music2 size={40} color="#8A9BB0" style={{ marginBottom: 12 }} />
               <p>No tracks available</p>
             </div>
@@ -257,11 +257,11 @@ const resumeTrack = (id) => action(async () => {
             const nearTarget = progress >= 75 && progress < 100;
 
             return (
-              <div key={track.id} style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
+              <div key={track.id} style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>{track.title}</p>
-                    <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{track.content_type} · {track.genre || 'No genre'}</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{track.title}</p>
+                    <p style={{ fontSize: 12, color: '#8A9BB0' }}>{track.content_type} · {track.genre || 'No genre'}</p>
                   </div>
                   <span style={{ fontSize: 11, fontWeight: 700, color: track.is_active ? '#4ADE80' : '#D4A017', background: `rgba(${track.is_active ? '74,222,128' : '212,160,23'},0.1)`, padding: '3px 10px', borderRadius: 20, flexShrink: 0 }}>
                     {track.is_active ? 'Live' : 'Pending'}
@@ -271,7 +271,7 @@ const resumeTrack = (id) => action(async () => {
                 {/* Campaign progress */}
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Campaign progress</span>
+                    <span style={{ fontSize: 11, color: '#8A9BB0' }}>Campaign progress</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: hitTarget ? '#4ADE80' : nearTarget ? '#D4A017' : '#4a9eff' }}>
                       {total} / {target || '—'} streams ({Math.round(progress)}%)
                     </span>
@@ -290,17 +290,17 @@ const resumeTrack = (id) => action(async () => {
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px', textAlign: 'center' }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: '#4a9eff', margin: 0 }}>{total}</p>
-                    <p style={{ fontSize: 10, color: 'var(--text-secondary)', margin: 0 }}>Streams</p>
+                    <p style={{ fontSize: 10, color: '#8A9BB0', margin: 0 }}>Streams</p>
                   </div>
                   <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px', textAlign: 'center' }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: '#D4A017', margin: 0 }}>{track.campaign_coins || 0}</p>
-                    <p style={{ fontSize: 10, color: 'var(--text-secondary)', margin: 0 }}>Coins/stream</p>
+                    <p style={{ fontSize: 10, color: '#8A9BB0', margin: 0 }}>Coins/stream</p>
                   </div>
                   <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px', textAlign: 'center' }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: '#F87171', margin: 0 }}>
                       N{Math.floor((total * (track.campaign_coins || 0)) / 2).toLocaleString()}
                     </p>
-                    <p style={{ fontSize: 10, color: 'var(--text-secondary)', margin: 0 }}>Paid out</p>
+                    <p style={{ fontSize: 10, color: '#8A9BB0', margin: 0 }}>Paid out</p>
                   </div>
                 </div>
 
@@ -332,17 +332,17 @@ const resumeTrack = (id) => action(async () => {
         {/* USERS */}
         {tab === 'users' && (
           users.map(u => (
-            <div key={u.id} style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '14px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#4a9eff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>
+            <div key={u.id} style={{ background: '#0D1F3C', borderRadius: 14, padding: '14px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#4a9eff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                 {u.full_name?.[0] || 'U'}
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{u.full_name}</p>
-                <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{u.email} · {u.role}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 2 }}>{u.full_name}</p>
+                <p style={{ fontSize: 11, color: '#8A9BB0' }}>{u.email} · {u.role}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: '#4a9eff', margin: 0 }}>{u.coin_balance}</p>
-                <p style={{ fontSize: 10, color: 'var(--text-secondary)', margin: 0 }}>coins</p>
+                <p style={{ fontSize: 10, color: '#8A9BB0', margin: 0 }}>coins</p>
               </div>
             </div>
           ))

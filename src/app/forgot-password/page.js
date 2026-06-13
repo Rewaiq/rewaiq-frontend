@@ -44,12 +44,11 @@ export default function ForgotPasswordPage() {
         <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A1628', marginBottom: 8, fontFamily: 'Montserrat, sans-serif', textAlign: 'center' }}>
           Password Reset!
         </h2>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)'
-, marginBottom: 32, textAlign: 'center' }}>
+        <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 32, textAlign: 'center' }}>
           Your password has been changed successfully. Login with your new password.
         </p>
         <button onClick={() => router.push('/login')}
-          style={{ width: '100%', maxWidth: 320, padding: '15px', borderRadius: 12, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700 }}>
+          style={{ width: '100%', maxWidth: 320, padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700 }}>
           Go to Login
         </button>
       </div>
@@ -58,11 +57,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ background: 'var(--bg-primary)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ background: '#0A1628', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
         <button onClick={() => router.back()} style={{ background: 'none', display: 'flex' }}>
           <ArrowLeft size={22} color="#fff" />
         </button>
-        <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16 }}>Reset Password</span>
+        <span style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>Reset Password</span>
       </div>
 
       <div style={{ flex: 1, padding: '40px 24px' }}>
@@ -74,8 +73,7 @@ export default function ForgotPasswordPage() {
             <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A1628', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>
               Forgot Password?
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)'
-, marginBottom: 28, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 28, lineHeight: 1.6 }}>
               Enter your email address and we'll send you a code to reset your password.
             </p>
 
@@ -95,7 +93,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <button onClick={handleSendOTP} disabled={loading}
-              style={{ width: '100%', padding: '15px', borderRadius: 12, background: loading ? '#ccc' : '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700 }}>
+              style={{ width: '100%', padding: '15px', borderRadius: 12, background: loading ? '#ccc' : '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700 }}>
               {loading ? 'Sending...' : 'Send Reset Code'}
             </button>
           </>
@@ -104,8 +102,7 @@ export default function ForgotPasswordPage() {
             <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0A1628', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>
               Enter New Password
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)'
-, marginBottom: 28 }}>
+            <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 28 }}>
               Enter the code sent to <strong style={{ color: '#4a9eff' }}>{email}</strong> and your new password.
             </p>
 
@@ -136,7 +133,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <button onClick={handleReset} disabled={loading}
-              style={{ width: '100%', padding: '15px', borderRadius: 12, background: loading ? '#ccc' : '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700 }}>
+              style={{ width: '100%', padding: '15px', borderRadius: 12, background: loading ? '#ccc' : '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700 }}>
               {loading ? 'Resetting...' : 'Reset Password'}
             </button>
           </>

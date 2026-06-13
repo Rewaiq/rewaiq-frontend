@@ -89,24 +89,24 @@ export default function ArtistUploadPage() {
 
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ width: 100, height: 100, borderRadius: '50%', background: 'rgba(26,122,74,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, border: '2px solid rgba(26,122,74,0.3)' }}>
           <CheckCircle size={50} color="#4ADE80" />
         </div>
-        <h2 style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 8, fontFamily: 'Montserrat, sans-serif', textAlign: 'center' }}>Track Submitted</h2>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 12, lineHeight: 1.7, maxWidth: 280 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 8, fontFamily: 'Montserrat, sans-serif', textAlign: 'center' }}>Track Submitted</h2>
+        <p style={{ fontSize: 14, color: '#8A9BB0', textAlign: 'center', marginBottom: 12, lineHeight: 1.7, maxWidth: 280 }}>
           Your track is under review. Once approved it goes live in the Stream Feed and users start earning coins by listening.
         </p>
         <div style={{ background: 'rgba(74,158,255,0.08)', border: '1px solid rgba(74,158,255,0.2)', borderRadius: 12, padding: '14px 20px', marginBottom: 32, width: '100%', textAlign: 'center' }}>
           <p style={{ fontSize: 13, color: '#4a9eff', margin: 0 }}>Approval within 24 hours</p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '4px 0 0' }}>You will be notified once it is live</p>
+          <p style={{ fontSize: 12, color: '#8A9BB0', margin: '4px 0 0' }}>You will be notified once it is live</p>
         </div>
         <button onClick={() => router.push('/artist/tracks')}
-          style={{ width: '100%', maxWidth: 320, padding: '15px', borderRadius: 12, background: '#4a9eff', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
+          style={{ width: '100%', maxWidth: 320, padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
           View My Tracks
         </button>
         <button onClick={() => { setSuccess(false); setStep(1); setUrl(''); setUrlInfo(null); setForm({ title: '', description: '', genre: '', content_type: 'audiomack', original_url: '', embed_url: '', campaign_coins: 10, target_streams: 500 }); }}
-          style={{ background: 'none', color: 'var(--text-secondary)', fontSize: 14, padding: '10px' }}>
+          style={{ background: 'none', color: '#8A9BB0', fontSize: 14, padding: '10px' }}>
           Upload Another Track
         </button>
       </div>
@@ -114,15 +114,15 @@ export default function ArtistUploadPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 40 }}>
+    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 40 }}>
       {/* Header */}
-      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-primary)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, background: '#0A1628', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <button onClick={() => step > 1 ? setStep(s => s - 1) : router.back()} style={{ background: 'none', display: 'flex' }}>
           <ArrowLeft size={22} color="#fff" />
         </button>
         <div style={{ flex: 1 }}>
-          <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16, margin: 0 }}>Artist Portal</p>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 11, margin: 0 }}>Step {step} of 3</p>
+          <p style={{ color: '#fff', fontWeight: 600, fontSize: 16, margin: 0 }}>Artist Portal</p>
+          <p style={{ color: '#8A9BB0', fontSize: 11, margin: 0 }}>Step {step} of 3</p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {[1, 2, 3].map(s => (
@@ -136,8 +136,8 @@ export default function ArtistUploadPage() {
         {/* STEP 1 — Track Link */}
         {step === 1 && (
           <>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>Add Your Track</h3>
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>Add Your Track</h3>
+            <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 24, lineHeight: 1.6 }}>
               Paste your Audiomack link below. We will automatically detect your track details.
             </p>
 
@@ -152,21 +152,21 @@ export default function ArtistUploadPage() {
               ].map((step, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 6, alignItems: 'flex-start' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: '#4a9eff', background: 'rgba(74,158,255,0.15)', padding: '1px 7px', borderRadius: 10, flexShrink: 0 }}>{i + 1}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{step}</span>
+                  <span style={{ fontSize: 12, color: '#8A9BB0' }}>{step}</span>
                 </div>
               ))}
             </div>
 
             {/* URL input */}
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>Audiomack Track Link</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Audiomack Track Link</label>
               <div style={{ position: 'relative' }}>
                 <input
                   type="url"
                   placeholder="https://audiomack.com/your-name/song/track-title"
                   value={url}
                   onChange={e => handleUrlChange(e.target.value)}
-                  style={{ width: '100%', padding: '14px 44px 14px 14px', borderRadius: 10, border: `1.5px solid ${urlInfo ? '#4ADE80' : urlError ? '#F87171' : 'rgba(255,255,255,0.1)'}`, fontSize: 14, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)' }}
+                  style={{ width: '100%', padding: '14px 44px 14px 14px', borderRadius: 10, border: `1.5px solid ${urlInfo ? '#4ADE80' : urlError ? '#F87171' : 'rgba(255,255,255,0.1)'}`, fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
                 />
                 <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
                   {urlInfo ? <CheckCircle size={18} color="#4ADE80" /> : <Search size={18} color="#8A9BB0" />}
@@ -180,44 +180,44 @@ export default function ArtistUploadPage() {
               <div style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: '#4ADE80', marginBottom: 12 }}>Track detected</p>
                 <div style={{ marginBottom: 8 }}>
-                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '0 0 2px' }}>Artist</p>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{urlInfo.artist}</p>
+                  <p style={{ fontSize: 11, color: '#8A9BB0', margin: '0 0 2px' }}>Artist</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>{urlInfo.artist}</p>
                 </div>
                 {urlInfo.title && (
                   <div style={{ marginBottom: 8 }}>
-                    <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '0 0 2px' }}>Track</p>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{urlInfo.title}</p>
+                    <p style={{ fontSize: 11, color: '#8A9BB0', margin: '0 0 2px' }}>Track</p>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>{urlInfo.title}</p>
                   </div>
                 )}
                 <div>
-                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '0 0 2px' }}>Type</p>
-                  <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: 0, textTransform: 'capitalize' }}>{urlInfo.type}</p>
+                  <p style={{ fontSize: 11, color: '#8A9BB0', margin: '0 0 2px' }}>Type</p>
+                  <p style={{ fontSize: 13, color: '#fff', margin: 0, textTransform: 'capitalize' }}>{urlInfo.type}</p>
                 </div>
               </div>
             )}
 
             {/* Manual fields */}
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Track Title</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 6 }}>Track Title</label>
               <input type="text" placeholder="Confirm or enter track title"
                 value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
-                style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)' }}
+                style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
               />
             </div>
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Genre</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 6 }}>Genre</label>
               <input type="text" placeholder="e.g. Afrobeats, Highlife, Gospel, Amapiano"
                 value={form.genre} onChange={e => setForm({ ...form, genre: e.target.value })}
-                style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)' }}
+                style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)' }}
               />
             </div>
 
             <div style={{ marginBottom: 28 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>About This Track</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 6 }}>About This Track</label>
               <textarea placeholder="Tell listeners what this track is about..."
                 value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-                rows={3} style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)', resize: 'none', fontFamily: 'Inter, sans-serif' }}
+                rows={3} style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 14, color: '#fff', background: 'rgba(255,255,255,0.05)', resize: 'none', fontFamily: 'Inter, sans-serif' }}
               />
             </div>
 
@@ -235,8 +235,8 @@ export default function ArtistUploadPage() {
         {/* STEP 2 — Campaign */}
         {step === 2 && (
           <>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>Choose Your Campaign</h3>
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>Choose Your Campaign</h3>
+            <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 24, lineHeight: 1.6 }}>
               Select how aggressively you want to promote your track. More coins means more users will stream it.
             </p>
 
@@ -250,10 +250,10 @@ export default function ArtistUploadPage() {
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{pkg.name}</p>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: 0 }}>{pkg.name}</p>
                   <p style={{ fontSize: 18, fontWeight: 900, color: '#4a9eff', margin: 0 }}>{pkg.price}</p>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 10 }}>{pkg.desc}</p>
+                <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 10 }}>{pkg.desc}</p>
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Coins size={13} color="#D4A017" />
@@ -267,22 +267,22 @@ export default function ArtistUploadPage() {
               </div>
             ))}
 
-            <div style={{ background: 'var(--bg-card)', borderRadius: 14, padding: '16px', marginBottom: 24, marginTop: 8 }}>
+            <div style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 24, marginTop: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Custom coins per stream</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Custom coins per stream</label>
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#4a9eff' }}>{form.campaign_coins}</span>
               </div>
               <input type="range" min={5} max={50} step={5} value={form.campaign_coins}
                 onChange={e => setForm(f => ({ ...f, campaign_coins: parseInt(e.target.value) }))}
                 style={{ width: '100%', accentColor: '#4a9eff' }}
               />
-              <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, textAlign: 'center' }}>
+              <p style={{ fontSize: 11, color: '#8A9BB0', marginTop: 6, textAlign: 'center' }}>
                 Each user earns approximately N{(form.campaign_coins / 2).toFixed(0)} per stream
               </p>
             </div>
 
             <button onClick={() => setStep(3)}
-              style={{ width: '100%', padding: '16px', borderRadius: 14, background: 'linear-gradient(135deg, #4a9eff, #2d6be4)', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
+              style={{ width: '100%', padding: '16px', borderRadius: 14, background: 'linear-gradient(135deg, #4a9eff, #2d6be4)', color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'Montserrat, sans-serif' }}>
               Next — Review and Submit
             </button>
           </>
@@ -291,10 +291,10 @@ export default function ArtistUploadPage() {
         {/* STEP 3 — Review */}
         {step === 3 && (
           <>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>Review and Submit</h3>
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20 }}>Confirm your track details before submitting for review.</p>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>Review and Submit</h3>
+            <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 20 }}>Confirm your track details before submitting for review.</p>
 
-            <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: '20px', marginBottom: 20 }}>
+            <div style={{ background: '#0D1F3C', borderRadius: 16, padding: '20px', marginBottom: 20 }}>
               {[
                 { label: 'Track Title', value: form.title },
                 { label: 'Genre', value: form.genre || 'Not specified' },
@@ -304,8 +304,8 @@ export default function ArtistUploadPage() {
                 { label: 'Package', value: CAMPAIGN_PACKAGES.find(p => p.id === selectedPackage)?.name || 'Custom' },
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item.label}</span>
-                  <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>{item.value}</span>
+                  <span style={{ fontSize: 13, color: '#8A9BB0' }}>{item.label}</span>
+                  <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{item.value}</span>
                 </div>
               ))}
             </div>
@@ -313,7 +313,7 @@ export default function ArtistUploadPage() {
             {/* Embed preview */}
             {form.embed_url && (
               <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Track Preview</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#8A9BB0', marginBottom: 8 }}>Track Preview</p>
                 <div style={{ borderRadius: 12, overflow: 'hidden' }}>
                   <iframe src={form.embed_url} width="100%" height="160" frameBorder="0" allow="autoplay" style={{ display: 'block' }} />
                 </div>
@@ -322,7 +322,7 @@ export default function ArtistUploadPage() {
 
             <div style={{ background: 'rgba(74,158,255,0.06)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 12, padding: '14px 16px', marginBottom: 24, display: 'flex', gap: 10 }}>
               <Info size={16} color="#4a9eff" style={{ flexShrink: 0, marginTop: 2 }} />
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+              <p style={{ fontSize: 13, color: '#8A9BB0', margin: 0, lineHeight: 1.6 }}>
                 After approval your track goes live in the Stream Feed. Payment is arranged after approval. Our team will contact you at <strong style={{ color: '#4a9eff' }}>{user?.email}</strong>
               </p>
             </div>
