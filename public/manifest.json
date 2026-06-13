@@ -1,24 +1,56 @@
 {
-  "name": "Rewaiq",
+  "name": "Rewaiq — Earn. Discover. Grow.",
   "short_name": "Rewaiq",
-  "description": "Africa's digital earning platform",
+  "description": "Africa's digital earning platform. Stream music, complete tasks and earn real NGN.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0A1628",
   "theme_color": "#4a9eff",
   "orientation": "portrait-primary",
+  "categories": ["finance", "entertainment"],
+  "lang": "en-NG",
   "icons": [
+    {
+      "src": "/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Stream & Earn",
+      "url": "/home",
+      "description": "Go to your feed and start earning"
+    },
+    {
+      "name": "My Wallet",
+      "url": "/wallet",
+      "description": "Check your coin balance"
     }
   ]
 }

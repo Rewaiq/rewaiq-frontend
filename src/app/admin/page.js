@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, CheckSquare, Wallet, Music2, BarChart3, LogOut, ChevronRight, X, Check, TrendingUp, Coins } from 'lucide-react';
+import { Users, CheckSquare, Wallet, Music2, BarChart3, LogOut, ChevronRight, X, Check, TrendingUp, Coins, Settings } from 'lucide-react';
 import API from '@/lib/api';
 import Spinner from '@/components/Spinner';
 
@@ -90,6 +90,7 @@ const resumeTrack = (id) => action(async () => {
     { id: 'cashouts', label: `Cashouts (${cashouts.length})`, icon: Wallet },
     { id: 'tracks', label: 'Tracks', icon: Music2 },
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
@@ -144,6 +145,7 @@ const resumeTrack = (id) => action(async () => {
               })}
             </div>
 
+            
             {/* Quick actions */}
             {[
               { label: 'Review pending task completions', count: completions.length, tab: 'tasks' },
@@ -159,6 +161,25 @@ const resumeTrack = (id) => action(async () => {
                 </div>
               </button>
             ))}
+
+            {tab === 'settings' && (
+  <div>
+    <h3 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 20 }}>Campaign Pricing</h3>
+    {[
+      { name: 'Starter', key: 'starter', defaultPrice: 15000, streams: 500 },
+      { name: 'Growth', key: 'growth', defaultPrice: 35000, streams: 1500 },
+      { name: 'Viral', key: 'viral', defaultPrice: 80000, streams: 5000 },
+    ].map(pkg => (
+      <div key={pkg.key} style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
+        <p style={{ color: '#fff', fontWeight: 600, marginBottom: 8 }}>{pkg.name} Package</p>
+        <p style={{ color: '#8A9BB0', fontSize: 12 }}>Default: N{pkg.defaultPrice.toLocaleString()} · {pkg.streams} streams</p>
+      </div>
+    ))}
+    <div style={{ background: 'rgba(74,158,255,0.08)', border: '1px solid rgba(74,158,255,0.2)', borderRadius: 12, padding: '14px', marginTop: 16 }}>
+      <p style={{ fontSize: 13, color: '#4a9eff', margin: 0 }}>To edit pricing contact info@rewaiq.com.ng or update directly in the artist/promote/page.js file</p>
+    </div>
+  </div>
+)}
 
             {/* Create task button */}
             <button onClick={() => router.push('/admin/create-task')}

@@ -95,6 +95,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
+         <script src="https://js.paystack.co/v1/inline.js" async></script>
         <meta name="theme-color" content="#0A1628" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

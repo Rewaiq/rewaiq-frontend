@@ -1,10 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Lock, HelpCircle, ChevronRight, Copy, LogOut, Coins, Users, Tag, Zap, Music2, List, Sun, Moon } from 'lucide-react';
+import { Bell, Lock, HelpCircle, ChevronRight, Copy, LogOut, Coins, Users, Tag, Zap, Music2, List, Sun, Moon, Download } from 'lucide-react';
 import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import Spinner from '@/components/Spinner';
+import InstallPrompt from "@/components/InstallPrompt";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function ProfilePage() {
   if (loading) return <Spinner fullscreen />;
 
   const menuItems = [
-    { icon: theme === 'dark' ? Sun : Moon, label: `Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`, action: toggleTheme },
+    //{ icon: theme === 'dark' ? Sun : Moon, label: `Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`, action: toggleTheme },
     { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
     { icon: Lock, label: 'Change Password', action: () => router.push('/forgot-password') },
     { icon: Tag, label: 'Promo Code', action: () => router.push('/promo') },
@@ -169,6 +170,7 @@ export default function ProfilePage() {
       </div>
 
       <BottomNav active="profile" />
+      <InstallPrompt />
     </div>
   );
 }
