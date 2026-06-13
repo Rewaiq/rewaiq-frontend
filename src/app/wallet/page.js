@@ -29,6 +29,8 @@ export default function WalletPage() {
   const router = useRouter();
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
+  const [verifiedName, setVerifiedName] = useState('');
+const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCashout, setShowCashout] = useState(false);
   const [step, setStep] = useState(1);
@@ -64,9 +66,45 @@ export default function WalletPage() {
   const naira = Math.floor(balance / 2);
   const coinsToNaira = (coins) => Math.floor(parseInt(coins || 0) / 2);
 
+const verifyAccount = async (number, bankCode) => {
+  if (number.length !== 10 || !bankCode) return;
+
+  setVerifying(true);
+
+  try {
+    const res = await API.post('/api/coins/verify-account', {
+      account_number: number,
+      bank_code: bankCode,
+    });
+
+    if (res.data.verified) {
+      setVerifiedName(res.data.account_name);
+      setCashoutForm((f) => ({
+        ...f,
+        account_name: res.data.account_name,
+      }));
+    } else {
+      setVerifiedName('');
+    }
+  } catch (err) {
+    setVerifiedName('');
+  } finally {
+    setVerifying(false);
+  }
+};
+
   const handleBankSelect = (bank) => {
-    setCashoutForm(f => ({ ...f, bank_name: bank.name, bank_code: bank.code }));
-  };
+  setCashoutForm((f) => ({
+    ...f,
+    bank_name: bank.name,
+    bank_code: bank.code,
+  }));
+
+  // re-verify if account already entered
+  if (cashoutForm.account_number?.length === 10) {
+    verifyAccount(cashoutForm.account_number, bank.code);
+  }
+};
 
   const handleCashoutSubmit = async () => {
     const { coins, bank_name, account_number, account_name } = cashoutForm;
@@ -145,8 +183,8 @@ export default function WalletPage() {
       <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 20 }}>
         {[
           { label: 'Daily Cap', value: '500 coins' },
-          { label: 'Min Cashout', value: '1,000 coins' },
-          { label: 'Rate', value: '2 coins = N1' },
+         { label: 'Min Cashout', value: '200 coins' },
+{ label: 'Rate', value: '2 coins = N1' },
         ].map(s => (
           <div key={s.label} style={{ flex: 1, background: '#0D1F3C', borderRadius: 12, padding: '12px', textAlign: 'center' }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2, margin: 0 }}>{s.value}</p>
@@ -270,7 +308,7 @@ export default function WalletPage() {
 
                     {/* Quick amounts */}
                     <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                      {[1000, 2000, 5000, 10000].map(amt => (
+                      {[200, 500, 1000, 2000].map(amt => (
                         <button key={amt} onClick={() => setCashoutForm(f => ({ ...f, coins: amt.toString() }))}
                           style={{ flex: 1, padding: '8px 4px', borderRadius: 8, background: cashoutForm.coins == amt ? '#4a9eff' : 'rgba(255,255,255,0.06)', color: cashoutForm.coins == amt ? '#fff' : '#8A9BB0', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
                           {amt.toLocaleString()}
@@ -318,13 +356,61 @@ export default function WalletPage() {
                     <div style={{ marginBottom: 16 }}>
                       <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Account Number</label>
                       <input
-                        type="tel"
-                        placeholder="10-digit account number"
-                        maxLength={10}
-                        value={cashoutForm.account_number}
-                        onChange={e => setCashoutForm(f => ({ ...f, account_number: e.target.value }))}
-                        style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 16, color: '#fff', background: 'rgba(255,255,255,0.05)', letterSpacing: 3, fontWeight: 700 }}
-                      />
+  type="tel"
+  placeholder="10-digit account number"
+  maxLength={10}
+  value={cashoutForm.account_number}
+  onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '');
+
+    setCashoutForm((f) => ({
+      ...f,
+      account_number: value,
+      account_name: '', // reset until verified
+    }));
+
+    if (value.length === 10) {
+      verifyAccount(value, cashoutForm.bank_code);
+    }
+  }}
+  style={{
+    width: '100%',
+    padding: '13px 14px',
+    borderRadius: 10,
+    border: `1.5px solid ${
+      verifiedName ? '#4ADE80' : 'rgba(255,255,255,0.1)'
+    }`,
+    fontSize: 16,
+    color: '#fff',
+    background: 'rgba(255,255,255,0.05)',
+    letterSpacing: 3,
+    fontWeight: 700,
+  }}
+/>
+{verifying && (
+  <p style={{ fontSize: 12, color: '#4a9eff', marginTop: 6 }}>
+    Verifying account...
+  </p>
+)}
+
+{verifiedName && (
+  <div style={{
+    background: 'rgba(74,222,128,0.08)',
+    border: '1px solid rgba(74,222,128,0.2)',
+    borderRadius: 8,
+    padding: '10px 14px',
+    marginTop: 8
+  }}>
+    <p style={{
+      fontSize: 13,
+      color: '#4ADE80',
+      fontWeight: 600,
+      margin: 0
+    }}>
+      Account verified: {verifiedName}
+    </p>
+  </div>
+)}
                     </div>
 
                     <div style={{ marginBottom: 24 }}>

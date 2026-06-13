@@ -196,12 +196,16 @@ function TaskContent() {
 
         {/* Task link */}
         {task.target_url && (
-          <a href={task.target_url} target="_blank" rel="noreferrer"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '15px', borderRadius: 12, background: '#0D1F3C', border: '1px solid rgba(74,158,255,0.3)', color: '#4a9eff', fontSize: 15, fontWeight: 600, textDecoration: 'none', marginBottom: 20 }}>
-            <ExternalLink size={18} />
-            Open Task Link
-          </a>
-        )}
+  <a 
+    href={task.target_url} 
+    target="_blank" 
+    rel="noreferrer"
+    onClick={(e) => e.stopPropagation()}
+    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '15px', borderRadius: 12, background: '#0D1F3C', border: '1px solid rgba(74,158,255,0.3)', color: '#4a9eff', fontSize: 15, fontWeight: 600, textDecoration: 'none', marginBottom: 20 }}>
+    <ExternalLink size={18} />
+    Open Task Link
+  </a>
+)}
 
         {/* Proof upload */}
         <div style={{ marginBottom: 24 }}>
@@ -232,7 +236,6 @@ function TaskContent() {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={handleProofUpload}
               style={{ display: 'none' }}
               disabled={uploadingProof}
