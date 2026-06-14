@@ -319,7 +319,7 @@ const verifyAccount = async (number, bankCode) => {
                     {cashoutError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{cashoutError}</p>}
 
                     <button onClick={() => {
-                      if (!cashoutForm.coins || parseInt(cashoutForm.coins) < 1000) { setCashoutError('Minimum is 1,000 coins'); return; }
+                      if (!cashoutForm.coins || parseInt(cashoutForm.coins) < 200) { setCashoutError('Minimum is 200 coins'); return; }
                       if (parseInt(cashoutForm.coins) > balance) { setCashoutError('Insufficient balance'); return; }
                       setCashoutError('');
                       setStep(2);
