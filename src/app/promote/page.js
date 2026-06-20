@@ -7,8 +7,8 @@ const PACKAGES = [
   {
     id: 'basic',
     name: 'Basic Campaign',
-    price: 15000,
-    display: 'N15,000',
+    price: 1000,
+    display: 'N1000',
     reach: '500 users',
     duration: '7 days',
     type: 'follow',
@@ -18,8 +18,8 @@ const PACKAGES = [
   {
     id: 'standard',
     name: 'Standard Campaign',
-    price: 35000,
-    display: 'N35,000',
+    price: 5000,
+    display: 'N5,000',
     reach: '1,500 users',
     duration: '14 days',
     type: 'campaign',
@@ -66,49 +66,56 @@ export default function PromotePage() {
     return () => document.body.removeChild(script);
   }, []);
 
-  const handlePaystack = () => {
-    if (!form.brand_name || !form.task_title || !form.contact_email) {
-      setError('Please fill all required fields'); return;
+ const handlePaystack = () => {
+  if (!form.brand_name || !form.task_title || !form.contact_email) {
+    setError('Please fill all required fields'); return;
+  }
+  setError('');
+  setLoading(true);
+
+  const pkg = PACKAGES.find(p => p.id === selected);
+
+  if (!window.PaystackPop) {
+    setLoading(false);
+    setError('Payment loading — try again in 3 seconds.');
+    return;
+  }
+
+  window.PaystackPop.setup({
+    key: process.env.NEXT_PUBLIC_PAYSTACK_KEY,
+    email: form.contact_email,
+    amount: pkg.price * 100,
+    currency: 'NGN',
+    ref: 'RWQBRAND_' + Date.now(),
+    metadata: {
+      brand_name: form.brand_name,
+      task_title: form.task_title,
+      task_description: form.task_description,
+      target_url: form.target_url,
+      package: pkg.name,
+      coins_per_completion: String(pkg.coins),
+      contact_phone: form.contact_phone,
+      type: 'brand_campaign',
+    },
+    callback: function(response) {
+      setLoading(false);
+      setSuccess(true);
+      var msg = encodeURIComponent(
+        'Hello Rewaiq Team,\n\nI just paid for a brand campaign.\n\nRef: ' + response.reference +
+        '\nBrand: ' + form.brand_name +
+        '\nPackage: ' + pkg.name +
+        '\nTask: ' + form.task_title +
+        '\n\nPlease activate my campaign.'
+      );
+      setTimeout(function() {
+        window.open('https://wa.me/2348168099351?text=' + msg, '_blank');
+      }, 1500);
+    },
+    onClose: function() {
+      setLoading(false);
     }
-    setError('');
-    setLoading(true);
-
-    const pkg = PACKAGES.find(p => p.id === selected);
-    const handler = window.PaystackPop.setup({
-      key: process.env.NEXT_PUBLIC_PAYSTACK_KEY || 'pk_test_xxxxxxxxxx',
-      email: form.contact_email,
-      amount: pkg.price * 100, // kobo
-      currency: 'NGN',
-      ref: `RWQCAMPAIGN_${Date.now()}`,
-      metadata: {
-        brand_name: form.brand_name,
-        task_title: form.task_title,
-        task_description: form.task_description,
-        target_url: form.target_url,
-        package: pkg.name,
-        coins_per_completion: pkg.coins,
-        contact_phone: form.contact_phone,
-      },
-      callback: async (response) => {
-        // Payment successful — notify via WhatsApp + save
-        setLoading(false);
-        setSuccess(true);
-
-        // Open WhatsApp with payment reference
-        const msg = encodeURIComponent(
-          `Hello Rewaiq Team,\n\nI just paid for a campaign.\n\nPayment Reference: ${response.reference}\nBrand: ${form.brand_name}\nPackage: ${pkg.name}\nTask: ${form.task_title}\n\nPlease activate my campaign. Thank you.`
-        );
-        setTimeout(() => {
-          window.open(`https://wa.me/2348168099351?text=${msg}`, '_blank');
-        }, 1500);
-      },
-      onClose: () => {
-        setLoading(false);
-      }
-    });
-    handler.openIframe();
-  };
-
+  }).openIframe();
+};
   if (success) {
     return (
       <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
