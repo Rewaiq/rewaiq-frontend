@@ -98,19 +98,42 @@ export default function PromotePage() {
       type: 'brand_campaign',
     },
     callback: function(response) {
-      setLoading(false);
-      setSuccess(true);
-      var msg = encodeURIComponent(
-        'Hello Rewaiq Team,\n\nI just paid for a brand campaign.\n\nRef: ' + response.reference +
-        '\nBrand: ' + form.brand_name +
-        '\nPackage: ' + pkg.name +
-        '\nTask: ' + form.task_title +
-        '\n\nPlease activate my campaign.'
-      );
-      setTimeout(function() {
-        window.open('https://wa.me/2348168099351?text=' + msg, '_blank');
-      }, 1500);
-    },
+  setLoading(false);
+  
+  // Submit to backend
+  fetch(process.env.NEXT_PUBLIC_API_URL + '/api/campaigns/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      brand_name: form.brand_name,
+      task_title: form.task_title,
+      task_description: form.task_description,
+      target_url: form.target_url,
+      contact_email: form.contact_email,
+      contact_phone: form.contact_phone,
+      package_id: selected,
+      package_name: pkg.name,
+      price: pkg.price,
+      coins_per_completion: pkg.coins,
+      reach: pkg.reach,
+      paystack_reference: response.reference,
+    })
+  }).then(function() {
+    setSuccess(true);
+  }).catch(function() {
+    setSuccess(true);
+  });
+
+  // WhatsApp backup
+  var msg = encodeURIComponent(
+    'Hello Rewaiq,\n\nBrand campaign payment confirmed.\n\nRef: ' + response.reference +
+    '\nBrand: ' + form.brand_name +
+    '\nPackage: ' + pkg.name
+  );
+  setTimeout(function() {
+    window.open('https://wa.me/2348168099351?text=' + msg, '_blank');
+  }, 2000);
+},
     onClose: function() {
       setLoading(false);
     }
