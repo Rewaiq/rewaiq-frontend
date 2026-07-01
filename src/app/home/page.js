@@ -6,6 +6,46 @@ import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import InstallPrompt from '@/components/InstallPrompt';
 
+const CAROUSEL_SLIDES = [
+  {
+    id: 1,
+    type: 'workflow',
+    title: 'How to Start Earning',
+    steps: ['Register', 'Stream Music', 'Do Tasks', 'Cashout'],
+    bg: 'linear-gradient(135deg, #1a3a8f, #4a9eff)',
+  },
+  {
+    id: 2,
+    type: 'promo',
+    title: 'Promote Your Brand',
+    sub: 'Reach 500+ engaged Nigerian youth',
+    cta: 'From N15,000 →',
+    action: '/promote',
+    bg: 'linear-gradient(135deg, #D4A017, #F0C040)',
+    textColor: '#0A1628',
+  },
+  {
+    id: 3,
+    type: 'announcement',
+    title: '🎉 Hub Now Open in Aba!',
+    sub: 'Learn Data Analysis, Web Dev, UI/UX at Yellow Avenue, Aba',
+    cta: 'Join First Cohort →',
+    action: 'https://wa.me/2348168099351',
+    bg: 'linear-gradient(135deg, #1A7A4A, #4ADE80)',
+    textColor: '#fff',
+  },
+  {
+    id: 4,
+    type: 'promo',
+    title: '🎵 Are You an Artist?',
+    sub: 'Get your music streamed by thousands of Nigerian youth',
+    cta: 'Promote Your Music →',
+    action: '/artist/promote',
+    bg: 'linear-gradient(135deg, #0D1F3C, #2d6be4)',
+    textColor: '#fff',
+  },
+];
+
 export default function HomePage() {
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -16,6 +56,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [showFilter, setShowFilter] = useState(false);
   const [taskFilter, setTaskFilter] = useState('all');
+  const [carouselIndex, setCarouselIndex] = useState(0);
 
   useEffect(() => {
     const u = localStorage.getItem('rewaiq_user');
@@ -35,6 +76,13 @@ export default function HomePage() {
     pollNotifications();
     const interval = setInterval(pollNotifications, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCarouselIndex(i => (i + 1) % CAROUSEL_SLIDES.length);
+    }, 4000);
+    return () => clearInterval(timer);
   }, []);
 
   const fetchFeed = async () => {
@@ -118,31 +166,69 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Content */}
       <div style={{ padding: '16px 20px 0' }}>
 
-        {/* Promote banner — always visible on for-you */}
-        {tab === 'for-you' && (
-          <div onClick={() => router.push('/promote')}
-            style={{ background: 'linear-gradient(135deg, #D4A017, #F0C040)', borderRadius: 14, padding: '14px 16px', marginBottom: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#0A1628', margin: 0 }}>Promote Your Brand</p>
-              <p style={{ fontSize: 12, color: '#0A1628', opacity: 0.7, margin: '2px 0 0' }}>Reach 500+ engaged Nigerian youth</p>
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#0A1628', background: 'rgba(0,0,0,0.1)', padding: '6px 12px', borderRadius: 20 }}>From N15k</span>
+        {/* Carousel */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ borderRadius: 16, overflow: 'hidden' }}>
+            {CAROUSEL_SLIDES.map((slide, i) => (
+              <div key={slide.id} style={{ display: i === carouselIndex ? 'block' : 'none' }}>
+                {slide.type === 'workflow' ? (
+                  <div style={{ background: slide.bg, borderRadius: 16, padding: '20px 20px 24px' }}>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 4, letterSpacing: 1, textTransform: 'uppercase' }}>Get started</p>
+                    <p style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 20, fontFamily: 'Montserrat, sans-serif' }}>{slide.title}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      {slide.steps.map((step, idx) => (
+                        <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', margin: '0 auto 6px' }}>
+                              {idx + 1}
+                            </div>
+                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.85)', margin: 0, whiteSpace: 'nowrap', fontWeight: 600 }}>{step}</p>
+                          </div>
+                          {idx < slide.steps.length - 1 && (
+                            <div style={{ width: 16, height: 1, background: 'rgba(255,255,255,0.3)', marginBottom: 16, flexShrink: 0 }} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => {
+                      if (slide.action.startsWith('/')) router.push(slide.action);
+                      else window.open(slide.action, '_blank');
+                    }}
+                    style={{ background: slide.bg, borderRadius: 16, padding: '22px 20px', cursor: 'pointer', minHeight: 110 }}>
+                    <p style={{ fontSize: 17, fontWeight: 900, color: slide.textColor, marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>{slide.title}</p>
+                    <p style={{ fontSize: 13, color: slide.textColor, opacity: 0.8, marginBottom: 16, lineHeight: 1.4 }}>{slide.sub}</p>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: slide.textColor, background: 'rgba(0,0,0,0.12)', padding: '8px 16px', borderRadius: 20 }}>
+                      {slide.cta}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        )}
 
+          {/* Dots */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+            {CAROUSEL_SLIDES.map((_, i) => (
+              <div key={i} onClick={() => setCarouselIndex(i)}
+                style={{ width: i === carouselIndex ? 20 : 6, height: 6, borderRadius: 3, background: i === carouselIndex ? '#4a9eff' : 'rgba(255,255,255,0.2)', cursor: 'pointer', transition: 'all 0.3s' }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>Loading feed...</div>
         ) : tab === 'tasks' ? (
-          <>
-            {filteredTasks.length === 0 ? (
-              <Empty icon="📋" title="No tasks yet" sub="Tasks will appear here soon" />
-            ) : filteredTasks.map(task => (
-              <TaskCard key={task.id} task={task} router={router} />
-            ))}
-          </>
+          filteredTasks.length === 0 ? (
+            <Empty icon="📋" title="No tasks yet" sub="Tasks will appear here soon" />
+          ) : filteredTasks.map(task => (
+            <TaskCard key={task.id} task={task} router={router} />
+          ))
         ) : tab === 'trending' ? (
           tracks.length === 0 ? (
             <Empty icon="🔥" title="Nothing trending yet" sub="Check back soon" />
