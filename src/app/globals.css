@@ -39,6 +39,11 @@ button {
   font-family: 'Inter', sans-serif;
 }
 
+button:hover {
+  opacity: 0.85;
+  transition: all 0.2s ease;
+}
+
 input {
   outline: none;
   font-family: 'Inter', sans-serif;
@@ -84,4 +89,26 @@ html {
   --text-primary: #ffffff;
   --text-secondary: #8A9BB0;
   --border: rgba(255,255,255,0.06);
+}
+/* Remove tap highlight on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Premium button press feel */
+button:active {
+  transform: scale(0.94);
+  transition: transform 0.1s ease;
+}
+
+/* Smooth all transitions */
+button {
+  transition: all 0.2s ease;
+}
+
+/* Input focus glow */
+input:focus, textarea:focus {
+  border-color: #4a9eff !important;
+  box-shadow: 0 0 0 3px rgba(74,158,255,0.15);
+  transition: all 0.2s ease;
 }

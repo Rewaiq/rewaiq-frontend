@@ -26,7 +26,7 @@ const CAROUSEL_SLIDES = [
   },
   {
     id: 3,
-    type: 'announcement',
+    type: 'promo',
     title: '🎉 Hub Now Open in Aba!',
     sub: 'Learn Data Analysis, Web Dev, UI/UX at Yellow Avenue, Aba',
     cta: 'Join First Cohort →',
@@ -96,6 +96,13 @@ export default function HomePage() {
     } catch {} finally { setLoading(false); }
   };
 
+  // Fix 1 — Tab change closes filter and resets it
+  const handleTabChange = (t) => {
+    setTab(t);
+    setShowFilter(false);
+    setTaskFilter('all');
+  };
+
   const filteredTasks = taskFilter === 'all'
     ? tasks
     : tasks.filter(t => t.task_type === taskFilter);
@@ -116,13 +123,17 @@ export default function HomePage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div onClick={() => router.push('/wallet')}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(74,158,255,0.12)', border: '1px solid rgba(74,158,255,0.2)', padding: '6px 12px', borderRadius: 20, cursor: 'pointer' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(74,158,255,0.12)', border: '1px solid rgba(74,158,255,0.2)', padding: '6px 12px', borderRadius: 20, cursor: 'pointer', transition: 'opacity 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
             <Coins size={14} color="#4a9eff" />
             <span style={{ fontSize: 13, fontWeight: 700, color: '#4a9eff' }}>{user?.coin_balance || 0}</span>
           </div>
 
           <div onClick={() => router.push('/notifications')}
-            style={{ position: 'relative', cursor: 'pointer', width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ position: 'relative', cursor: 'pointer', width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
             <Bell size={18} color="#8A9BB0" />
             {unreadCount > 0 && (
               <div style={{ position: 'absolute', top: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#F87171', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
@@ -132,7 +143,9 @@ export default function HomePage() {
           </div>
 
           <div onClick={() => router.push('/profile')}
-            style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #4a9eff, #1a3a8f)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', flexShrink: 0, overflow: 'hidden' }}>
+            style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #4a9eff, #1a3a8f)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', flexShrink: 0, overflow: 'hidden', transition: 'opacity 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
             {user?.profile_picture
               ? <img src={user.profile_picture} style={{ width: 36, height: 36, objectFit: 'cover' }} />
               : user?.full_name?.[0] || 'U'}
@@ -143,23 +156,35 @@ export default function HomePage() {
       {/* Tabs */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '12px 20px 0', gap: 8 }}>
         {['for-you', 'tasks', 'trending'].map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            style={{ padding: '8px 18px', borderRadius: 20, background: tab === t ? '#fff' : 'transparent', color: tab === t ? '#0A1628' : '#8A9BB0', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+          <button key={t}
+            onClick={() => handleTabChange(t)}
+            style={{ padding: '8px 18px', borderRadius: 20, background: tab === t ? '#fff' : 'transparent', color: tab === t ? '#0A1628' : '#8A9BB0', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.2s ease' }}
+            onMouseEnter={e => { if (tab !== t) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+            onMouseLeave={e => { if (tab !== t) e.currentTarget.style.background = 'transparent'; }}>
             {t === 'for-you' ? 'For You' : t === 'tasks' ? 'Tasks' : 'Trending'}
           </button>
         ))}
-        <div onClick={() => setShowFilter(!showFilter)}
-          style={{ marginLeft: 'auto', cursor: 'pointer', width: 34, height: 34, borderRadius: '50%', background: showFilter ? 'rgba(74,158,255,0.15)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <SlidersHorizontal size={18} color={showFilter ? '#4a9eff' : '#8A9BB0'} />
-        </div>
+
+        {/* Fix 2 — Filter only shows on tasks tab */}
+        {tab === 'tasks' && (
+          <div onClick={() => setShowFilter(!showFilter)}
+            style={{ marginLeft: 'auto', cursor: 'pointer', width: 34, height: 34, borderRadius: '50%', background: showFilter ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+            <SlidersHorizontal size={18} color={showFilter ? '#4a9eff' : '#8A9BB0'} />
+          </div>
+        )}
       </div>
 
-      {/* Filter panel */}
+      {/* Fix 3 — Filter panel only shows on tasks tab and closes on tab change */}
       {showFilter && tab === 'tasks' && (
         <div style={{ padding: '10px 20px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {['all', 'follow', 'watch', 'share', 'review', 'campaign'].map(f => (
-            <button key={f} onClick={() => setTaskFilter(f)}
-              style={{ padding: '6px 14px', borderRadius: 20, background: taskFilter === f ? '#4a9eff' : 'rgba(255,255,255,0.06)', color: taskFilter === f ? '#fff' : '#8A9BB0', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', textTransform: 'capitalize' }}>
+            <button key={f}
+              onClick={() => setTaskFilter(f)}
+              style={{ padding: '6px 14px', borderRadius: 20, background: taskFilter === f ? '#4a9eff' : 'rgba(255,255,255,0.06)', color: taskFilter === f ? '#fff' : '#8A9BB0', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.2s', textTransform: 'capitalize' }}
+              onMouseEnter={e => { if (taskFilter !== f) e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+              onMouseLeave={e => { if (taskFilter !== f) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}>
               {f === 'all' ? 'All Tasks' : f}
             </button>
           ))}
@@ -199,7 +224,9 @@ export default function HomePage() {
                       if (slide.action.startsWith('/')) router.push(slide.action);
                       else window.open(slide.action, '_blank');
                     }}
-                    style={{ background: slide.bg, borderRadius: 16, padding: '22px 20px', cursor: 'pointer', minHeight: 110 }}>
+                    style={{ background: slide.bg, borderRadius: 16, padding: '22px 20px', cursor: 'pointer', minHeight: 110, transition: 'opacity 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                     <p style={{ fontSize: 17, fontWeight: 900, color: slide.textColor, marginBottom: 6, fontFamily: 'Montserrat, sans-serif' }}>{slide.title}</p>
                     <p style={{ fontSize: 13, color: slide.textColor, opacity: 0.8, marginBottom: 16, lineHeight: 1.4 }}>{slide.sub}</p>
                     <span style={{ fontSize: 13, fontWeight: 700, color: slide.textColor, background: 'rgba(0,0,0,0.12)', padding: '8px 16px', borderRadius: 20 }}>
@@ -237,9 +264,10 @@ export default function HomePage() {
           ))
         ) : (
           <>
-            {/* Featured follow task */}
             <div onClick={() => router.push('/task?id=follow-rewaiq')}
-              style={{ background: 'linear-gradient(135deg, rgba(74,158,255,0.15), rgba(45,107,228,0.1))', border: '1px solid rgba(74,158,255,0.25)', borderRadius: 16, padding: '16px', marginBottom: 16, cursor: 'pointer' }}>
+              style={{ background: 'linear-gradient(135deg, rgba(74,158,255,0.15), rgba(45,107,228,0.1))', border: '1px solid rgba(74,158,255,0.25)', borderRadius: 16, padding: '16px', marginBottom: 16, cursor: 'pointer', transition: 'opacity 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(74,158,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -290,7 +318,9 @@ function Empty({ icon, title, sub }) {
 function TrackCard({ track, router }) {
   return (
     <div onClick={() => router.push(`/stream?id=${track.id}`)}
-      style={{ background: '#0D1F3C', borderRadius: 16, marginBottom: 16, overflow: 'hidden', cursor: 'pointer' }}>
+      style={{ background: '#0D1F3C', borderRadius: 16, marginBottom: 16, overflow: 'hidden', cursor: 'pointer', transition: 'opacity 0.2s' }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
       <div style={{ height: 180, background: 'linear-gradient(135deg, #0D1F3C, #1a3a8f, #0D1F3C)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Play size={24} color="#fff" fill="#fff" />
@@ -323,7 +353,9 @@ function TrackCard({ track, router }) {
 function TaskCard({ task, router }) {
   return (
     <div onClick={() => !task.completed && router.push(`/task?id=${task.id}`)}
-      style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14, cursor: task.completed ? 'default' : 'pointer', opacity: task.completed ? 0.6 : 1 }}>
+      style={{ background: '#0D1F3C', borderRadius: 14, padding: '16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14, cursor: task.completed ? 'default' : 'pointer', opacity: task.completed ? 0.6 : 1, transition: 'opacity 0.2s' }}
+      onMouseEnter={e => { if (!task.completed) e.currentTarget.style.opacity = '0.8'; }}
+      onMouseLeave={e => { if (!task.completed) e.currentTarget.style.opacity = '1'; }}>
       <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(74,158,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {task.completed ? <CheckCircle size={24} color="#1A7A4A" /> : <Circle size={24} color="#4a9eff" />}
       </div>
