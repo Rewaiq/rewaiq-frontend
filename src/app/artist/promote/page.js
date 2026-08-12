@@ -12,9 +12,9 @@ const COIN_PACKAGES = [
     coins: 5000,
     price: 1000,
     display: 'N1000',
-    streams: 500,
+    streams: 100,
     coins_per_stream: 10,
-    desc: 'Perfect for new artists — 500 guaranteed streams',
+    desc: 'Perfect for new artists — 100 guaranteed streams',
     badge: null,
   },
   {
