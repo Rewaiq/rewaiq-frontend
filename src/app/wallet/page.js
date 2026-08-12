@@ -182,8 +182,8 @@ const verifyAccount = async (number, bankCode) => {
       {/* Stats */}
       <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 20 }}>
         {[
-          { label: 'Daily Cap', value: '500 coins' },
-         { label: 'Min Cashout', value: '200 coins' },
+          { label: 'Daily Cap', value: '1500 coins' },
+         { label: 'Min Cashout', value: '500 coins' },
 { label: 'Rate', value: '2 coins = N1' },
         ].map(s => (
           <div key={s.label} style={{ flex: 1, background: '#0D1F3C', borderRadius: 12, padding: '12px', textAlign: 'center' }}>
@@ -308,7 +308,7 @@ const verifyAccount = async (number, bankCode) => {
 
                     {/* Quick amounts */}
                     <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                      {[200, 500, 1000, 2000].map(amt => (
+                     {[500, 1000, 2000].map(amt =>  (
                         <button key={amt} onClick={() => setCashoutForm(f => ({ ...f, coins: amt.toString() }))}
                           style={{ flex: 1, padding: '8px 4px', borderRadius: 8, background: cashoutForm.coins == amt ? '#4a9eff' : 'rgba(255,255,255,0.06)', color: cashoutForm.coins == amt ? '#fff' : '#8A9BB0', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
                           {amt.toLocaleString()}
