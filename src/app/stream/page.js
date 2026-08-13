@@ -307,6 +307,37 @@ function StreamContent() {
   }, [urlTrackId]);
 
   /*
+   * Helper to derive dynamic embed player URL
+   */
+  const getEmbedUrl = () => {
+    if (!track) return null;
+
+    if (track.embed_url) return track.embed_url;
+
+    const audiomackId =
+      track.audiomack_id ||
+      track.audiomackId ||
+      track.audiomack_track_id;
+
+    if (audiomackId) {
+      return `https://www.audiomack.com/embed/song/${encodeURIComponent(
+        audiomackId
+      )}?background=0&light=0&autoplay=1`;
+    }
+
+    if (track.original_url?.includes('audiomack.com')) {
+      const parts = track.original_url.split('audiomack.com/')[1];
+      return parts
+        ? `https://audiomack.com/embed/${parts}`
+        : track.original_url;
+    }
+
+    return null;
+  };
+
+  const embedUrl = getEmbedUrl();
+
+  /*
    * Clear timer.
    */
   function clearStreamTimer() {
@@ -476,7 +507,7 @@ function StreamContent() {
       );
 
       /*
-       * Show Audiomack immediately
+       * Show player immediately
        * after button click.
        */
       setShowEmbed(true);
@@ -489,6 +520,7 @@ function StreamContent() {
         track.original_url ||
         track.audio_url ||
         track.url ||
+        embedUrl ||
         '';
 
       const response =
@@ -499,6 +531,9 @@ function StreamContent() {
               resolvedTrackId,
             track_url:
               trackUrl,
+          },
+          {
+            timeout: 15000,
           }
         );
 
@@ -702,12 +737,6 @@ function StreamContent() {
       0
     );
 
-  const audiomackId =
-    track.audiomack_id ||
-    track.audiomackId ||
-    track.audiomack_track_id ||
-    null;
-
   return (
     <div
       style={{
@@ -802,17 +831,15 @@ function StreamContent() {
               'Unknown Artist'}
           </p>
 
-          {/* AUDIOMACK */}
+          {/* PLAYER EMBED */}
           {showEmbed &&
-          audiomackId ? (
+          embedUrl ? (
             <iframe
-              key={`audiomack-${audiomackId}`}
-              src={`https://www.audiomack.com/embed/song/${encodeURIComponent(
-                audiomackId
-              )}?background=0&light=0&autoplay=1`}
+              key={`embed-${embedUrl}`}
+              src={embedUrl}
               title={
                 track.title ||
-                'Audiomack Player'
+                'Audio Player'
               }
               style={{
                 width: '100%',
@@ -865,25 +892,6 @@ function StreamContent() {
               </div>
             </div>
           )}
-
-          {showEmbed &&
-            !audiomackId && (
-              <p
-                style={{
-                  color:
-                    '#F87171',
-                  textAlign:
-                    'center',
-                  fontSize: 12,
-                  marginTop: 12,
-                }}
-              >
-                This track does
-                not have an
-                Audiomack player
-                ID.
-              </p>
-            )}
         </div>
 
         {/* TIMER */}
@@ -1165,4 +1173,4 @@ export default function StreamPage() {
       <StreamContent />
     </Suspense>
   );
-    }
+}
