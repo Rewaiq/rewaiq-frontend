@@ -6,6 +6,8 @@ import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import Spinner from '@/components/Spinner';
 
+const MIN_CASHOUT_COINS = 500;
+
 const NIGERIAN_BANKS = [
   { name: 'Access Bank', code: '044' },
   { name: 'Fidelity Bank', code: '070' },
@@ -30,7 +32,7 @@ export default function WalletPage() {
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [verifiedName, setVerifiedName] = useState('');
-const [verifying, setVerifying] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCashout, setShowCashout] = useState(false);
   const [step, setStep] = useState(1);
@@ -66,53 +68,49 @@ const [verifying, setVerifying] = useState(false);
   const naira = Math.floor(balance / 2);
   const coinsToNaira = (coins) => Math.floor(parseInt(coins || 0) / 2);
 
-const verifyAccount = async (number, bankCode) => {
-  if (number.length !== 10 || !bankCode) return;
+  // Live validation for step 1 amount — drives disabled state, never hides the button
+  const enteredCoins = parseInt(cashoutForm.coins || 0);
+  const hasEnteredAmount = cashoutForm.coins !== '' && !isNaN(enteredCoins);
+  const isBelowMinimum = hasEnteredAmount && enteredCoins < MIN_CASHOUT_COINS;
+  const exceedsBalance = hasEnteredAmount && enteredCoins > balance;
+  const isValidAmount = hasEnteredAmount && enteredCoins >= MIN_CASHOUT_COINS && enteredCoins <= balance;
+  const balanceTooLowToCashout = balance < MIN_CASHOUT_COINS;
 
-  setVerifying(true);
-
-  try {
-    const res = await API.post('/api/coins/verify-account', {
-      account_number: number,
-      bank_code: bankCode,
-    });
-
-    if (res.data.verified) {
-      setVerifiedName(res.data.account_name);
-      setCashoutForm((f) => ({
-        ...f,
-        account_name: res.data.account_name,
-      }));
-    } else {
+  const verifyAccount = async (number, bankCode) => {
+    if (number.length !== 10 || !bankCode) return;
+    setVerifying(true);
+    try {
+      const res = await API.post('/api/coins/verify-account', {
+        account_number: number,
+        bank_code: bankCode,
+      });
+      if (res.data.verified) {
+        setVerifiedName(res.data.account_name);
+        setCashoutForm((f) => ({ ...f, account_name: res.data.account_name }));
+      } else {
+        setVerifiedName('');
+      }
+    } catch (err) {
       setVerifiedName('');
+    } finally {
+      setVerifying(false);
     }
-  } catch (err) {
-    setVerifiedName('');
-  } finally {
-    setVerifying(false);
-  }
-};
+  };
 
   const handleBankSelect = (bank) => {
-  setCashoutForm((f) => ({
-    ...f,
-    bank_name: bank.name,
-    bank_code: bank.code,
-  }));
-
-  // re-verify if account already entered
-  if (cashoutForm.account_number?.length === 10) {
-    verifyAccount(cashoutForm.account_number, bank.code);
-  }
-};
+    setCashoutForm((f) => ({ ...f, bank_name: bank.name, bank_code: bank.code }));
+    if (cashoutForm.account_number?.length === 10) {
+      verifyAccount(cashoutForm.account_number, bank.code);
+    }
+  };
 
   const handleCashoutSubmit = async () => {
     const { coins, bank_name, account_number, account_name } = cashoutForm;
     if (!coins || !bank_name || !account_number || !account_name) {
       setCashoutError('Please fill all fields'); return;
     }
-    if (parseInt(coins) < 10) {
-      setCashoutError('Minimum cashout is 1,000 coins (N500)'); return;
+    if (parseInt(coins) < MIN_CASHOUT_COINS) {
+      setCashoutError(`Minimum cashout is ${MIN_CASHOUT_COINS} coins`); return;
     }
     if (parseInt(coins) > balance) {
       setCashoutError('Insufficient coin balance'); return;
@@ -146,15 +144,13 @@ const verifyAccount = async (number, bankCode) => {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 80 }}>
-      {/* Header */}
       <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <button onClick={() => router.back()} style={{ background: 'none', display: 'flex' }}>
+        <button onClick={() => router.back()} style={{ background: 'none', display: 'flex', border: 'none', cursor: 'pointer' }}>
           <ArrowLeft size={22} color="#fff" />
         </button>
         <span style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>My Wallet</span>
       </div>
 
-      {/* Balance card */}
       <div style={{ margin: '20px 20px 16px', background: 'linear-gradient(135deg, #1a3a8f, #4a9eff)', borderRadius: 20, padding: '28px 24px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', right: -30, top: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginBottom: 6, letterSpacing: 2, textTransform: 'uppercase' }}>Total Balance</p>
@@ -179,12 +175,11 @@ const verifyAccount = async (number, bankCode) => {
         </div>
       </div>
 
-      {/* Stats */}
       <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 20 }}>
         {[
           { label: 'Daily Cap', value: '1500 coins' },
-         { label: 'Min Cashout', value: '500 coins' },
-{ label: 'Rate', value: '2 coins = N1' },
+          { label: 'Min Cashout', value: `${MIN_CASHOUT_COINS} coins` },
+          { label: 'Rate', value: '2 coins = N1' },
         ].map(s => (
           <div key={s.label} style={{ flex: 1, background: '#0D1F3C', borderRadius: 12, padding: '12px', textAlign: 'center' }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2, margin: 0 }}>{s.value}</p>
@@ -193,7 +188,6 @@ const verifyAccount = async (number, bankCode) => {
         ))}
       </div>
 
-      {/* Artist payment */}
       {user?.role === 'artist' && (
         <div style={{ margin: '0 20px 20px', background: 'rgba(212,160,23,0.06)', border: '1px solid rgba(212,160,23,0.15)', borderRadius: 16, padding: '18px 20px' }}>
           <p style={{ fontSize: 12, fontWeight: 700, color: '#D4A017', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Artist Campaign Payment</p>
@@ -218,7 +212,6 @@ const verifyAccount = async (number, bankCode) => {
         </div>
       )}
 
-      {/* Transaction history */}
       <div style={{ padding: '0 20px' }}>
         <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 14 }}>Transaction History</p>
         {transactions.length === 0 ? (
@@ -247,7 +240,6 @@ const verifyAccount = async (number, bankCode) => {
         ))}
       </div>
 
-      {/* Cashout modal */}
       {showCashout && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
           <div style={{ width: '100%', background: '#0D1F3C', borderRadius: '20px 20px 0 0', padding: '28px 24px 48px', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -280,7 +272,6 @@ const verifyAccount = async (number, bankCode) => {
               </div>
             ) : (
               <>
-                {/* Step 1 — Amount */}
                 {step === 1 && (
                   <>
                     <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '16px', marginBottom: 20, textAlign: 'center' }}>
@@ -289,28 +280,49 @@ const verifyAccount = async (number, bankCode) => {
                       <p style={{ fontSize: 14, color: '#8A9BB0', marginTop: 4 }}>= N{naira.toLocaleString()} NGN</p>
                     </div>
 
+                    {balanceTooLowToCashout && (
+                      <div style={{ background: 'rgba(212,160,23,0.08)', border: '1px solid rgba(212,160,23,0.2)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+                        <p style={{ fontSize: 13, color: '#D4A017', margin: 0, lineHeight: 1.6 }}>
+                          You need at least {MIN_CASHOUT_COINS} coins to cash out. Keep streaming and completing tasks to earn more.
+                        </p>
+                      </div>
+                    )}
+
                     <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>
-                      Coins to cashout (min 1,000)
+                      Coins to cashout (min {MIN_CASHOUT_COINS})
                     </label>
                     <input
                       type="number"
                       placeholder="Enter amount"
                       value={cashoutForm.coins}
+                      disabled={balanceTooLowToCashout}
                       onChange={e => setCashoutForm(f => ({ ...f, coins: e.target.value }))}
-                      style={{ width: '100%', padding: '14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff', background: 'rgba(255,255,255,0.05)', marginBottom: 8, fontWeight: 700, textAlign: 'center', fontFamily: 'Montserrat, sans-serif' }}
+                      style={{ width: '100%', padding: '14px', borderRadius: 10, border: `1.5px solid ${isValidAmount ? '#4ADE80' : 'rgba(255,255,255,0.1)'}`, fontSize: 18, color: '#fff', background: 'rgba(255,255,255,0.05)', marginBottom: 8, fontWeight: 700, textAlign: 'center', fontFamily: 'Montserrat, sans-serif' }}
                     />
 
                     {cashoutForm.coins && (
-                      <p style={{ fontSize: 15, color: '#4a9eff', textAlign: 'center', marginBottom: 16, fontWeight: 700 }}>
+                      <p style={{ fontSize: 15, color: '#4a9eff', textAlign: 'center', marginBottom: 8, fontWeight: 700 }}>
                         = N{coinsToNaira(cashoutForm.coins).toLocaleString()} NGN
                       </p>
                     )}
 
-                    {/* Quick amounts */}
+                    {isBelowMinimum && (
+                      <p style={{ fontSize: 13, color: '#F87171', textAlign: 'center', marginBottom: 8 }}>
+                        Minimum cashout is {MIN_CASHOUT_COINS} coins
+                      </p>
+                    )}
+                    {exceedsBalance && (
+                      <p style={{ fontSize: 13, color: '#F87171', textAlign: 'center', marginBottom: 8 }}>
+                        Insufficient balance
+                      </p>
+                    )}
+
                     <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                     {[500, 1000, 2000].map(amt =>  (
-                        <button key={amt} onClick={() => setCashoutForm(f => ({ ...f, coins: amt.toString() }))}
-                          style={{ flex: 1, padding: '8px 4px', borderRadius: 8, background: cashoutForm.coins == amt ? '#4a9eff' : 'rgba(255,255,255,0.06)', color: cashoutForm.coins == amt ? '#fff' : '#8A9BB0', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+                      {[500, 1000, 2000].map(amt => (
+                        <button key={amt}
+                          disabled={balanceTooLowToCashout}
+                          onClick={() => setCashoutForm(f => ({ ...f, coins: amt.toString() }))}
+                          style={{ flex: 1, padding: '8px 4px', borderRadius: 8, background: cashoutForm.coins == amt ? '#4a9eff' : 'rgba(255,255,255,0.06)', color: cashoutForm.coins == amt ? '#fff' : '#8A9BB0', fontSize: 11, fontWeight: 600, border: 'none', cursor: balanceTooLowToCashout ? 'not-allowed' : 'pointer', opacity: balanceTooLowToCashout ? 0.4 : 1 }}>
                           {amt.toLocaleString()}
                         </button>
                       ))}
@@ -318,19 +330,26 @@ const verifyAccount = async (number, bankCode) => {
 
                     {cashoutError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{cashoutError}</p>}
 
-                    <button onClick={() => {
-                      if (!cashoutForm.coins || parseInt(cashoutForm.coins) < 200) { setCashoutError('Minimum is 200 coins'); return; }
-                      if (parseInt(cashoutForm.coins) > balance) { setCashoutError('Insufficient balance'); return; }
-                      setCashoutError('');
-                      setStep(2);
-                    }}
-                      style={{ width: '100%', padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                    {/* Button is ALWAYS rendered — only disabled state changes */}
+                    <button
+                      onClick={() => { setCashoutError(''); setStep(2); }}
+                      disabled={!isValidAmount}
+                      style={{
+                        width: '100%',
+                        padding: '15px',
+                        borderRadius: 12,
+                        background: isValidAmount ? '#4a9eff' : 'rgba(255,255,255,0.08)',
+                        color: isValidAmount ? '#fff' : '#8A9BB0',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: isValidAmount ? 'pointer' : 'not-allowed',
+                      }}>
                       Next — Enter Bank Details
                     </button>
                   </>
                 )}
 
-                {/* Step 2 — Bank Details */}
                 {step === 2 && (
                   <>
                     <div style={{ marginBottom: 16 }}>
@@ -356,61 +375,41 @@ const verifyAccount = async (number, bankCode) => {
                     <div style={{ marginBottom: 16 }}>
                       <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Account Number</label>
                       <input
-  type="tel"
-  placeholder="10-digit account number"
-  maxLength={10}
-  value={cashoutForm.account_number}
-  onChange={(e) => {
-    const value = e.target.value.replace(/\D/g, '');
-
-    setCashoutForm((f) => ({
-      ...f,
-      account_number: value,
-      account_name: '', // reset until verified
-    }));
-
-    if (value.length === 10) {
-      verifyAccount(value, cashoutForm.bank_code);
-    }
-  }}
-  style={{
-    width: '100%',
-    padding: '13px 14px',
-    borderRadius: 10,
-    border: `1.5px solid ${
-      verifiedName ? '#4ADE80' : 'rgba(255,255,255,0.1)'
-    }`,
-    fontSize: 16,
-    color: '#fff',
-    background: 'rgba(255,255,255,0.05)',
-    letterSpacing: 3,
-    fontWeight: 700,
-  }}
-/>
-{verifying && (
-  <p style={{ fontSize: 12, color: '#4a9eff', marginTop: 6 }}>
-    Verifying account...
-  </p>
-)}
-
-{verifiedName && (
-  <div style={{
-    background: 'rgba(74,222,128,0.08)',
-    border: '1px solid rgba(74,222,128,0.2)',
-    borderRadius: 8,
-    padding: '10px 14px',
-    marginTop: 8
-  }}>
-    <p style={{
-      fontSize: 13,
-      color: '#4ADE80',
-      fontWeight: 600,
-      margin: 0
-    }}>
-      Account verified: {verifiedName}
-    </p>
-  </div>
-)}
+                        type="tel"
+                        placeholder="10-digit account number"
+                        maxLength={10}
+                        value={cashoutForm.account_number}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          setCashoutForm((f) => ({ ...f, account_number: value, account_name: '' }));
+                          if (value.length === 10) {
+                            verifyAccount(value, cashoutForm.bank_code);
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '13px 14px',
+                          borderRadius: 10,
+                          border: `1.5px solid ${verifiedName ? '#4ADE80' : 'rgba(255,255,255,0.1)'}`,
+                          fontSize: 16,
+                          color: '#fff',
+                          background: 'rgba(255,255,255,0.05)',
+                          letterSpacing: 3,
+                          fontWeight: 700,
+                        }}
+                      />
+                      {verifying && (
+                        <p style={{ fontSize: 12, color: '#4a9eff', marginTop: 6 }}>
+                          Verifying account...
+                        </p>
+                      )}
+                      {verifiedName && (
+                        <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 8, padding: '10px 14px', marginTop: 8 }}>
+                          <p style={{ fontSize: 13, color: '#4ADE80', fontWeight: 600, margin: 0 }}>
+                            Account verified: {verifiedName}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ marginBottom: 24 }}>
@@ -426,7 +425,14 @@ const verifyAccount = async (number, bankCode) => {
 
                     {cashoutError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{cashoutError}</p>}
 
-                    <button onClick={() => setStep(3)}
+                    <button
+                      onClick={() => {
+                        if (!cashoutForm.bank_name || !cashoutForm.account_number || !cashoutForm.account_name) {
+                          setCashoutError('Please fill all bank details'); return;
+                        }
+                        setCashoutError('');
+                        setStep(3);
+                      }}
                       style={{ width: '100%', padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer', marginBottom: 10 }}>
                       Next — Review
                     </button>
@@ -437,7 +443,6 @@ const verifyAccount = async (number, bankCode) => {
                   </>
                 )}
 
-                {/* Step 3 — Confirm */}
                 {step === 3 && (
                   <>
                     <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '18px', marginBottom: 20 }}>
@@ -464,7 +469,7 @@ const verifyAccount = async (number, bankCode) => {
                     {cashoutError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{cashoutError}</p>}
 
                     <button onClick={handleCashoutSubmit} disabled={submitting}
-                      style={{ width: '100%', padding: '15px', borderRadius: 12, background: submitting ? 'rgba(255,255,255,0.08)' : '#4a9eff', color: submitting ? '#8A9BB0' : '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer', marginBottom: 10 }}>
+                      style={{ width: '100%', padding: '15px', borderRadius: 12, background: submitting ? 'rgba(255,255,255,0.08)' : '#4a9eff', color: submitting ? '#8A9BB0' : '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', marginBottom: 10 }}>
                       {submitting ? 'Submitting...' : 'Confirm Cashout Request'}
                     </button>
                     <button onClick={() => setStep(2)}
@@ -482,4 +487,4 @@ const verifyAccount = async (number, bankCode) => {
       <BottomNav active="wallet" />
     </div>
   );
-}
+              }
