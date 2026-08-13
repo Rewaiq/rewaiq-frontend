@@ -2,24 +2,45 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Coins, Play, Square, CheckCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  Play,
+  Square,
+  CheckCircle,
+} from 'lucide-react';
+
 import API from '@/lib/api';
 import Spinner from '@/components/Spinner';
 
 const REQUIRED_SECONDS = 60;
+const STORAGE_KEY = 'rewaiq_stream_track';
 
 function StreamContent() {
   const router = useRouter();
-  const params = useSearchParams();
+  const searchParams = useSearchParams();
 
-  const trackId = params.get('id');
+  /*
+   * Get the ID from the URL.
+   *
+   * We support both:
+   * /stream?id=123
+   * /stream?track_id=123
+   */
+  const urlTrackId =
+    searchParams.get('id') ||
+    searchParams.get('track_id');
 
   const [track, setTrack] = useState(null);
+  const [trackId, setTrackId] = useState(urlTrackId || null);
+
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('idle');
+
   const [showEmbed, setShowEmbed] = useState(false);
+
   const [seconds, setSeconds] = useState(0);
   const [sessionId, setSessionId] = useState(null);
+
   const [error, setError] = useState('');
   const [rewarded, setRewarded] = useState(false);
 
@@ -28,15 +49,132 @@ function StreamContent() {
   const endingRef = useRef(false);
 
   /*
-   * Load track
+   * ---------------------------------------------------------
+   * SAVE TRACK LOCALLY
+   * ---------------------------------------------------------
+   *
+   * This prevents the track from disappearing if Next.js
+   * recreates the page/component.
+   */
+  function saveTrackLocally(trackData) {
+    if (typeof window === 'undefined') return;
+
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(trackData)
+      );
+    } catch (err) {
+      console.warn(
+        'Could not save stream track:',
+        err
+      );
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * GET SAVED TRACK
+   * ---------------------------------------------------------
+   */
+  function getSavedTrack() {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    try {
+      const saved =
+        sessionStorage.getItem(STORAGE_KEY);
+
+      if (!saved) return null;
+
+      return JSON.parse(saved);
+    } catch (err) {
+      console.warn(
+        'Could not read saved stream track:',
+        err
+      );
+
+      return null;
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * FIND TRACK ID
+   * ---------------------------------------------------------
+   *
+   * Priority:
+   *
+   * 1. URL
+   * 2. Saved track
+   *
+   * This means the page doesn't suddenly lose the ID.
+   */
+  useEffect(() => {
+    let id = urlTrackId;
+
+    if (!id) {
+      const savedTrack = getSavedTrack();
+
+      if (savedTrack) {
+        id =
+          savedTrack.id ||
+          savedTrack._id ||
+          savedTrack.track_id ||
+          null;
+      }
+    }
+
+    if (id) {
+      setTrackId(String(id));
+    }
+  }, [urlTrackId]);
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD TRACK
+   * ---------------------------------------------------------
    */
   useEffect(() => {
     let cancelled = false;
 
     async function loadTrack() {
+      /*
+       * First check whether we already have a valid
+       * track saved locally.
+       */
+      const savedTrack = getSavedTrack();
+
+      /*
+       * If URL ID is missing but we have saved track,
+       * immediately display it.
+       */
+      if (!trackId && savedTrack) {
+        if (!cancelled) {
+          setTrack(savedTrack);
+          setTrackId(
+            String(
+              savedTrack.id ||
+              savedTrack._id ||
+              savedTrack.track_id
+            )
+          );
+          setLoading(false);
+        }
+
+        return;
+      }
+
+      /*
+       * No ID anywhere.
+       */
       if (!trackId) {
-        setError('No track selected');
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setError('No track selected');
+        }
+
         return;
       }
 
@@ -44,29 +182,110 @@ function StreamContent() {
         setLoading(true);
         setError('');
 
-        const res = await API.get(
-          '/api/tracks/' + encodeURIComponent(trackId)
+        /*
+         * If the saved track is already the same track,
+         * show it immediately while the API request runs.
+         */
+        if (savedTrack) {
+          const savedId =
+            savedTrack.id ||
+            savedTrack._id ||
+            savedTrack.track_id;
+
+          if (
+            savedId &&
+            String(savedId) === String(trackId)
+          ) {
+            if (!cancelled) {
+              setTrack(savedTrack);
+              setLoading(false);
+            }
+          }
+        }
+
+        /*
+         * Fetch the latest version from backend.
+         */
+        const response = await API.get(
+          `/api/tracks/${encodeURIComponent(trackId)}`
         );
 
         if (cancelled) return;
 
-        const loadedTrack = res.data?.track;
+        /*
+         * Support different possible API response formats.
+         */
+        const loadedTrack =
+          response?.data?.track ||
+          response?.data?.data ||
+          response?.data;
 
         if (!loadedTrack) {
+          /*
+           * IMPORTANT:
+           *
+           * If we already have a saved track, don't destroy it.
+           */
+          if (savedTrack) {
+            setTrack(savedTrack);
+            setLoading(false);
+            return;
+          }
+
           throw new Error('Track not found');
         }
 
+        /*
+         * Save the successful track.
+         */
         setTrack(loadedTrack);
-      } catch (err) {
-        console.error('Track loading error:', err);
+        saveTrackLocally(loadedTrack);
 
+        /*
+         * Make sure track ID remains available.
+         */
+        const resolvedId =
+          loadedTrack.id ||
+          loadedTrack._id ||
+          loadedTrack.track_id ||
+          trackId;
+
+        setTrackId(String(resolvedId));
+
+      } catch (err) {
+        console.error(
+          'Track loading error:',
+          err
+        );
+
+        /*
+         * DO NOT destroy an already loaded track.
+         *
+         * This is important for the problem you were having.
+         */
         if (!cancelled) {
-          setTrack(null);
-          setError(
-            err?.response?.data?.message ||
-            'Track not found'
-          );
+          const existingTrack =
+            track || savedTrack;
+
+          if (existingTrack) {
+            setTrack(existingTrack);
+
+            /*
+             * Don't show "Track not found" over a valid
+             * track that is already displayed.
+             */
+            setError('');
+          } else {
+            setTrack(null);
+
+            setError(
+              err?.response?.data?.message ||
+              err?.message ||
+              'Track not found'
+            );
+          }
         }
+
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -78,66 +297,122 @@ function StreamContent() {
 
     return () => {
       cancelled = true;
-
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
     };
   }, [trackId]);
 
   /*
-   * Start stream
-   *
-   * IMPORTANT:
-   * We do NOT wait for the Audiomack iframe.
-   * The backend session and timer start immediately.
+   * ---------------------------------------------------------
+   * CLEAN TIMER
+   * ---------------------------------------------------------
+   */
+  function clearStreamTimer() {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * START STREAM
+   * ---------------------------------------------------------
    */
   async function handleStartStreaming() {
     if (startingRef.current) return;
-    if (status !== 'idle') return;
-    if (!track) return;
+
+    if (
+      status !== 'idle' &&
+      status !== 'completed'
+    ) {
+      return;
+    }
+
+    if (!track) {
+      setError('No track selected');
+      return;
+    }
 
     startingRef.current = true;
 
     try {
       setError('');
-      setStatus('starting');
-      setSeconds(0);
       setRewarded(false);
+      setSeconds(0);
 
       /*
-       * Show Audiomack immediately.
+       * Save the track again before starting.
+       */
+      saveTrackLocally(track);
+
+      /*
+       * Show Audiomack immediately after the user
+       * presses Start Streaming.
        */
       setShowEmbed(true);
 
+      setStatus('starting');
+
       /*
-       * Start backend session immediately.
+       * Get the correct track ID.
        */
-      const trackUrl = track.original_url || '';
+      const resolvedTrackId =
+        track.id ||
+        track._id ||
+        track.track_id ||
+        trackId;
 
-      const res = await API.post('/api/streams/start', {
-        track_id: track.id || trackId,
-        track_url: trackUrl,
-      });
+      if (!resolvedTrackId) {
+        throw new Error(
+          'This track does not have a valid ID'
+        );
+      }
 
-      const newSessionId = res.data?.session?.id;
+      /*
+       * Get Audiomack URL if available.
+       */
+      const trackUrl =
+        track.original_url ||
+        track.audio_url ||
+        track.url ||
+        '';
+
+      /*
+       * Start backend earning session.
+       */
+      const response = await API.post(
+        '/api/streams/start',
+        {
+          track_id: resolvedTrackId,
+          track_url: trackUrl,
+        }
+      );
+
+      console.log(
+        'Stream start response:',
+        response?.data
+      );
+
+      const newSessionId =
+        response?.data?.session?.id ||
+        response?.data?.session_id ||
+        response?.data?.id;
 
       if (!newSessionId) {
-        throw new Error('Stream session was not created');
+        throw new Error(
+          'Stream session was not created'
+        );
       }
 
       setSessionId(newSessionId);
       setStatus('streaming');
 
       /*
-       * Start the 60-second countdown immediately.
+       * Start timer only after backend confirms
+       * the streaming session.
        */
-      let currentSeconds = 0;
+      clearStreamTimer();
 
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      let currentSeconds = 0;
 
       timerRef.current = setInterval(() => {
         currentSeconds += 1;
@@ -145,34 +420,46 @@ function StreamContent() {
         setSeconds(currentSeconds);
 
         /*
-         * Full 60 seconds completed.
+         * 60 seconds completed.
          */
-        if (currentSeconds >= REQUIRED_SECONDS) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
+        if (
+          currentSeconds >=
+          REQUIRED_SECONDS
+        ) {
+          clearStreamTimer();
 
           finishStream(newSessionId);
         }
       }, 1000);
 
     } catch (err) {
-      console.error('Start stream error:', err);
+      console.error(
+        'Start stream error:',
+        err
+      );
+
+      clearStreamTimer();
 
       setStatus('idle');
       setShowEmbed(false);
+      setSessionId(null);
+      setSeconds(0);
 
       setError(
         err?.response?.data?.message ||
         err?.message ||
         'Could not start stream. Please try again.'
       );
+
     } finally {
       startingRef.current = false;
     }
   }
 
   /*
-   * Finish stream after the COMPLETE 60 seconds.
+   * ---------------------------------------------------------
+   * FINISH STREAM
+   * ---------------------------------------------------------
    */
   async function finishStream(sid) {
     if (endingRef.current) return;
@@ -183,60 +470,86 @@ function StreamContent() {
       setStatus('completing');
 
       /*
-       * Tell backend the stream has ended.
+       * Tell backend that the user completed the
+       * required stream duration.
        */
-      const res = await API.post('/api/streams/end', {
-        session_id: sid,
-      });
+      const response = await API.post(
+        '/api/streams/end',
+        {
+          session_id: sid,
+        }
+      );
 
-      console.log('Stream completed:', res.data);
+      console.log(
+        'Stream completed:',
+        response?.data
+      );
 
       /*
-       * IMPORTANT:
-       * Refresh wallet immediately.
+       * Refresh wallet.
        */
       try {
-        const balanceRes = await API.get('/api/coins/balance');
+        const balanceResponse =
+          await API.get(
+            '/api/coins/balance'
+          );
 
         console.log(
           'Updated coin balance:',
-          balanceRes.data
+          balanceResponse?.data
         );
 
         /*
-         * Update stored user balance if the API returns it.
+         * Update stored user.
          */
-        const storedUser = localStorage.getItem('rewaiq_user');
+        if (
+          typeof window !== 'undefined'
+        ) {
+          const storedUser =
+            localStorage.getItem(
+              'rewaiq_user'
+            );
 
-        if (storedUser) {
-          try {
-            const user = JSON.parse(storedUser);
+          if (storedUser) {
+            try {
+              const user =
+                JSON.parse(storedUser);
 
-            const newBalance =
-              balanceRes.data?.balance ??
-              balanceRes.data?.coin_balance ??
-              balanceRes.data?.coins ??
-              balanceRes.data?.user?.coin_balance;
+              const newBalance =
+                balanceResponse?.data
+                  ?.balance ??
+                balanceResponse?.data
+                  ?.coin_balance ??
+                balanceResponse?.data
+                  ?.coins ??
+                balanceResponse?.data
+                  ?.user?.coin_balance;
 
-            if (newBalance !== undefined) {
-              user.coin_balance = newBalance;
+              if (
+                newBalance !== undefined
+              ) {
+                user.coin_balance =
+                  newBalance;
 
-              localStorage.setItem(
-                'rewaiq_user',
-                JSON.stringify(user)
+                localStorage.setItem(
+                  'rewaiq_user',
+                  JSON.stringify(user)
+                );
+              }
+
+            } catch (storageError) {
+              console.warn(
+                'Could not update stored user:',
+                storageError
               );
             }
-          } catch (storageError) {
-            console.warn(
-              'Could not update stored user:',
-              storageError
-            );
           }
         }
+
       } catch (balanceError) {
         /*
-         * The stream itself already completed.
-         * Balance refresh failing should not undo the reward.
+         * Don't undo a completed stream just because
+         * the balance refresh failed.
          */
         console.warn(
           'Could not refresh coin balance:',
@@ -245,20 +558,25 @@ function StreamContent() {
       }
 
       setRewarded(true);
-      setStatus('completed');
       setSeconds(REQUIRED_SECONDS);
+      setStatus('completed');
 
     } catch (err) {
-      console.error('Finish stream error:', err);
+      console.error(
+        'Finish stream error:',
+        err
+      );
 
       setError(
         err?.response?.data?.message ||
+        err?.message ||
         'Could not complete stream. Please try again.'
       );
 
       setStatus('idle');
       setShowEmbed(false);
       setSeconds(0);
+      setSessionId(null);
 
     } finally {
       endingRef.current = false;
@@ -266,27 +584,35 @@ function StreamContent() {
   }
 
   /*
-   * User manually stops before 60 seconds.
-   *
-   * No reward should be given.
+   * ---------------------------------------------------------
+   * STOP STREAMING
+   * ---------------------------------------------------------
    */
   async function handleStopStreaming() {
-    if (status !== 'streaming') return;
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    if (
+      status !== 'streaming' &&
+      status !== 'starting'
+    ) {
+      return;
     }
 
+    clearStreamTimer();
+
     /*
-     * End incomplete session.
-     * Backend should NOT reward it because it is below 60 seconds.
+     * If there is an active session and the user
+     * stopped before 60 seconds, end it.
      */
-    if (sessionId && seconds < REQUIRED_SECONDS) {
+    if (
+      sessionId &&
+      seconds < REQUIRED_SECONDS
+    ) {
       try {
-        await API.post('/api/streams/end', {
-          session_id: sessionId,
-        });
+        await API.post(
+          '/api/streams/end',
+          {
+            session_id: sessionId,
+          }
+        );
       } catch (err) {
         console.warn(
           'Could not end incomplete stream:',
@@ -303,20 +629,30 @@ function StreamContent() {
   }
 
   /*
-   * Cleanup.
+   * ---------------------------------------------------------
+   * PAGE CLEANUP
+   * ---------------------------------------------------------
    */
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      clearStreamTimer();
     };
   }, []);
 
-  if (loading) {
+  /*
+   * ---------------------------------------------------------
+   * LOADING
+   * ---------------------------------------------------------
+   */
+  if (loading && !track) {
     return <Spinner fullscreen />;
   }
 
+  /*
+   * ---------------------------------------------------------
+   * NO TRACK
+   * ---------------------------------------------------------
+   */
   if (!track) {
     return (
       <div
@@ -324,26 +660,72 @@ function StreamContent() {
           minHeight: '100vh',
           background: '#0A1628',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           color: '#8A9BB0',
           fontSize: 18,
+          padding: 24,
+          textAlign: 'center',
         }}
       >
-        {error || 'Track not found'}
+        <p
+          style={{
+            marginBottom: 20,
+          }}
+        >
+          {error || 'No track selected'}
+        </p>
+
+        <button
+          onClick={() => router.back()}
+          style={{
+            padding: '12px 20px',
+            borderRadius: 10,
+            border: 'none',
+            background: '#4a9eff',
+            color: '#fff',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          Go Back
+        </button>
       </div>
     );
   }
 
-  const progress =
-    (seconds / REQUIRED_SECONDS) * 100;
+  /*
+   * ---------------------------------------------------------
+   * TIMER VALUES
+   * ---------------------------------------------------------
+   */
+  const progress = Math.min(
+    (seconds / REQUIRED_SECONDS) * 100,
+    100
+  );
 
-  const remaining =
-    Math.max(
-      REQUIRED_SECONDS - seconds,
-      0
-    );
+  const remaining = Math.max(
+    REQUIRED_SECONDS - seconds,
+    0
+  );
 
+  /*
+   * ---------------------------------------------------------
+   * AUDIO / AUDIOMACK ID
+   * ---------------------------------------------------------
+   */
+  const audiomackId =
+    track.audiomack_id ||
+    track.audiomackId ||
+    track.audiomack_track_id ||
+    null;
+
+  /*
+   * ---------------------------------------------------------
+   * PAGE
+   * ---------------------------------------------------------
+   */
   return (
     <div
       style={{
@@ -353,7 +735,7 @@ function StreamContent() {
       }}
     >
 
-      {/* Header */}
+      {/* HEADER */}
       <div
         style={{
           padding: '16px 20px',
@@ -365,11 +747,14 @@ function StreamContent() {
       >
         <button
           onClick={() => router.back()}
+          aria-label="Go back"
           style={{
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             padding: 0,
+            display: 'flex',
+            alignItems: 'center',
           }}
         >
           <ArrowLeft
@@ -389,9 +774,13 @@ function StreamContent() {
         </span>
       </div>
 
-      <div style={{ padding: '20px' }}>
+      <div
+        style={{
+          padding: '20px',
+        }}
+      >
 
-        {/* Track */}
+        {/* TRACK CARD */}
         <div
           style={{
             background: '#0D1F3C',
@@ -400,41 +789,52 @@ function StreamContent() {
             marginBottom: 20,
           }}
         >
+
           <p
             style={{
               fontSize: 16,
               fontWeight: 700,
               color: '#fff',
-              marginBottom: 4,
+              margin: '0 0 4px',
             }}
           >
-            {track.title}
+            {track.title ||
+              track.name ||
+              'Untitled Track'}
           </p>
 
           <p
             style={{
               fontSize: 13,
               color: '#8A9BB0',
-              marginBottom: 16,
+              margin: '0 0 16px',
             }}
           >
-            {track.artist_name}
+            {track.artist_name ||
+              track.artist ||
+              track.artistName ||
+              'Unknown Artist'}
           </p>
 
-          {/* Audiomack */}
-          {showEmbed && track.audiomack_id ? (
+          {/* AUDIOMACK PLAYER */}
+          {showEmbed && audiomackId ? (
             <iframe
+              key={`audiomack-${audiomackId}`}
               src={
-                'https://www.audiomack.com/embed/song/' +
-                track.audiomack_id +
-                '?background=0&light=0&autoplay=1'
+                `https://www.audiomack.com/embed/song/${encodeURIComponent(
+                  audiomackId
+                )}?background=0&light=0&autoplay=1`
               }
-              title={track.title}
+              title={
+                track.title ||
+                'Audiomack Player'
+              }
               style={{
                 width: '100%',
                 height: 140,
                 border: 'none',
                 borderRadius: 10,
+                display: 'block',
               }}
               allow="autoplay; encrypted-media"
               allowFullScreen
@@ -476,9 +876,25 @@ function StreamContent() {
               </div>
             </div>
           )}
+
+          {/* No Audiomack ID warning */}
+          {showEmbed && !audiomackId && (
+            <p
+              style={{
+                color: '#F87171',
+                textAlign: 'center',
+                fontSize: 12,
+                marginTop: 12,
+              }}
+            >
+              This track does not have an Audiomack
+              player ID.
+            </p>
+          )}
+
         </div>
 
-        {/* Timer */}
+        {/* TIMER CARD */}
         <div
           style={{
             background: '#0D1F3C',
@@ -499,12 +915,12 @@ function StreamContent() {
               borderTopColor:
                 status === 'streaming'
                   ? '#4a9eff'
+                  : status === 'completed'
+                  ? '#4a9eff'
                   : 'rgba(74,158,255,0.15)',
               margin: '0 auto 16px',
               transform:
-                'rotate(' +
-                progress * 3.6 +
-                'deg)',
+                `rotate(${progress * 3.6}deg)`,
               transition:
                 'transform 1s linear',
             }}
@@ -520,7 +936,7 @@ function StreamContent() {
           >
             {status === 'completed'
               ? '✓'
-              : remaining + 's'}
+              : `${remaining}s`}
           </p>
 
           <p
@@ -528,6 +944,7 @@ function StreamContent() {
               fontSize: 12,
               color: '#8A9BB0',
               marginTop: 4,
+              marginBottom: 0,
             }}
           >
             {status === 'starting'
@@ -540,9 +957,10 @@ function StreamContent() {
               ? 'Stream complete — coins added!'
               : 'Press Start to begin earning'}
           </p>
+
         </div>
 
-        {/* Completed */}
+        {/* COMPLETED */}
         {status === 'completed' ? (
           <div>
 
@@ -583,7 +1001,12 @@ function StreamContent() {
             </div>
 
             <button
-              onClick={() => router.push('/home')}
+              onClick={() => {
+                /*
+                 * Keep the stored track until user leaves.
+                 */
+                router.push('/home');
+              }}
               style={{
                 width: '100%',
                 padding: 16,
@@ -603,6 +1026,7 @@ function StreamContent() {
 
         ) : status === 'streaming' ? (
 
+          /* STOP BUTTON */
           <button
             onClick={handleStopStreaming}
             style={{
@@ -635,6 +1059,7 @@ function StreamContent() {
 
         ) : (
 
+          /* START BUTTON */
           <button
             onClick={handleStartStreaming}
             disabled={
@@ -646,18 +1071,21 @@ function StreamContent() {
               padding: 18,
               borderRadius: 14,
               background:
-                status === 'starting'
+                status === 'starting' ||
+                status === 'completing'
                   ? 'rgba(255,255,255,0.08)'
                   : 'linear-gradient(135deg, #4a9eff, #2d6be4)',
               color:
-                status === 'starting'
+                status === 'starting' ||
+                status === 'completing'
                   ? '#8A9BB0'
                   : '#fff',
               border: 'none',
               fontWeight: 700,
               fontSize: 16,
               cursor:
-                status === 'starting'
+                status === 'starting' ||
+                status === 'completing'
                   ? 'not-allowed'
                   : 'pointer',
               display: 'flex',
@@ -669,7 +1097,8 @@ function StreamContent() {
             <Play
               size={18}
               fill={
-                status === 'starting'
+                status === 'starting' ||
+                status === 'completing'
                   ? '#8A9BB0'
                   : '#fff'
               }
@@ -678,11 +1107,14 @@ function StreamContent() {
             <span>
               {status === 'starting'
                 ? 'Starting...'
+                : status === 'completing'
+                ? 'Completing...'
                 : 'Start Streaming'}
             </span>
           </button>
         )}
 
+        {/* ERROR */}
         {error && (
           <p
             style={{
@@ -690,6 +1122,7 @@ function StreamContent() {
               textAlign: 'center',
               marginTop: 16,
               fontSize: 13,
+              lineHeight: 1.5,
             }}
           >
             {error}
@@ -701,12 +1134,22 @@ function StreamContent() {
   );
 }
 
+/*
+ * ---------------------------------------------------------
+ * PAGE WRAPPER
+ * ---------------------------------------------------------
+ *
+ * Next.js 16 requires useSearchParams() to be rendered
+ * underneath a Suspense boundary.
+ */
 export default function StreamPage() {
   return (
     <Suspense
-      fallback={<Spinner fullscreen />}
+      fallback={
+        <Spinner fullscreen />
+      }
     >
       <StreamContent />
     </Suspense>
   );
-}
+            }
