@@ -25,123 +25,97 @@ function StreamContent() {
   const timerRef = useRef(null);
   const startLockRef = useRef(false);
   const sessionStartedRef = useRef(false);
-  const finishingRef = useRef(false);
 
   /*
-   * ============================================================
-   * LOAD TRACK
-   * ============================================================
+   * -------------------------------------------------------
+   * FETCH TRACK
+   * -------------------------------------------------------
    *
    * First try:
    *   GET /api/tracks/:id
    *
-   * If that doesn't work, fall back to:
+   * If that fails, use:
    *   GET /api/tracks
    *
-   * This prevents the Stream page from incorrectly saying
-   * "Track not found" when the track is actually present in feed.
+   * and find the track from the same list used by the feed.
+   *
+   * This prevents the Stream page from saying "Track not found"
+   * when the track is actually visible on the feed.
    */
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
 
     async function loadTrack() {
       setLoading(true);
       setError('');
 
       if (!trackId) {
-        setError('No track ID was provided.');
+        setError('No track selected');
         setLoading(false);
         return;
       }
 
       try {
-        let foundTrack = null;
-
         /*
-         * METHOD 1
-         * Try the single-track endpoint.
+         * First attempt: individual track endpoint
          */
         try {
           const res = await API.get(
             `/api/tracks/${encodeURIComponent(trackId)}`
           );
 
-          foundTrack =
+          const foundTrack =
             res?.data?.track ||
             res?.data?.data ||
-            null;
-        } catch (singleError) {
+            (res?.data?.id ? res.data : null);
+
+          if (foundTrack) {
+            if (!cancelled) {
+              setTrack(foundTrack);
+              setLoading(false);
+            }
+            return;
+          }
+        } catch (detailError) {
           console.log(
-            'Single track endpoint failed. Trying tracks list...',
-            singleError
+            'Individual track endpoint failed. Trying track list...',
+            detailError
           );
         }
 
         /*
-         * METHOD 2
-         * Fallback to the feed/list endpoint.
+         * Fallback: fetch the same track list used by Home.
          */
-        if (!foundTrack) {
-          try {
-            const res = await API.get('/api/tracks');
+        const listRes = await API.get('/api/tracks');
 
-            const list =
-              res?.data?.tracks ||
-              res?.data?.data ||
-              [];
+        const list =
+          listRes?.data?.tracks ||
+          listRes?.data?.data ||
+          (Array.isArray(listRes?.data) ? listRes.data : []);
 
-            foundTrack = list.find((item) => {
-              const itemId =
-                item?.id ??
-                item?._id ??
-                item?.track_id;
-
-              return String(itemId) === String(trackId);
-            });
-
-            /*
-             * Extra fallback:
-             * Sometimes the feed may expose the Audiomack ID
-             * differently from the database ID.
-             */
-            if (!foundTrack) {
-              foundTrack = list.find(
-                (item) =>
-                  String(item?.audiomack_id || '') ===
-                  String(trackId)
-              );
-            }
-          } catch (listError) {
-            console.log(
-              'Tracks list fallback failed:',
-              listError
-            );
-          }
-        }
+        const foundTrack = list.find(
+          (item) =>
+            String(item.id) === String(trackId) ||
+            String(item.track_id) === String(trackId)
+        );
 
         if (!foundTrack) {
-          if (mounted) {
-            setError(
-              'This music could not be loaded. Please go back and try again.'
-            );
-          }
-          return;
+          throw new Error('Track does not exist in track list');
         }
 
-        if (mounted) {
+        if (!cancelled) {
           setTrack(foundTrack);
+          setLoading(false);
         }
       } catch (err) {
-        console.error('Track loading error:', err);
+        console.error('Unable to load track:', err);
 
-        if (mounted) {
+        if (!cancelled) {
+          setTrack(null);
           setError(
             err?.response?.data?.message ||
-            'Could not load this track.'
+              'Track not found'
           );
-        }
-      } finally {
-        if (mounted) {
           setLoading(false);
         }
       }
@@ -150,7 +124,7 @@ function StreamContent() {
     loadTrack();
 
     return () => {
-      mounted = false;
+      cancelled = true;
 
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -160,72 +134,63 @@ function StreamContent() {
   }, [trackId]);
 
   /*
-   * ============================================================
+   * -------------------------------------------------------
    * START STREAMING
-   * ============================================================
+   * -------------------------------------------------------
    */
   function handleStartStreaming() {
     if (startLockRef.current) return;
     if (status !== 'idle') return;
-    if (!track) return;
-
-    if (!track.audiomack_id) {
-      setError('This track does not have an Audiomack ID.');
+    if (!track) {
+      setError('Track not available');
       return;
     }
 
     startLockRef.current = true;
     sessionStartedRef.current = false;
-    finishingRef.current = false;
 
     setError('');
     setSeconds(0);
     setSessionId(null);
     setStatus('starting');
-
-    /*
-     * Mount iframe.
-     */
     setShowEmbed(true);
   }
 
   /*
-   * ============================================================
+   * -------------------------------------------------------
    * AUDIO PLAYER LOADED
-   * ============================================================
+   * -------------------------------------------------------
    *
-   * We start the earning session once the iframe has loaded.
+   * Once Audiomack iframe loads:
+   * 1. Start backend session
+   * 2. Start 60-second earning timer
    */
   async function handleEmbedLoad() {
-    if (sessionStartedRef.current) return;
-    if (!track) return;
+    if (sessionStartedRef.current) {
+      return;
+    }
 
     sessionStartedRef.current = true;
 
     try {
-      const currentTrackId =
-        track.id ??
-        track._id ??
-        track.track_id ??
-        trackId;
-
       const trackUrl =
-        track.original_url ||
-        track.track_url ||
-        track.url ||
+        track?.original_url ||
+        track?.url ||
+        track?.audio_url ||
         '';
 
       const res = await API.post('/api/streams/start', {
-        track_id: currentTrackId,
+        track_id: trackId,
         track_url: trackUrl,
       });
 
       const newSessionId =
         res?.data?.session?.id ||
-        res?.data?.session?._id;
+        res?.data?.id ||
+        null;
 
       if (!newSessionId) {
-        throw new Error('No stream session ID returned.');
+        throw new Error('Stream session was not created');
       }
 
       setSessionId(newSessionId);
@@ -233,8 +198,12 @@ function StreamContent() {
       setSeconds(0);
 
       /*
-       * Start the 60-second earning timer.
+       * Make sure there isn't an old timer.
        */
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+
       timerRef.current = setInterval(() => {
         setSeconds((previous) => {
           const next = previous + 1;
@@ -258,126 +227,41 @@ function StreamContent() {
 
       setStatus('idle');
       setShowEmbed(false);
+      setSessionId(null);
       sessionStartedRef.current = false;
 
-      setError(
+      const message =
         err?.response?.data?.message ||
         err?.message ||
-        'Could not start stream. Please try again.'
-      );
+        'Could not start stream. Try again.';
+
+      setError(message);
     } finally {
       startLockRef.current = false;
     }
   }
 
   /*
-   * ============================================================
-   * REFRESH USER BALANCE
-   * ============================================================
+   * -------------------------------------------------------
+   * END STREAM
+   * -------------------------------------------------------
    */
-  async function refreshCoinBalance() {
-    try {
-      const res = await API.get('/api/coins/balance');
-
-      const balance =
-        res?.data?.balance ??
-        res?.data?.coin_balance ??
-        res?.data?.coins ??
-        res?.data?.data?.balance ??
-        null;
-
-      if (balance !== null) {
-        const storedUser =
-          localStorage.getItem('rewaiq_user');
-
-        if (storedUser) {
-          try {
-            const user = JSON.parse(storedUser);
-
-            user.coin_balance = balance;
-
-            localStorage.setItem(
-              'rewaiq_user',
-              JSON.stringify(user)
-            );
-          } catch {}
-        }
-
-        /*
-         * Notify other components/pages that balance changed.
-         */
-        window.dispatchEvent(
-          new CustomEvent('rewaiq:balance-updated', {
-            detail: {
-              balance,
-            },
-          })
-        );
-      }
-    } catch (err) {
-      console.log(
-        'Balance refresh failed:',
-        err
-      );
+  async function endStreamOnBackend(sid) {
+    if (!sid) {
+      return null;
     }
+
+    const res = await API.post('/api/streams/end', {
+      session_id: sid,
+    });
+
+    return res;
   }
 
   /*
-   * ============================================================
-   * FINISH STREAM
-   * ============================================================
-   */
-  async function finishStream(sid) {
-    if (finishingRef.current) return;
-
-    finishingRef.current = true;
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    try {
-      /*
-       * This endpoint should award the coins.
-       */
-      const res = await API.post('/api/streams/end', {
-        session_id: sid,
-      });
-
-      console.log('Stream completed:', res?.data);
-
-      /*
-       * Immediately refresh balance.
-       */
-      await refreshCoinBalance();
-
-      setSessionId(null);
-      setStatus('completed');
-    } catch (err) {
-      console.error(
-        'Could not complete stream:',
-        err
-      );
-
-      setError(
-        err?.response?.data?.message ||
-        'The stream completed, but the reward could not be confirmed. Please check your wallet.'
-      );
-
-      /*
-       * Don't pretend the stream failed completely.
-       */
-      setStatus('streaming');
-    } finally {
-      finishingRef.current = false;
-    }
-  }
-
-  /*
-   * ============================================================
-   * MANUAL STOP
-   * ============================================================
+   * -------------------------------------------------------
+   * STOP BEFORE 60 SECONDS
+   * -------------------------------------------------------
    */
   async function handleStopStreaming() {
     if (timerRef.current) {
@@ -385,20 +269,17 @@ function StreamContent() {
       timerRef.current = null;
     }
 
+    const sid = sessionId;
+
     /*
-     * If user stops before 60 seconds, end the session.
-     * Backend should NOT reward an incomplete stream.
+     * If the user hasn't reached 60 seconds,
+     * end the session without rewarding.
      */
-    if (sessionId && seconds < REQUIRED_SECONDS) {
+    if (sid && seconds < REQUIRED_SECONDS) {
       try {
-        await API.post('/api/streams/end', {
-          session_id: sessionId,
-        });
+        await endStreamOnBackend(sid);
       } catch (err) {
-        console.log(
-          'Could not close incomplete stream:',
-          err
-        );
+        console.log('Could not end incomplete stream:', err);
       }
     }
 
@@ -406,25 +287,64 @@ function StreamContent() {
     setShowEmbed(false);
     setSeconds(0);
     setSessionId(null);
-
     sessionStartedRef.current = false;
-    finishingRef.current = false;
-    startLockRef.current = false;
   }
 
   /*
-   * ============================================================
+   * -------------------------------------------------------
+   * COMPLETE 60-SECOND STREAM
+   * -------------------------------------------------------
+   */
+  async function finishStream(sid) {
+    try {
+      /*
+       * The backend should only reward the user here,
+       * after the required 60 seconds.
+       */
+      const res = await endStreamOnBackend(sid);
+
+      console.log('Stream completed:', res?.data);
+
+      setStatus('completed');
+      setSeconds(REQUIRED_SECONDS);
+      setSessionId(null);
+      sessionStartedRef.current = false;
+
+      /*
+       * Keep the player visible briefly / don't immediately
+       * destroy the completed state.
+       */
+    } catch (err) {
+      console.error('Could not complete stream:', err);
+
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Could not complete stream';
+
+      setError(message);
+
+      setStatus('idle');
+      setShowEmbed(false);
+      setSeconds(0);
+      setSessionId(null);
+      sessionStartedRef.current = false;
+    }
+  }
+
+  /*
+   * -------------------------------------------------------
    * LOADING
-   * ============================================================
+   * -------------------------------------------------------
    */
   if (loading) {
     return <Spinner fullscreen />;
   }
 
   /*
-   * ============================================================
-   * TRACK ERROR
-   * ============================================================
+   * -------------------------------------------------------
+   * ERROR / TRACK NOT FOUND
+   * -------------------------------------------------------
    */
   if (!track) {
     return (
@@ -432,12 +352,12 @@ function StreamContent() {
         style={{
           minHeight: '100vh',
           background: '#0A1628',
+          color: '#8A9BB0',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 24,
-          color: '#8A9BB0',
+          padding: 20,
           textAlign: 'center',
         }}
       >
@@ -453,7 +373,7 @@ function StreamContent() {
         <button
           onClick={() => router.back()}
           style={{
-            padding: '12px 24px',
+            padding: '12px 20px',
             borderRadius: 12,
             border: 'none',
             background: '#4a9eff',
@@ -471,6 +391,11 @@ function StreamContent() {
   const progress =
     (seconds / REQUIRED_SECONDS) * 100;
 
+  /*
+   * -------------------------------------------------------
+   * PAGE
+   * -------------------------------------------------------
+   */
   return (
     <div
       style={{
@@ -495,9 +420,13 @@ function StreamContent() {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
+            padding: 0,
           }}
         >
-          <ArrowLeft size={22} color="#fff" />
+          <ArrowLeft
+            size={22}
+            color="#fff"
+          />
         </button>
 
         <span
@@ -512,6 +441,7 @@ function StreamContent() {
       </div>
 
       <div style={{ padding: 20 }}>
+
         {/* TRACK CARD */}
         <div
           style={{
@@ -529,7 +459,7 @@ function StreamContent() {
               marginBottom: 4,
             }}
           >
-            {track.title}
+            {track.title || 'Untitled Track'}
           </p>
 
           <p
@@ -542,25 +472,34 @@ function StreamContent() {
             {track.artist_name || 'Artist'}
           </p>
 
-          {/* AUDIO */}
+          {/* AUDIO PLAYER */}
           {showEmbed && track.audiomack_id ? (
-            <iframe
-              key={String(track.audiomack_id)}
-              src={
-                `https://www.audiomack.com/embed/song/${encodeURIComponent(
-                  track.audiomack_id
-                )}?background=0&light=0&autoplay=1`
-              }
+            <div
               style={{
                 width: '100%',
-                height: 140,
-                border: 'none',
+                overflow: 'hidden',
                 borderRadius: 10,
               }}
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-              onLoad={handleEmbedLoad}
-            />
+            >
+              <iframe
+                key={`${track.id}-${sessionId || 'pending'}`}
+                src={
+                  `https://www.audiomack.com/embed/song/` +
+                  `${track.audiomack_id}` +
+                  `?background=0&light=0&autoplay=1`
+                }
+                style={{
+                  width: '100%',
+                  height: 140,
+                  border: 'none',
+                  borderRadius: 10,
+                }}
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+                onLoad={handleEmbedLoad}
+                title={`Playing ${track.title || 'track'}`}
+              />
+            </div>
           ) : (
             <div
               style={{
@@ -569,14 +508,22 @@ function StreamContent() {
                 background:
                   'rgba(255,255,255,0.03)',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: 8,
               }}
             >
+              <Play
+                size={28}
+                color="#4a9eff"
+              />
+
               <p
                 style={{
                   fontSize: 12,
                   color: '#8A9BB0',
+                  margin: 0,
                 }}
               >
                 Press Start Streaming to play
@@ -607,7 +554,8 @@ function StreamContent() {
                   ? '#4a9eff'
                   : 'rgba(74,158,255,0.15)',
               margin: '0 auto 16px',
-              transform: `rotate(${progress * 3.6}deg)`,
+              transform:
+                `rotate(${progress * 3.6}deg)`,
               transition:
                 'transform 1s linear',
             }}
@@ -622,10 +570,7 @@ function StreamContent() {
             }}
           >
             {status === 'streaming'
-              ? `${Math.max(
-                  0,
-                  REQUIRED_SECONDS - seconds
-                )}s`
+              ? `${REQUIRED_SECONDS - seconds}s`
               : status === 'completed'
               ? '✓'
               : `${REQUIRED_SECONDS}s`}
@@ -648,7 +593,7 @@ function StreamContent() {
           </p>
         </div>
 
-        {/* BUTTONS */}
+        {/* COMPLETED */}
         {status === 'completed' ? (
           <>
             <div
@@ -660,10 +605,4 @@ function StreamContent() {
               <Coins
                 size={32}
                 color="#4a9eff"
-                style={{ marginBottom: 8 }}
-              />
-
-              <p
-                style={{
-                  fontSize: 18,
-                  fontWeight
+                style={{ marginBottom: 
