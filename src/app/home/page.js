@@ -1,19 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  Coins,
-  SlidersHorizontal,
-  Play,
-  CheckCircle,
-  Circle,
-  Bell,
-  Users
-} from 'lucide-react';
+import { Coins, SlidersHorizontal, Play, CheckCircle, Circle, Bell, Users } from 'lucide-react';
 import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import InstallPrompt from '@/components/InstallPrompt';
+import { Suspense } from 'react';
+import Spinner from '@/components/Spinner';
 
 const CAROUSEL_SLIDES = [
   {
@@ -55,7 +49,11 @@ const CAROUSEL_SLIDES = [
   },
 ];
 
-export default function HomePage() {
+/* =========================================================
+   HOME CONTENT
+   ========================================================= */
+
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -63,34 +61,49 @@ export default function HomePage() {
   const [tracks, setTracks] = useState([]);
   const [tasks, setTasks] = useState([]);
 
-  const [tab, setTab] = useState('for-you');
+  /*
+   * IMPORTANT:
+   * Read ?tab=tasks from the URL.
+   */
+  const [tab, setTab] = useState(() => {
+    const urlTab = searchParams.get('tab');
+
+    if (
+      urlTab === 'tasks' ||
+      urlTab === 'trending' ||
+      urlTab === 'for-you'
+    ) {
+      return urlTab;
+    }
+
+    return 'for-you';
+  });
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const [showFilter, setShowFilter] = useState(false);
   const [taskFilter, setTaskFilter] = useState('all');
-
   const [carouselIndex, setCarouselIndex] = useState(0);
 
   /*
-   * IMPORTANT:
-   * BottomNav sends:
-   *
+   * If the URL changes from:
+   * /home
+   * to:
    * /home?tab=tasks
    *
-   * This reads that query parameter and automatically
-   * switches the home page to the Tasks tab.
+   * update the selected tab.
    */
   useEffect(() => {
-    const requestedTab = searchParams.get('tab');
+    const urlTab = searchParams.get('tab');
 
     if (
-      requestedTab === 'tasks' ||
-      requestedTab === 'trending' ||
-      requestedTab === 'for-you'
+      urlTab === 'tasks' ||
+      urlTab === 'trending' ||
+      urlTab === 'for-you'
     ) {
-      setTab(requestedTab);
+      setTab(urlTab);
+    } else {
+      setTab('for-you');
     }
   }, [searchParams]);
 
@@ -129,9 +142,7 @@ export default function HomePage() {
           .length;
 
         setUnreadCount(unread);
-      } catch {
-        // Ignore notification errors
-      }
+      } catch {}
     };
 
     pollNotifications();
@@ -162,22 +173,23 @@ export default function HomePage() {
    */
   const fetchFeed = async () => {
     try {
-      const [tracksRes, tasksRes] = await Promise.all([
-        API.get('/api/tracks'),
-        API.get('/api/feed/tasks'),
-      ]);
+      const [tracksRes, tasksRes] =
+        await Promise.all([
+          API.get('/api/tracks'),
+          API.get('/api/feed/tasks'),
+        ]);
 
       setTracks(tracksRes.data.tracks || []);
       setTasks(tasksRes.data.tasks || []);
     } catch {
-      // Ignore feed errors
+      // Keep UI alive even if feed request fails
     } finally {
       setLoading(false);
     }
   };
 
   /*
-   * Tab switching
+   * Tab change
    */
   const handleTabChange = (newTab) => {
     setTab(newTab);
@@ -185,28 +197,23 @@ export default function HomePage() {
     setTaskFilter('all');
 
     /*
-     * Keep URL in sync.
-     * This means:
-     *
-     * /home
-     * /home?tab=tasks
-     * /home?tab=trending
+     * Keep URL synchronized with selected tab.
      */
     if (newTab === 'for-you') {
-      router.replace('/home');
+      router.push('/home');
     } else {
-      router.replace(`/home?tab=${newTab}`);
+      router.push(`/home?tab=${newTab}`);
     }
   };
 
   /*
-   * Filter
+   * Filter tasks
    */
   const filteredTasks =
     taskFilter === 'all'
       ? tasks
       : tasks.filter(
-          task => task.task_type === taskFilter
+          t => t.task_type === taskFilter
         );
 
   return (
@@ -218,7 +225,10 @@ export default function HomePage() {
       }}
     >
 
-      {/* HEADER */}
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
       <div
         style={{
           padding: '16px 20px 12px',
@@ -233,8 +243,6 @@ export default function HomePage() {
             '1px solid rgba(255,255,255,0.05)',
         }}
       >
-
-        {/* Logo */}
         <div
           style={{
             display: 'flex',
@@ -253,19 +261,20 @@ export default function HomePage() {
             />
 
             <path
-              d="M12.2466 20.8923C9.56504 17.9523 8.61661 13.8979 9.13672 10.6093C9.62504 7.52173 11.9248 5.00455 14.5282 3.27418C15.9203 2.34889 17.5956 1.50727 19.4373 0.975666C20.5603 0.651546 21.7464 1.00602 22.6382 1.76144L98.8583 66.325C99.196 66.611 99.1179 67.1516 98.712 67.3279C90.4102 70.9338 84.6197 72.1928 72.4271 71.665C71.9847 71.6457 71.5565 71.4777 71.2195 71.1903L12.2466 20.8923Z"
+              d="M12.2466 20.8923C9.56504 17.9523 8.61661 13.8979 9.13672 10.6093C9.62504 7.52173 11.9248 5.00455 14.5282 3.27418C15.9203 2.34889 17.5956 1.50727 19.4373 0.975666C20.5603 0.651546 21.7464 1.00602 22.6382 1.76144L98.8583 66.325C99.196 66.611 99.1179 67.1516 98.712 67.3279C90.4102 70.9338 84.6197 72.1928 72.4271 71.665C71.9843 71.6459 71.5565 71.4777 71.2195 71.1903L12.2466 20.8923Z"
               fill="#4a9eff"
             />
 
             <path
-              d="M72.4608 71.6478C84.77 72.2692 90.6026 71.0456 98.9505 67.478C99.3591 67.3038 99.4388 66.76 99.0994 66.4732L63.7412 36.6038C53.6976 40.1309 47.5016 40.9898 35.5864 40.7853L71.2682 71.1746C71.6017 71.4581 72.0237 71.6257 72.4608 71.6478Z"
+              d="M72.4608 71.6478C84.77 72.2692 90.6026 71.0456 98.9505 67.478C99.3591 67.3034 99.4388 66.76 99.0994 66.4732L63.7412 36.6038C53.6976 40.1309 47.5016 40.9898 35.5864 40.7853L71.2682 71.1746C71.6014 71.4584 72.0237 71.6257 72.4608 71.6478Z"
               fill="#2d6be4"
             />
           </svg>
 
           <span
             style={{
-              fontFamily: 'Montserrat, sans-serif',
+              fontFamily:
+                'Montserrat, sans-serif',
               fontWeight: 800,
               fontSize: 18,
               color: '#fff',
@@ -276,7 +285,6 @@ export default function HomePage() {
           </span>
         </div>
 
-        {/* Header actions */}
         <div
           style={{
             display: 'flex',
@@ -284,10 +292,10 @@ export default function HomePage() {
             gap: 10,
           }}
         >
-
-          {/* Coins */}
           <div
-            onClick={() => router.push('/wallet')}
+            onClick={() =>
+              router.push('/wallet')
+            }
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -317,7 +325,6 @@ export default function HomePage() {
             </span>
           </div>
 
-          {/* Notifications */}
           <div
             onClick={() =>
               router.push('/notifications')
@@ -365,7 +372,6 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Profile */}
           <div
             onClick={() =>
               router.push('/profile')
@@ -375,7 +381,7 @@ export default function HomePage() {
               height: 36,
               borderRadius: '50%',
               background:
-                'linear-gradient(135deg,#4a9eff,#1a3a8f)',
+                'linear-gradient(135deg, #4a9eff, #1a3a8f)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -389,6 +395,7 @@ export default function HomePage() {
             {user?.profile_picture ? (
               <img
                 src={user.profile_picture}
+                alt=""
                 style={{
                   width: 36,
                   height: 36,
@@ -402,7 +409,10 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* TABS */}
+      {/* =====================================================
+          TABS
+      ===================================================== */}
+
       <div
         style={{
           display: 'flex',
@@ -474,7 +484,10 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* TASK FILTER */}
+      {/* =====================================================
+          TASK FILTER
+      ===================================================== */}
+
       {showFilter && tab === 'tasks' && (
         <div
           style={{
@@ -524,13 +537,17 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* =====================================================
+          MAIN
+      ===================================================== */}
+
       <div
         style={{
           padding: '16px 20px 0',
         }}
       >
+        {/* Carousel */}
 
-        {/* CAROUSEL */}
         <div
           style={{
             marginBottom: 20,
@@ -591,13 +608,17 @@ export default function HomePage() {
                       <div
                         style={{
                           display: 'flex',
-                          alignItems: 'center',
+                          alignItems:
+                            'center',
                           justifyContent:
                             'space-between',
                         }}
                       >
                         {slide.steps.map(
-                          (step, idx) => (
+                          (
+                            step,
+                            idx
+                          ) => (
                             <div
                               key={step}
                               style={{
@@ -630,7 +651,8 @@ export default function HomePage() {
                                       'center',
                                     fontSize: 14,
                                     fontWeight: 700,
-                                    color: '#fff',
+                                    color:
+                                      '#fff',
                                     margin:
                                       '0 auto 6px',
                                   }}
@@ -646,7 +668,8 @@ export default function HomePage() {
                                     margin: 0,
                                     whiteSpace:
                                       'nowrap',
-                                    fontWeight: 600,
+                                    fontWeight:
+                                      600,
                                   }}
                                 >
                                   {step}
@@ -691,7 +714,8 @@ export default function HomePage() {
                         }
                       }}
                       style={{
-                        background: slide.bg,
+                        background:
+                          slide.bg,
                         borderRadius: 16,
                         padding:
                           '22px 20px',
@@ -718,6 +742,7 @@ export default function HomePage() {
                             slide.textColor,
                           opacity: 0.8,
                           marginBottom: 16,
+                          lineHeight: 1.4,
                         }}
                       >
                         {slide.sub}
@@ -745,7 +770,6 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* DOTS */}
           <div
             style={{
               display: 'flex',
@@ -781,7 +805,10 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* CONTENT */}
+        {/* =====================================================
+            CONTENT
+        ===================================================== */}
+
         {loading ? (
           <div
             style={{
@@ -826,7 +853,8 @@ export default function HomePage() {
           )
         ) : (
           <>
-            {/* FOLLOW REWAIQ */}
+            {/* Follow Rewaiq task */}
+
             <div
               onClick={() =>
                 router.push(
@@ -835,7 +863,7 @@ export default function HomePage() {
               }
               style={{
                 background:
-                  'linear-gradient(135deg,rgba(74,158,255,0.15),rgba(45,107,228,0.1))',
+                  'linear-gradient(135deg, rgba(74,158,255,0.15), rgba(45,107,228,0.1))',
                 border:
                   '1px solid rgba(74,158,255,0.25)',
                 borderRadius: 16,
@@ -902,7 +930,9 @@ export default function HomePage() {
                           '2px 0 0',
                       }}
                     >
-                      Follow us on Instagram and earn
+                      Follow us on
+                      Instagram and
+                      earn
                     </p>
                   </div>
                 </div>
@@ -974,7 +1004,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* TRACKS */}
+            {/* Tracks */}
+
             {tracks.length === 0 ? (
               <Empty
                 icon="🎵"
@@ -1000,6 +1031,10 @@ export default function HomePage() {
     </div>
   );
 }
+
+/* =========================================================
+   EMPTY
+   ========================================================= */
 
 function Empty({ icon, title, sub }) {
   return (
@@ -1036,6 +1071,10 @@ function Empty({ icon, title, sub }) {
   );
 }
 
+/* =========================================================
+   TRACK CARD
+   ========================================================= */
+
 function TrackCard({ track, router }) {
   return (
     <div
@@ -1056,7 +1095,7 @@ function TrackCard({ track, router }) {
         style={{
           height: 180,
           background:
-            'linear-gradient(135deg,#0D1F3C,#1a3a8f,#0D1F3C)',
+            'linear-gradient(135deg, #0D1F3C, #1a3a8f, #0D1F3C)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1071,10 +1110,8 @@ function TrackCard({ track, router }) {
             background:
               'rgba(255,255,255,0.15)',
             display: 'flex',
-            alignItems:
-              'center',
-            justifyContent:
-              'center',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
           <Play
@@ -1109,11 +1146,7 @@ function TrackCard({ track, router }) {
         </div>
       </div>
 
-      <div
-        style={{
-          padding: '14px 16px',
-        }}
-      >
+      <div style={{ padding: '14px 16px' }}>
         <div
           style={{
             display: 'flex',
@@ -1196,16 +1229,19 @@ function TrackCard({ track, router }) {
   );
 }
 
+/* =========================================================
+   TASK CARD
+   ========================================================= */
+
 function TaskCard({ task, router }) {
   return (
     <div
-      onClick={() => {
-        if (!task.completed) {
-          router.push(
-            `/task?id=${task.id}`
-          );
-        }
-      }}
+      onClick={() =>
+        !task.completed &&
+        router.push(
+          `/task?id=${task.id}`
+        )
+      }
       style={{
         background: '#0D1F3C',
         borderRadius: 14,
@@ -1317,4 +1353,20 @@ function TaskCard({ task, router }) {
       </div>
     </div>
   );
+}
+
+/* =========================================================
+   PAGE WRAPPER
+   ========================================================= */
+
+export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <Spinner fullscreen />
       }
+    >
+      <HomeContent />
+    </Suspense>
+  );
+                  }
