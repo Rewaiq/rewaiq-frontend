@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Coins, SlidersHorizontal, Play, CheckCircle, Circle, Bell, Users } from 'lucide-react';
+import {
+  Coins,
+  SlidersHorizontal,
+  Play,
+  CheckCircle,
+  Circle,
+  Bell,
+  Users,
+} from 'lucide-react';
+
 import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import InstallPrompt from '@/components/InstallPrompt';
-import { Suspense } from 'react';
 import Spinner from '@/components/Spinner';
 
 const CAROUSEL_SLIDES = [
@@ -49,10 +57,6 @@ const CAROUSEL_SLIDES = [
   },
 ];
 
-/* =========================================================
-   HOME CONTENT
-   ========================================================= */
-
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -61,10 +65,6 @@ function HomeContent() {
   const [tracks, setTracks] = useState([]);
   const [tasks, setTasks] = useState([]);
 
-  /*
-   * IMPORTANT:
-   * Read ?tab=tasks from the URL.
-   */
   const [tab, setTab] = useState(() => {
     const urlTab = searchParams.get('tab');
 
@@ -85,14 +85,6 @@ function HomeContent() {
   const [taskFilter, setTaskFilter] = useState('all');
   const [carouselIndex, setCarouselIndex] = useState(0);
 
-  /*
-   * If the URL changes from:
-   * /home
-   * to:
-   * /home?tab=tasks
-   *
-   * update the selected tab.
-   */
   useEffect(() => {
     const urlTab = searchParams.get('tab');
 
@@ -107,9 +99,6 @@ function HomeContent() {
     }
   }, [searchParams]);
 
-  /*
-   * Load user + feed
-   */
   useEffect(() => {
     const u = localStorage.getItem('rewaiq_user');
 
@@ -129,17 +118,14 @@ function HomeContent() {
     fetchFeed();
   }, []);
 
-  /*
-   * Notifications
-   */
   useEffect(() => {
     const pollNotifications = async () => {
       try {
         const res = await API.get('/api/notifications');
 
-        const unread = (res.data.notifications || [])
-          .filter(n => !n.is_read)
-          .length;
+        const unread = (res.data.notifications || []).filter(
+          (n) => !n.is_read
+        ).length;
 
         setUnreadCount(unread);
       } catch {}
@@ -147,58 +133,42 @@ function HomeContent() {
 
     pollNotifications();
 
-    const interval = setInterval(
-      pollNotifications,
-      30000
-    );
+    const interval = setInterval(pollNotifications, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
-  /*
-   * Carousel
-   */
   useEffect(() => {
     const timer = setInterval(() => {
       setCarouselIndex(
-        i => (i + 1) % CAROUSEL_SLIDES.length
+        (i) => (i + 1) % CAROUSEL_SLIDES.length
       );
     }, 4000);
 
     return () => clearInterval(timer);
   }, []);
 
-  /*
-   * Fetch feed
-   */
   const fetchFeed = async () => {
     try {
-      const [tracksRes, tasksRes] =
-        await Promise.all([
-          API.get('/api/tracks'),
-          API.get('/api/feed/tasks'),
-        ]);
+      const [tracksRes, tasksRes] = await Promise.all([
+        API.get('/api/tracks'),
+        API.get('/api/feed/tasks'),
+      ]);
 
-      setTracks(tracksRes.data.tracks || []);
-      setTasks(tasksRes.data.tasks || []);
-    } catch {
-      // Keep UI alive even if feed request fails
+      setTracks(tracksRes.data?.tracks || []);
+      setTasks(tasksRes.data?.tasks || []);
+    } catch (error) {
+      console.error('Feed loading error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  /*
-   * Tab change
-   */
   const handleTabChange = (newTab) => {
     setTab(newTab);
     setShowFilter(false);
     setTaskFilter('all');
 
-    /*
-     * Keep URL synchronized with selected tab.
-     */
     if (newTab === 'for-you') {
       router.push('/home');
     } else {
@@ -206,14 +176,11 @@ function HomeContent() {
     }
   };
 
-  /*
-   * Filter tasks
-   */
   const filteredTasks =
     taskFilter === 'all'
       ? tasks
       : tasks.filter(
-          t => t.task_type === taskFilter
+          (t) => t.task_type === taskFilter
         );
 
   return (
@@ -224,11 +191,7 @@ function HomeContent() {
         paddingBottom: 80,
       }}
     >
-
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
+      {/* HEADER */}
       <div
         style={{
           padding: '16px 20px 12px',
@@ -259,22 +222,19 @@ function HomeContent() {
               d="M11.0669 64.9132V27.8448C11.0669 27.3337 11.665 27.0567 12.0548 27.3871L62.735 70.3446C63.0191 70.5854 62.8488 71.0497 62.4764 71.0497H49.5669C39.3371 70.5626 30.0565 65.3295 22.1875 58.5871C21.8251 58.2766 21.2945 58.2594 20.9163 58.5505L12.0329 65.3886C11.6383 65.6923 11.0669 65.4111 11.0669 64.9132Z"
               fill="#1a3a8f"
             />
-
             <path
               d="M12.2466 20.8923C9.56504 17.9523 8.61661 13.8979 9.13672 10.6093C9.62504 7.52173 11.9248 5.00455 14.5282 3.27418C15.9203 2.34889 17.5956 1.50727 19.4373 0.975666C20.5603 0.651546 21.7464 1.00602 22.6382 1.76144L98.8583 66.325C99.196 66.611 99.1179 67.1516 98.712 67.3279C90.4102 70.9338 84.6197 72.1928 72.4271 71.665C71.9843 71.6459 71.5565 71.4777 71.2195 71.1903L12.2466 20.8923Z"
               fill="#4a9eff"
             />
-
             <path
-              d="M72.4608 71.6478C84.77 72.2692 90.6026 71.0456 98.9505 67.478C99.3591 67.3034 99.4388 66.76 99.0994 66.4732L63.7412 36.6038C53.6976 40.1309 47.5016 40.9898 35.5864 40.7853L71.2682 71.1746C71.6014 71.4584 72.0237 71.6257 72.4608 71.6478Z"
+              d="M72.4608 71.6478C84.77 72.2692 90.6026 71.0456 98.9505 67.478C99.3591 67.3034 99.4388 66.76 99.0994 66.4732L63.7412 36.6038C53.6976 40.1309 47.5016 40.9898 35.5864 40.7853L71.2682 71.1746C71.6016 71.4584 72.0237 71.6257 72.4608 71.6478Z"
               fill="#2d6be4"
             />
           </svg>
 
           <span
             style={{
-              fontFamily:
-                'Montserrat, sans-serif',
+              fontFamily: 'Montserrat, sans-serif',
               fontWeight: 800,
               fontSize: 18,
               color: '#fff',
@@ -293,26 +253,19 @@ function HomeContent() {
           }}
         >
           <div
-            onClick={() =>
-              router.push('/wallet')
-            }
+            onClick={() => router.push('/wallet')}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 5,
-              background:
-                'rgba(74,158,255,0.12)',
-              border:
-                '1px solid rgba(74,158,255,0.2)',
+              background: 'rgba(74,158,255,0.12)',
+              border: '1px solid rgba(74,158,255,0.2)',
               padding: '6px 12px',
               borderRadius: 20,
               cursor: 'pointer',
             }}
           >
-            <Coins
-              size={14}
-              color="#4a9eff"
-            />
+            <Coins size={14} color="#4a9eff" />
 
             <span
               style={{
@@ -342,10 +295,7 @@ function HomeContent() {
               justifyContent: 'center',
             }}
           >
-            <Bell
-              size={18}
-              color="#8A9BB0"
-            />
+            <Bell size={18} color="#8A9BB0" />
 
             {unreadCount > 0 && (
               <div
@@ -373,9 +323,7 @@ function HomeContent() {
           </div>
 
           <div
-            onClick={() =>
-              router.push('/profile')
-            }
+            onClick={() => router.push('/profile')}
             style={{
               width: 36,
               height: 36,
@@ -409,10 +357,7 @@ function HomeContent() {
         </div>
       </div>
 
-      {/* =====================================================
-          TABS
-      ===================================================== */}
-
+      {/* TABS */}
       <div
         style={{
           display: 'flex',
@@ -421,38 +366,30 @@ function HomeContent() {
           gap: 8,
         }}
       >
-        {['for-you', 'tasks', 'trending'].map(
-          t => (
-            <button
-              key={t}
-              onClick={() =>
-                handleTabChange(t)
-              }
-              style={{
-                padding: '8px 18px',
-                borderRadius: 20,
-                background:
-                  tab === t
-                    ? '#fff'
-                    : 'transparent',
-                color:
-                  tab === t
-                    ? '#0A1628'
-                    : '#8A9BB0',
-                fontSize: 13,
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {t === 'for-you'
-                ? 'For You'
-                : t === 'tasks'
-                ? 'Tasks'
-                : 'Trending'}
-            </button>
-          )
-        )}
+        {['for-you', 'tasks', 'trending'].map((t) => (
+          <button
+            key={t}
+            onClick={() => handleTabChange(t)}
+            style={{
+              padding: '8px 18px',
+              borderRadius: 20,
+              background:
+                tab === t ? '#fff' : 'transparent',
+              color:
+                tab === t ? '#0A1628' : '#8A9BB0',
+              fontSize: 13,
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            {t === 'for-you'
+              ? 'For You'
+              : t === 'tasks'
+              ? 'Tasks'
+              : 'Trending'}
+          </button>
+        ))}
 
         {tab === 'tasks' && (
           <div
@@ -475,19 +412,14 @@ function HomeContent() {
             <SlidersHorizontal
               size={18}
               color={
-                showFilter
-                  ? '#4a9eff'
-                  : '#8A9BB0'
+                showFilter ? '#4a9eff' : '#8A9BB0'
               }
             />
           </div>
         )}
       </div>
 
-      {/* =====================================================
-          TASK FILTER
-      ===================================================== */}
-
+      {/* TASK FILTER */}
       {showFilter && tab === 'tasks' && (
         <div
           style={{
@@ -504,12 +436,10 @@ function HomeContent() {
             'share',
             'review',
             'campaign',
-          ].map(f => (
+          ].map((f) => (
             <button
               key={f}
-              onClick={() =>
-                setTaskFilter(f)
-              }
+              onClick={() => setTaskFilter(f)}
               style={{
                 padding: '6px 14px',
                 borderRadius: 20,
@@ -525,290 +455,246 @@ function HomeContent() {
                 fontWeight: 600,
                 border: 'none',
                 cursor: 'pointer',
-                textTransform:
-                  'capitalize',
+                textTransform: 'capitalize',
               }}
             >
-              {f === 'all'
-                ? 'All Tasks'
-                : f}
+              {f === 'all' ? 'All Tasks' : f}
             </button>
           ))}
         </div>
       )}
 
-      {/* =====================================================
-          MAIN
-      ===================================================== */}
-
-      <div
-        style={{
-          padding: '16px 20px 0',
-        }}
-      >
-        {/* Carousel */}
-
-        <div
-          style={{
-            marginBottom: 20,
-          }}
-        >
+      {/* MAIN */}
+      <div style={{ padding: '16px 20px 0' }}>
+        {/* CAROUSEL */}
+        <div style={{ marginBottom: 20 }}>
           <div
             style={{
               borderRadius: 16,
               overflow: 'hidden',
             }}
           >
-            {CAROUSEL_SLIDES.map(
-              (slide, i) => (
-                <div
-                  key={slide.id}
-                  style={{
-                    display:
-                      i === carouselIndex
-                        ? 'block'
-                        : 'none',
-                  }}
-                >
-                  {slide.type ===
-                  'workflow' ? (
-                    <div
+            {CAROUSEL_SLIDES.map((slide, i) => (
+              <div
+                key={slide.id}
+                style={{
+                  display:
+                    i === carouselIndex
+                      ? 'block'
+                      : 'none',
+                }}
+              >
+                {slide.type === 'workflow' ? (
+                  <div
+                    style={{
+                      background: slide.bg,
+                      borderRadius: 16,
+                      padding: '20px 20px 24px',
+                    }}
+                  >
+                    <p
                       style={{
-                        background: slide.bg,
-                        borderRadius: 16,
-                        padding:
-                          '20px 20px 24px',
+                        fontSize: 11,
+                        color:
+                          'rgba(255,255,255,0.6)',
+                        marginBottom: 4,
+                        letterSpacing: 1,
+                        textTransform: 'uppercase',
                       }}
                     >
-                      <p
-                        style={{
-                          fontSize: 11,
-                          color:
-                            'rgba(255,255,255,0.6)',
-                          marginBottom: 4,
-                          letterSpacing: 1,
-                          textTransform:
-                            'uppercase',
-                        }}
-                      >
-                        Get started
-                      </p>
+                      Get started
+                    </p>
 
-                      <p
-                        style={{
-                          fontSize: 16,
-                          fontWeight: 800,
-                          color: '#fff',
-                          marginBottom: 20,
-                        }}
-                      >
-                        {slide.title}
-                      </p>
+                    <p
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 800,
+                        color: '#fff',
+                        marginBottom: 20,
+                      }}
+                    >
+                      {slide.title}
+                    </p>
 
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems:
-                            'center',
-                          justifyContent:
-                            'space-between',
-                        }}
-                      >
-                        {slide.steps.map(
-                          (
-                            step,
-                            idx
-                          ) => (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent:
+                          'space-between',
+                      }}
+                    >
+                      {slide.steps.map(
+                        (step, idx) => (
+                          <div
+                            key={step}
+                            style={{
+                              display: 'flex',
+                              alignItems:
+                                'center',
+                              gap: 6,
+                            }}
+                          >
                             <div
-                              key={step}
                               style={{
-                                display:
-                                  'flex',
-                                alignItems:
+                                textAlign:
                                   'center',
-                                gap: 6,
                               }}
                             >
                               <div
                                 style={{
-                                  textAlign:
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius:
+                                    '50%',
+                                  background:
+                                    'rgba(255,255,255,0.2)',
+                                  display: 'flex',
+                                  alignItems:
                                     'center',
+                                  justifyContent:
+                                    'center',
+                                  fontSize: 14,
+                                  fontWeight: 700,
+                                  color: '#fff',
+                                  margin:
+                                    '0 auto 6px',
                                 }}
                               >
-                                <div
-                                  style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius:
-                                      '50%',
-                                    background:
-                                      'rgba(255,255,255,0.2)',
-                                    display:
-                                      'flex',
-                                    alignItems:
-                                      'center',
-                                    justifyContent:
-                                      'center',
-                                    fontSize: 14,
-                                    fontWeight: 700,
-                                    color:
-                                      '#fff',
-                                    margin:
-                                      '0 auto 6px',
-                                  }}
-                                >
-                                  {idx + 1}
-                                </div>
-
-                                <p
-                                  style={{
-                                    fontSize: 10,
-                                    color:
-                                      'rgba(255,255,255,0.85)',
-                                    margin: 0,
-                                    whiteSpace:
-                                      'nowrap',
-                                    fontWeight:
-                                      600,
-                                  }}
-                                >
-                                  {step}
-                                </p>
+                                {idx + 1}
                               </div>
 
-                              {idx <
-                                slide.steps
-                                  .length -
-                                  1 && (
-                                <div
-                                  style={{
-                                    width: 16,
-                                    height: 1,
-                                    background:
-                                      'rgba(255,255,255,0.3)',
-                                    marginBottom: 16,
-                                  }}
-                                />
-                              )}
+                              <p
+                                style={{
+                                  fontSize: 10,
+                                  color:
+                                    'rgba(255,255,255,0.85)',
+                                  margin: 0,
+                                  whiteSpace:
+                                    'nowrap',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {step}
+                              </p>
                             </div>
-                          )
-                        )}
-                      </div>
+
+                            {idx <
+                              slide.steps.length -
+                                1 && (
+                              <div
+                                style={{
+                                  width: 16,
+                                  height: 1,
+                                  background:
+                                    'rgba(255,255,255,0.3)',
+                                  marginBottom: 16,
+                                }}
+                              />
+                            )}
+                          </div>
+                        )
+                      )}
                     </div>
-                  ) : (
-                    <div
-                      onClick={() => {
-                        if (
-                          slide.action.startsWith(
-                            '/'
-                          )
-                        ) {
-                          router.push(
-                            slide.action
-                          );
-                        } else {
-                          window.open(
-                            slide.action,
-                            '_blank'
-                          );
-                        }
-                      }}
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => {
+                      if (
+                        slide.action.startsWith('/')
+                      ) {
+                        router.push(slide.action);
+                      } else {
+                        window.open(
+                          slide.action,
+                          '_blank'
+                        );
+                      }
+                    }}
+                    style={{
+                      background: slide.bg,
+                      borderRadius: 16,
+                      padding: '22px 20px',
+                      cursor: 'pointer',
+                      minHeight: 110,
+                    }}
+                  >
+                    <p
                       style={{
-                        background:
-                          slide.bg,
-                        borderRadius: 16,
-                        padding:
-                          '22px 20px',
-                        cursor: 'pointer',
-                        minHeight: 110,
+                        fontSize: 17,
+                        fontWeight: 900,
+                        color:
+                          slide.textColor,
+                        marginBottom: 6,
                       }}
                     >
-                      <p
-                        style={{
-                          fontSize: 17,
-                          fontWeight: 900,
-                          color:
-                            slide.textColor,
-                          marginBottom: 6,
-                        }}
-                      >
-                        {slide.title}
-                      </p>
+                      {slide.title}
+                    </p>
 
-                      <p
-                        style={{
-                          fontSize: 13,
-                          color:
-                            slide.textColor,
-                          opacity: 0.8,
-                          marginBottom: 16,
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {slide.sub}
-                      </p>
+                    <p
+                      style={{
+                        fontSize: 13,
+                        color:
+                          slide.textColor,
+                        opacity: 0.8,
+                        marginBottom: 16,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {slide.sub}
+                    </p>
 
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color:
-                            slide.textColor,
-                          background:
-                            'rgba(0,0,0,0.12)',
-                          padding:
-                            '8px 16px',
-                          borderRadius: 20,
-                        }}
-                      >
-                        {slide.cta}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )
-            )}
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color:
+                          slide.textColor,
+                        background:
+                          'rgba(0,0,0,0.12)',
+                        padding: '8px 16px',
+                        borderRadius: 20,
+                      }}
+                    >
+                      {slide.cta}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
           <div
             style={{
               display: 'flex',
-              justifyContent:
-                'center',
+              justifyContent: 'center',
               gap: 6,
               marginTop: 10,
             }}
           >
-            {CAROUSEL_SLIDES.map(
-              (_, i) => (
-                <div
-                  key={i}
-                  onClick={() =>
-                    setCarouselIndex(i)
-                  }
-                  style={{
-                    width:
-                      i === carouselIndex
-                        ? 20
-                        : 6,
-                    height: 6,
-                    borderRadius: 3,
-                    background:
-                      i === carouselIndex
-                        ? '#4a9eff'
-                        : 'rgba(255,255,255,0.2)',
-                    cursor: 'pointer',
-                  }}
-                />
-              )
-            )}
+            {CAROUSEL_SLIDES.map((_, i) => (
+              <div
+                key={i}
+                onClick={() =>
+                  setCarouselIndex(i)
+                }
+                style={{
+                  width:
+                    i === carouselIndex ? 20 : 6,
+                  height: 6,
+                  borderRadius: 3,
+                  background:
+                    i === carouselIndex
+                      ? '#4a9eff'
+                      : 'rgba(255,255,255,0.2)',
+                  cursor: 'pointer',
+                }}
+              />
+            ))}
           </div>
         </div>
 
-        {/* =====================================================
-            CONTENT
-        ===================================================== */}
-
+        {/* CONTENT */}
         {loading ? (
           <div
             style={{
@@ -827,7 +713,7 @@ function HomeContent() {
               sub="Tasks will appear here soon"
             />
           ) : (
-            filteredTasks.map(task => (
+            filteredTasks.map((task) => (
               <TaskCard
                 key={task.id}
                 task={task}
@@ -843,9 +729,13 @@ function HomeContent() {
               sub="Check back soon"
             />
           ) : (
-            tracks.map(track => (
+            tracks.map((track) => (
               <TrackCard
-                key={track.id}
+                key={
+                  track.id ||
+                  track._id ||
+                  track.track_id
+                }
                 track={track}
                 router={router}
               />
@@ -853,8 +743,7 @@ function HomeContent() {
           )
         ) : (
           <>
-            {/* Follow Rewaiq task */}
-
+            {/* FOLLOW REWAIQ TASK */}
             <div
               onClick={() =>
                 router.push(
@@ -877,16 +766,14 @@ function HomeContent() {
                   display: 'flex',
                   justifyContent:
                     'space-between',
-                  alignItems:
-                    'flex-start',
+                  alignItems: 'flex-start',
                   marginBottom: 10,
                 }}
               >
                 <div
                   style={{
                     display: 'flex',
-                    alignItems:
-                      'center',
+                    alignItems: 'center',
                     gap: 10,
                   }}
                 >
@@ -898,10 +785,8 @@ function HomeContent() {
                       background:
                         'rgba(74,158,255,0.2)',
                       display: 'flex',
-                      alignItems:
-                        'center',
-                      justifyContent:
-                        'center',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
                     <Users
@@ -930,8 +815,7 @@ function HomeContent() {
                           '2px 0 0',
                       }}
                     >
-                      Follow us on
-                      Instagram and
+                      Follow us on Instagram and
                       earn
                     </p>
                   </div>
@@ -940,13 +824,11 @@ function HomeContent() {
                 <div
                   style={{
                     display: 'flex',
-                    alignItems:
-                      'center',
+                    alignItems: 'center',
                     gap: 4,
                     background:
                       'rgba(74,158,255,0.15)',
-                    padding:
-                      '4px 10px',
+                    padding: '4px 10px',
                     borderRadius: 20,
                   }}
                 >
@@ -1004,8 +886,7 @@ function HomeContent() {
               </div>
             </div>
 
-            {/* Tracks */}
-
+            {/* TRACKS */}
             {tracks.length === 0 ? (
               <Empty
                 icon="🎵"
@@ -1013,9 +894,13 @@ function HomeContent() {
                 sub="Artists will upload music soon"
               />
             ) : (
-              tracks.map(track => (
+              tracks.map((track) => (
                 <TrackCard
-                  key={track.id}
+                  key={
+                    track.id ||
+                    track._id ||
+                    track.track_id
+                  }
                   track={track}
                   router={router}
                 />
@@ -1064,9 +949,7 @@ function Empty({ icon, title, sub }) {
         {title}
       </p>
 
-      <p style={{ fontSize: 13 }}>
-        {sub}
-      </p>
+      <p style={{ fontSize: 13 }}>{sub}</p>
     </div>
   );
 }
@@ -1076,19 +959,42 @@ function Empty({ icon, title, sub }) {
    ========================================================= */
 
 function TrackCard({ track, router }) {
+  const resolvedTrackId =
+    track?.id ||
+    track?._id ||
+    track?.track_id ||
+    track?.trackId;
+
+  const handleOpenTrack = () => {
+    console.log('TRACK CLICKED:', track);
+    console.log('RESOLVED TRACK ID:', resolvedTrackId);
+
+    if (!resolvedTrackId) {
+      console.error(
+        'Cannot open stream: track has no ID',
+        track
+      );
+      return;
+    }
+
+    router.push(
+      `/stream?id=${encodeURIComponent(
+        String(resolvedTrackId)
+      )}`
+    );
+  };
+
   return (
     <div
-      onClick={() =>
-        router.push(
-          `/stream?id=${track.id}`
-        )
-      }
+      onClick={handleOpenTrack}
       style={{
         background: '#0D1F3C',
         borderRadius: 16,
         marginBottom: 16,
         overflow: 'hidden',
-        cursor: 'pointer',
+        cursor: resolvedTrackId
+          ? 'pointer'
+          : 'default',
       }}
     >
       <div
@@ -1142,7 +1048,7 @@ function TrackCard({ track, router }) {
             color="#fff"
           />
 
-          +{track.campaign_coins}
+          +{track?.campaign_coins || 0}
         </div>
       </div>
 
@@ -1169,8 +1075,7 @@ function TrackCard({ track, router }) {
               color: '#fff',
             }}
           >
-            {track.artist_name?.[0] ||
-              'A'}
+            {track?.artist_name?.[0] || 'A'}
           </div>
 
           <span
@@ -1179,8 +1084,7 @@ function TrackCard({ track, router }) {
               color: '#8A9BB0',
             }}
           >
-            {track.artist_name ||
-              'Artist'}
+            {track?.artist_name || 'Artist'}
           </span>
 
           <span
@@ -1194,7 +1098,7 @@ function TrackCard({ track, router }) {
               borderRadius: 10,
             }}
           >
-            {track.content_type}
+            {track?.content_type || 'Music'}
           </span>
         </div>
 
@@ -1206,10 +1110,10 @@ function TrackCard({ track, router }) {
             marginBottom: 4,
           }}
         >
-          {track.title}
+          {track?.title || 'Untitled Track'}
         </p>
 
-        {track.description && (
+        {track?.description && (
           <p
             style={{
               fontSize: 12,
@@ -1217,11 +1121,10 @@ function TrackCard({ track, router }) {
               lineHeight: 1.5,
             }}
           >
-            {track.description.slice(
-              0,
-              80
-            )}
-            ...
+            {track.description.slice(0, 80)}
+            {track.description.length > 80
+              ? '...'
+              : ''}
           </p>
         )}
       </div>
@@ -1239,7 +1142,13 @@ function TaskCard({ task, router }) {
       onClick={() =>
         !task.completed &&
         router.push(
-          `/task?id=${task.id}`
+          `/task?id=${encodeURIComponent(
+            String(
+              task.id ||
+                task._id ||
+                task.task_id
+            )
+          )}`
         )
       }
       style={{
@@ -1253,9 +1162,7 @@ function TaskCard({ task, router }) {
         cursor: task.completed
           ? 'default'
           : 'pointer',
-        opacity: task.completed
-          ? 0.6
-          : 1,
+        opacity: task.completed ? 0.6 : 1,
       }}
     >
       <div
@@ -1307,23 +1214,20 @@ function TaskCard({ task, router }) {
             style={{
               fontSize: 11,
               color: '#8A9BB0',
-              textTransform:
-                'capitalize',
+              textTransform: 'capitalize',
             }}
           >
             {task.task_type}
           </span>
 
-          {task.completion_count >
-            0 && (
+          {task.completion_count > 0 && (
             <span
               style={{
                 fontSize: 11,
                 color: '#8A9BB0',
               }}
             >
-              {task.completion_count}{' '}
-              completed
+              {task.completion_count} completed
             </span>
           )}
         </div>
@@ -1362,11 +1266,9 @@ function TaskCard({ task, router }) {
 export default function HomePage() {
   return (
     <Suspense
-      fallback={
-        <Spinner fullscreen />
-      }
+      fallback={<Spinner fullscreen />}
     >
       <HomeContent />
     </Suspense>
   );
-                  }
+              }
