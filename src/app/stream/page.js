@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Coins, Play, Square } from 'lucide-react';
 import API from '@/lib/api';
@@ -10,37 +10,26 @@ const REQUIRED_SECONDS = 60;
 
 function StreamContent() {
   const router = useRouter();
-  const params = useSearchParams();
-
-  const trackId = params.get('id');
+  const searchParams = useSearchParams();
+  const trackId = searchParams.get('id');
 
   const [track, setTrack] = useState(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('idle');
-  const [showEmbed, setShowEmbed] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [sessionId, setSessionId] = useState(null);
+  const [showPlayer, setShowPlayer] = useState(false);
   const [error, setError] = useState('');
 
   const timerRef = useRef(null);
-  const startLockRef = useRef(false);
   const sessionStartedRef = useRef(false);
+  const startLockRef = useRef(false);
 
   /*
-   * -------------------------------------------------------
-   * FETCH TRACK
-   * -------------------------------------------------------
+   * LOAD TRACK
    *
-   * First try:
-   *   GET /api/tracks/:id
-   *
-   * If that fails, use:
-   *   GET /api/tracks
-   *
-   * and find the track from the same list used by the feed.
-   *
-   * This prevents the Stream page from saying "Track not found"
-   * when the track is actually visible on the feed.
+   * Try /api/tracks/:id first.
+   * If that fails, load /api/tracks and find the track there.
    */
   useEffect(() => {
     let cancelled = false;
@@ -56,66 +45,57 @@ function StreamContent() {
       }
 
       try {
-        /*
-         * First attempt: individual track endpoint
-         */
+        let foundTrack = null;
+
         try {
-          const res = await API.get(
+          const response = await API.get(
             `/api/tracks/${encodeURIComponent(trackId)}`
           );
 
-          const foundTrack =
-            res?.data?.track ||
-            res?.data?.data ||
-            (res?.data?.id ? res.data : null);
-
-          if (foundTrack) {
-            if (!cancelled) {
-              setTrack(foundTrack);
-              setLoading(false);
-            }
-            return;
-          }
-        } catch (detailError) {
-          console.log(
-            'Individual track endpoint failed. Trying track list...',
-            detailError
-          );
+          foundTrack =
+            response?.data?.track ||
+            response?.data?.data ||
+            null;
+        } catch (err) {
+          console.log('Individual track request failed:', err);
         }
 
         /*
-         * Fallback: fetch the same track list used by Home.
+         * Fallback to the same endpoint used by Home.
          */
-        const listRes = await API.get('/api/tracks');
+        if (!foundTrack) {
+          const response = await API.get('/api/tracks');
 
-        const list =
-          listRes?.data?.tracks ||
-          listRes?.data?.data ||
-          (Array.isArray(listRes?.data) ? listRes.data : []);
+          const tracks =
+            response?.data?.tracks ||
+            response?.data?.data ||
+            [];
 
-        const foundTrack = list.find(
-          (item) =>
-            String(item.id) === String(trackId) ||
-            String(item.track_id) === String(trackId)
-        );
+          foundTrack = tracks.find(
+            (item) =>
+              String(item.id) === String(trackId) ||
+              String(item.track_id) === String(trackId)
+          );
+        }
 
         if (!foundTrack) {
-          throw new Error('Track does not exist in track list');
+          throw new Error('Track not found');
         }
 
         if (!cancelled) {
           setTrack(foundTrack);
-          setLoading(false);
         }
       } catch (err) {
-        console.error('Unable to load track:', err);
+        console.error('Track loading error:', err);
 
         if (!cancelled) {
-          setTrack(null);
           setError(
             err?.response?.data?.message ||
               'Track not found'
           );
+        }
+      } finally {
+        if (!cancelled) {
           setLoading(false);
         }
       }
@@ -134,17 +114,12 @@ function StreamContent() {
   }, [trackId]);
 
   /*
-   * -------------------------------------------------------
-   * START STREAMING
-   * -------------------------------------------------------
+   * START
    */
   function handleStartStreaming() {
     if (startLockRef.current) return;
     if (status !== 'idle') return;
-    if (!track) {
-      setError('Track not available');
-      return;
-    }
+    if (!track) return;
 
     startLockRef.current = true;
     sessionStartedRef.current = false;
@@ -153,68 +128,60 @@ function StreamContent() {
     setSeconds(0);
     setSessionId(null);
     setStatus('starting');
-    setShowEmbed(true);
+    setShowPlayer(true);
   }
 
   /*
-   * -------------------------------------------------------
-   * AUDIO PLAYER LOADED
-   * -------------------------------------------------------
+   * PLAYER LOADED
    *
-   * Once Audiomack iframe loads:
-   * 1. Start backend session
-   * 2. Start 60-second earning timer
+   * The Audiomack iframe has loaded.
+   * Start the backend session and the 60 second timer.
    */
-  async function handleEmbedLoad() {
-    if (sessionStartedRef.current) {
-      return;
-    }
+  async function handlePlayerLoad() {
+    if (sessionStartedRef.current) return;
 
     sessionStartedRef.current = true;
 
     try {
-      const trackUrl =
-        track?.original_url ||
-        track?.url ||
-        track?.audio_url ||
-        '';
+      const response = await API.post(
+        '/api/streams/start',
+        {
+          track_id: trackId,
+          track_url:
+            track?.original_url ||
+            track?.url ||
+            track?.audio_url ||
+            '',
+        }
+      );
 
-      const res = await API.post('/api/streams/start', {
-        track_id: trackId,
-        track_url: trackUrl,
-      });
+      const id =
+        response?.data?.session?.id ||
+        response?.data?.id;
 
-      const newSessionId =
-        res?.data?.session?.id ||
-        res?.data?.id ||
-        null;
-
-      if (!newSessionId) {
-        throw new Error('Stream session was not created');
+      if (!id) {
+        throw new Error(
+          'Stream session was not created'
+        );
       }
 
-      setSessionId(newSessionId);
+      setSessionId(id);
       setStatus('streaming');
       setSeconds(0);
 
-      /*
-       * Make sure there isn't an old timer.
-       */
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
 
       timerRef.current = setInterval(() => {
-        setSeconds((previous) => {
-          const next = previous + 1;
+        setSeconds((current) => {
+          const next = current + 1;
 
           if (next >= REQUIRED_SECONDS) {
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-              timerRef.current = null;
-            }
+            clearInterval(timerRef.current);
+            timerRef.current = null;
 
-            finishStream(newSessionId);
+            finishStream(id);
 
             return REQUIRED_SECONDS;
           }
@@ -223,45 +190,56 @@ function StreamContent() {
         });
       }, 1000);
     } catch (err) {
-      console.error('Could not start stream:', err);
+      console.error('Stream start error:', err);
 
       setStatus('idle');
-      setShowEmbed(false);
+      setShowPlayer(false);
       setSessionId(null);
       sessionStartedRef.current = false;
 
-      const message =
+      setError(
         err?.response?.data?.message ||
-        err?.message ||
-        'Could not start stream. Try again.';
-
-      setError(message);
+          err?.message ||
+          'Could not start stream. Try again.'
+      );
     } finally {
       startLockRef.current = false;
     }
   }
 
   /*
-   * -------------------------------------------------------
-   * END STREAM
-   * -------------------------------------------------------
+   * COMPLETE STREAM
+   *
+   * This is called ONLY after 60 seconds.
    */
-  async function endStreamOnBackend(sid) {
-    if (!sid) {
-      return null;
+  async function finishStream(id) {
+    try {
+      await API.post('/api/streams/end', {
+        session_id: id,
+      });
+
+      setStatus('completed');
+      setSeconds(REQUIRED_SECONDS);
+      setSessionId(null);
+      sessionStartedRef.current = false;
+    } catch (err) {
+      console.error('Stream completion error:', err);
+
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          'Could not complete stream'
+      );
+
+      setStatus('idle');
+      setShowPlayer(false);
+      setSessionId(null);
+      sessionStartedRef.current = false;
     }
-
-    const res = await API.post('/api/streams/end', {
-      session_id: sid,
-    });
-
-    return res;
   }
 
   /*
-   * -------------------------------------------------------
    * STOP BEFORE 60 SECONDS
-   * -------------------------------------------------------
    */
   async function handleStopStreaming() {
     if (timerRef.current) {
@@ -269,90 +247,39 @@ function StreamContent() {
       timerRef.current = null;
     }
 
-    const sid = sessionId;
-
-    /*
-     * If the user hasn't reached 60 seconds,
-     * end the session without rewarding.
-     */
-    if (sid && seconds < REQUIRED_SECONDS) {
+    if (
+      sessionId &&
+      seconds < REQUIRED_SECONDS
+    ) {
       try {
-        await endStreamOnBackend(sid);
+        await API.post('/api/streams/end', {
+          session_id: sessionId,
+        });
       } catch (err) {
-        console.log('Could not end incomplete stream:', err);
+        console.log(
+          'Incomplete stream end error:',
+          err
+        );
       }
     }
 
     setStatus('idle');
-    setShowEmbed(false);
+    setShowPlayer(false);
     setSeconds(0);
     setSessionId(null);
     sessionStartedRef.current = false;
   }
 
-  /*
-   * -------------------------------------------------------
-   * COMPLETE 60-SECOND STREAM
-   * -------------------------------------------------------
-   */
-  async function finishStream(sid) {
-    try {
-      /*
-       * The backend should only reward the user here,
-       * after the required 60 seconds.
-       */
-      const res = await endStreamOnBackend(sid);
-
-      console.log('Stream completed:', res?.data);
-
-      setStatus('completed');
-      setSeconds(REQUIRED_SECONDS);
-      setSessionId(null);
-      sessionStartedRef.current = false;
-
-      /*
-       * Keep the player visible briefly / don't immediately
-       * destroy the completed state.
-       */
-    } catch (err) {
-      console.error('Could not complete stream:', err);
-
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Could not complete stream';
-
-      setError(message);
-
-      setStatus('idle');
-      setShowEmbed(false);
-      setSeconds(0);
-      setSessionId(null);
-      sessionStartedRef.current = false;
-    }
-  }
-
-  /*
-   * -------------------------------------------------------
-   * LOADING
-   * -------------------------------------------------------
-   */
   if (loading) {
     return <Spinner fullscreen />;
   }
 
-  /*
-   * -------------------------------------------------------
-   * ERROR / TRACK NOT FOUND
-   * -------------------------------------------------------
-   */
   if (!track) {
     return (
       <div
         style={{
           minHeight: '100vh',
           background: '#0A1628',
-          color: '#8A9BB0',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -363,7 +290,7 @@ function StreamContent() {
       >
         <p
           style={{
-            fontSize: 16,
+            color: '#F87171',
             marginBottom: 20,
           }}
         >
@@ -374,8 +301,8 @@ function StreamContent() {
           onClick={() => router.back()}
           style={{
             padding: '12px 20px',
-            borderRadius: 12,
             border: 'none',
+            borderRadius: 12,
             background: '#4a9eff',
             color: '#fff',
             fontWeight: 700,
@@ -391,11 +318,6 @@ function StreamContent() {
   const progress =
     (seconds / REQUIRED_SECONDS) * 100;
 
-  /*
-   * -------------------------------------------------------
-   * PAGE
-   * -------------------------------------------------------
-   */
   return (
     <div
       style={{
@@ -419,14 +341,11 @@ function StreamContent() {
           style={{
             background: 'none',
             border: 'none',
-            cursor: 'pointer',
             padding: 0,
+            cursor: 'pointer',
           }}
         >
-          <ArrowLeft
-            size={22}
-            color="#fff"
-          />
+          <ArrowLeft size={22} color="#fff" />
         </button>
 
         <span
@@ -441,8 +360,7 @@ function StreamContent() {
       </div>
 
       <div style={{ padding: 20 }}>
-
-        {/* TRACK CARD */}
+        {/* TRACK */}
         <div
           style={{
             background: '#0D1F3C',
@@ -453,10 +371,10 @@ function StreamContent() {
         >
           <p
             style={{
+              color: '#fff',
               fontSize: 16,
               fontWeight: 700,
-              color: '#fff',
-              marginBottom: 4,
+              margin: '0 0 4px',
             }}
           >
             {track.title || 'Untitled Track'}
@@ -464,42 +382,31 @@ function StreamContent() {
 
           <p
             style={{
-              fontSize: 13,
               color: '#8A9BB0',
-              marginBottom: 16,
+              fontSize: 13,
+              margin: '0 0 16px',
             }}
           >
             {track.artist_name || 'Artist'}
           </p>
 
-          {/* AUDIO PLAYER */}
-          {showEmbed && track.audiomack_id ? (
-            <div
+          {showPlayer && track.audiomack_id ? (
+            <iframe
+              src={
+                `https://www.audiomack.com/embed/song/` +
+                `${track.audiomack_id}` +
+                `?background=0&light=0&autoplay=1`
+              }
+              title={track.title || 'Audiomack player'}
+              allow="autoplay; encrypted-media"
               style={{
                 width: '100%',
-                overflow: 'hidden',
+                height: 140,
+                border: 'none',
                 borderRadius: 10,
               }}
-            >
-              <iframe
-                key={`${track.id}-${sessionId || 'pending'}`}
-                src={
-                  `https://www.audiomack.com/embed/song/` +
-                  `${track.audiomack_id}` +
-                  `?background=0&light=0&autoplay=1`
-                }
-                style={{
-                  width: '100%',
-                  height: 140,
-                  border: 'none',
-                  borderRadius: 10,
-                }}
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-                onLoad={handleEmbedLoad}
-                title={`Playing ${track.title || 'track'}`}
-              />
-            </div>
+              onLoad={handlePlayerLoad}
+            />
           ) : (
             <div
               style={{
@@ -519,15 +426,14 @@ function StreamContent() {
                 color="#4a9eff"
               />
 
-              <p
+              <span
                 style={{
-                  fontSize: 12,
                   color: '#8A9BB0',
-                  margin: 0,
+                  fontSize: 12,
                 }}
               >
                 Press Start Streaming to play
-              </p>
+              </span>
             </div>
           )}
         </div>
@@ -563,9 +469,9 @@ function StreamContent() {
 
           <p
             style={{
+              color: '#fff',
               fontSize: 32,
               fontWeight: 900,
-              color: '#fff',
               margin: 0,
             }}
           >
@@ -573,13 +479,13 @@ function StreamContent() {
               ? `${REQUIRED_SECONDS - seconds}s`
               : status === 'completed'
               ? '✓'
-              : `${REQUIRED_SECONDS}s`}
+              : '60s'}
           </p>
 
           <p
             style={{
-              fontSize: 12,
               color: '#8A9BB0',
+              fontSize: 12,
               marginTop: 4,
             }}
           >
@@ -593,7 +499,7 @@ function StreamContent() {
           </p>
         </div>
 
-        {/* COMPLETED */}
+        {/* BUTTON */}
         {status === 'completed' ? (
           <>
             <div
@@ -605,4 +511,141 @@ function StreamContent() {
               <Coins
                 size={32}
                 color="#4a9eff"
-                style={{ marginBottom: 
+              />
+
+              <p
+                style={{
+                  color: '#fff',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  margin: '8px 0 0',
+                }}
+              >
+                Coins Earned!
+              </p>
+
+              <p
+                style={{
+                  color: '#8A9BB0',
+                  fontSize: 12,
+                  marginTop: 6,
+                }}
+              >
+                Your reward has been processed.
+              </p>
+            </div>
+
+            <button
+              onClick={() =>
+                router.push('/home')
+              }
+              style={{
+                width: '100%',
+                padding: 16,
+                borderRadius: 14,
+                border: 'none',
+                background: '#4a9eff',
+                color: '#fff',
+                fontSize: 16,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Back to Feed
+            </button>
+          </>
+        ) : status === 'streaming' ? (
+          <button
+            onClick={handleStopStreaming}
+            style={{
+              width: '100%',
+              padding: 18,
+              borderRadius: 14,
+              background:
+                'rgba(248,113,113,0.12)',
+              border:
+                '1px solid rgba(248,113,113,0.3)',
+              color: '#F87171',
+              fontSize: 16,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <Square
+              size={18}
+              fill="#F87171"
+            />
+            Stop Streaming
+          </button>
+        ) : (
+          <button
+            onClick={handleStartStreaming}
+            disabled={status === 'starting'}
+            style={{
+              width: '100%',
+              padding: 18,
+              borderRadius: 14,
+              border: 'none',
+              background:
+                status === 'starting'
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'linear-gradient(135deg, #4a9eff, #2d6be4)',
+              color:
+                status === 'starting'
+                  ? '#8A9BB0'
+                  : '#fff',
+              fontSize: 16,
+              fontWeight: 700,
+              cursor:
+                status === 'starting'
+                  ? 'not-allowed'
+                  : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <Play
+              size={18}
+              fill={
+                status === 'starting'
+                  ? '#8A9BB0'
+                  : '#fff'
+              }
+            />
+
+            {status === 'starting'
+              ? 'Loading...'
+              : 'Start Streaming'}
+          </button>
+        )}
+
+        {error && (
+          <p
+            style={{
+              color: '#F87171',
+              textAlign: 'center',
+              fontSize: 13,
+              marginTop: 16,
+            }}
+          >
+            {error}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function StreamPage() {
+  return (
+    <Suspense fallback={<Spinner fullscreen />}>
+      <StreamContent />
+    </Suspense>
+  );
+            }
