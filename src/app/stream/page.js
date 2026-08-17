@@ -19,6 +19,7 @@ import {
   CheckCircle,
   Music2,
   Volume2,
+  Loader2,
 } from 'lucide-react';
 
 import API from '@/lib/api';
@@ -40,12 +41,7 @@ function getTrackId(track) {
 }
 
 function saveTrackLocally(track) {
-  if (
-    typeof window === 'undefined' ||
-    !track
-  ) {
-    return;
-  }
+  if (typeof window === 'undefined' || !track) return;
 
   try {
     sessionStorage.setItem(
@@ -61,13 +57,12 @@ function saveTrackLocally(track) {
 }
 
 function getSavedTrack() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
+  if (typeof window === 'undefined') return null;
 
   try {
-    const saved =
-      sessionStorage.getItem(STORAGE_KEY);
+    const saved = sessionStorage.getItem(
+      STORAGE_KEY
+    );
 
     if (!saved) return null;
 
@@ -93,42 +88,24 @@ function StreamContent() {
 
   const [track, setTrack] = useState(null);
 
-  const [trackId, setTrackId] =
-    useState(
-      urlTrackId
-        ? String(urlTrackId)
-        : null
-    );
+  const [trackId, setTrackId] = useState(
+    urlTrackId ? String(urlTrackId) : null
+  );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState('idle');
 
-  const [status, setStatus] =
-    useState('idle');
+  const [showEmbed, setShowEmbed] = useState(false);
 
-  const [showEmbed, setShowEmbed] =
-    useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [sessionId, setSessionId] = useState(null);
 
-  const [seconds, setSeconds] =
-    useState(0);
+  const [error, setError] = useState('');
+  const [rewarded, setRewarded] = useState(false);
 
-  const [sessionId, setSessionId] =
-    useState(null);
-
-  const [error, setError] =
-    useState('');
-
-  const [rewarded, setRewarded] =
-    useState(false);
-
-  const timerRef =
-    useRef(null);
-
-  const startingRef =
-    useRef(false);
-
-  const endingRef =
-    useRef(false);
+  const timerRef = useRef(null);
+  const startingRef = useRef(false);
+  const endingRef = useRef(false);
 
   /*
    * Keep track ID synchronized with URL.
@@ -146,41 +123,33 @@ function StreamContent() {
     let cancelled = false;
 
     async function loadTrack() {
-      const savedTrack =
-        getSavedTrack();
-
-      const savedTrackId =
-        getTrackId(savedTrack);
+      const savedTrack = getSavedTrack();
+      const savedTrackId = getTrackId(savedTrack);
 
       const resolvedId =
-        urlTrackId ||
-        savedTrackId;
+        urlTrackId || savedTrackId;
 
       if (!resolvedId) {
         if (!cancelled) {
           setLoading(false);
           setTrack(null);
-          setError(
-            'No track selected'
-          );
+          setError('No track selected');
         }
 
         return;
       }
 
-      const normalizedId =
-        String(resolvedId);
+      const normalizedId = String(resolvedId);
 
       setTrackId(normalizedId);
 
       /*
-       * Show saved track immediately.
+       * Show saved track immediately while API loads.
        */
       if (
         savedTrack &&
         savedTrackId &&
-        String(savedTrackId) ===
-          normalizedId
+        String(savedTrackId) === normalizedId
       ) {
         if (!cancelled) {
           setTrack(savedTrack);
@@ -192,12 +161,9 @@ function StreamContent() {
         setLoading(!savedTrack);
         setError('');
 
-        const response =
-          await API.get(
-            `/api/tracks/${encodeURIComponent(
-              normalizedId
-            )}`
-          );
+        const response = await API.get(
+          `/api/tracks/${encodeURIComponent(normalizedId)}`
+        );
 
         if (cancelled) return;
 
@@ -207,29 +173,19 @@ function StreamContent() {
           response?.data;
 
         if (!loadedTrack) {
-          throw new Error(
-            'Track not found'
-          );
+          throw new Error('Track not found');
         }
 
-        const loadedId =
-          getTrackId(
-            loadedTrack
-          );
-
-        setTrack(
+        const loadedId = getTrackId(
           loadedTrack
         );
 
-        saveTrackLocally(
-          loadedTrack
-        );
+        setTrack(loadedTrack);
+
+        saveTrackLocally(loadedTrack);
 
         setTrackId(
-          String(
-            loadedId ||
-              normalizedId
-          )
+          String(loadedId || normalizedId)
         );
       } catch (err) {
         console.error(
@@ -241,8 +197,7 @@ function StreamContent() {
           if (
             savedTrack &&
             savedTrackId &&
-            String(savedTrackId) ===
-              normalizedId
+            String(savedTrackId) === normalizedId
           ) {
             setTrack(savedTrack);
             setError('');
@@ -250,8 +205,7 @@ function StreamContent() {
             setTrack(null);
 
             setError(
-              err?.response?.data
-                ?.message ||
+              err?.response?.data?.message ||
                 err?.message ||
                 'Track not found'
             );
@@ -272,12 +226,9 @@ function StreamContent() {
   }, [urlTrackId]);
 
   /*
-   * Use the embed_url already stored
-   * in the Railway tracks table.
-   *
-   * We do NOT depend on audiomack_id.
+   * Build Audiomack embed URL.
    */
-  const getEmbedUrl = () => {
+  function getEmbedUrl() {
     if (!track) return null;
 
     if (track.embed_url) {
@@ -286,9 +237,7 @@ function StreamContent() {
 
     if (
       track.original_url &&
-      track.original_url.includes(
-        'audiomack.com'
-      )
+      track.original_url.includes('audiomack.com')
     ) {
       const parts =
         track.original_url.split(
@@ -301,20 +250,16 @@ function StreamContent() {
     }
 
     return null;
-  };
+  }
 
-  const embedUrl =
-    getEmbedUrl();
+  const embedUrl = getEmbedUrl();
 
   /*
    * Clear timer.
    */
   function clearStreamTimer() {
     if (timerRef.current) {
-      clearInterval(
-        timerRef.current
-      );
-
+      clearInterval(timerRef.current);
       timerRef.current = null;
     }
   }
@@ -322,32 +267,61 @@ function StreamContent() {
   /*
    * Finish stream.
    */
-  async function finishStream(
-    sid
-  ) {
-    if (endingRef.current) {
-      return;
-    }
+  async function finishStream(sid) {
+    if (endingRef.current) return;
 
     endingRef.current = true;
 
     try {
-      setStatus(
-        'completing'
-      );
+      setStatus('completing');
 
-      const response =
-        await API.post(
-          '/api/streams/end',
-          {
-            session_id: sid,
-          }
-        );
+      const response = await API.post(
+        '/api/streams/end',
+        {
+          session_id: sid,
+        }
+      );
 
       console.log(
         'Stream completed:',
         response?.data
       );
+
+      /*
+       * Update balance from backend response.
+       */
+      const backendBalance =
+        response?.data?.coin_balance;
+
+      if (
+        backendBalance !== undefined &&
+        typeof window !== 'undefined'
+      ) {
+        const storedUser =
+          localStorage.getItem(
+            'rewaiq_user'
+          );
+
+        if (storedUser) {
+          try {
+            const user =
+              JSON.parse(storedUser);
+
+            user.coin_balance =
+              backendBalance;
+
+            localStorage.setItem(
+              'rewaiq_user',
+              JSON.stringify(user)
+            );
+          } catch (storageError) {
+            console.warn(
+              'Could not update stored user:',
+              storageError
+            );
+          }
+        }
+      }
 
       /*
        * Refresh wallet balance.
@@ -359,20 +333,15 @@ function StreamContent() {
           );
 
         const newBalance =
-          balanceResponse?.data
-            ?.balance ??
-          balanceResponse?.data
-            ?.coin_balance ??
-          balanceResponse?.data
-            ?.coins ??
-          balanceResponse?.data
-            ?.user?.coin_balance;
+          balanceResponse?.data?.balance ??
+          balanceResponse?.data?.coin_balance ??
+          balanceResponse?.data?.coins ??
+          balanceResponse?.data?.user
+            ?.coin_balance;
 
         if (
-          newBalance !==
-            undefined &&
-          typeof window !==
-            'undefined'
+          newBalance !== undefined &&
+          typeof window !== 'undefined'
         ) {
           const storedUser =
             localStorage.getItem(
@@ -382,9 +351,7 @@ function StreamContent() {
           if (storedUser) {
             try {
               const user =
-                JSON.parse(
-                  storedUser
-                );
+                JSON.parse(storedUser);
 
               user.coin_balance =
                 newBalance;
@@ -393,7 +360,12 @@ function StreamContent() {
                 'rewaiq_user',
                 JSON.stringify(user)
               );
-            } catch {}
+            } catch (storageError) {
+              console.warn(
+                'Could not update stored wallet:',
+                storageError
+              );
+            }
           }
         }
       } catch (balanceError) {
@@ -404,13 +376,8 @@ function StreamContent() {
       }
 
       setRewarded(true);
-      setSeconds(
-        REQUIRED_SECONDS
-      );
-
-      setStatus(
-        'completed'
-      );
+      setSeconds(REQUIRED_SECONDS);
+      setStatus('completed');
     } catch (err) {
       console.error(
         'Finish stream error:',
@@ -418,8 +385,7 @@ function StreamContent() {
       );
 
       setError(
-        err?.response?.data
-          ?.message ||
+        err?.response?.data?.message ||
           err?.message ||
           'Could not complete stream. Please try again.'
       );
@@ -437,9 +403,7 @@ function StreamContent() {
    * Start streaming.
    */
   async function handleStartStreaming() {
-    if (startingRef.current) {
-      return;
-    }
+    if (startingRef.current) return;
 
     if (
       status !== 'idle' &&
@@ -449,15 +413,12 @@ function StreamContent() {
     }
 
     if (!track) {
-      setError(
-        'No track selected'
-      );
+      setError('No track selected');
       return;
     }
 
     const resolvedTrackId =
-      getTrackId(track) ||
-      trackId;
+      getTrackId(track) || trackId;
 
     if (!resolvedTrackId) {
       setError(
@@ -473,26 +434,20 @@ function StreamContent() {
       return;
     }
 
-    startingRef.current =
-      true;
+    startingRef.current = true;
 
     try {
       setError('');
       setRewarded(false);
       setSeconds(0);
 
-      saveTrackLocally(
-        track
-      );
+      saveTrackLocally(track);
 
       /*
-       * Show Audiomack player.
+       * Show player.
        */
       setShowEmbed(true);
-
-      setStatus(
-        'starting'
-      );
+      setStatus('starting');
 
       const trackUrl =
         track.original_url ||
@@ -502,19 +457,16 @@ function StreamContent() {
       /*
        * Create backend session.
        */
-      const response =
-        await API.post(
-          '/api/streams/start',
-          {
-            track_id:
-              resolvedTrackId,
-            track_url:
-              trackUrl,
-          },
-          {
-            timeout: 15000,
-          }
-        );
+      const response = await API.post(
+        '/api/streams/start',
+        {
+          track_id: resolvedTrackId,
+          track_url: trackUrl,
+        },
+        {
+          timeout: 15000,
+        }
+      );
 
       console.log(
         'Stream start response:',
@@ -522,10 +474,8 @@ function StreamContent() {
       );
 
       const newSessionId =
-        response?.data?.session
-          ?.id ||
-        response?.data
-          ?.session_id ||
+        response?.data?.session?.id ||
+        response?.data?.session_id ||
         response?.data?.id;
 
       if (!newSessionId) {
@@ -534,39 +484,27 @@ function StreamContent() {
         );
       }
 
-      setSessionId(
-        newSessionId
-      );
-
-      setStatus(
-        'streaming'
-      );
+      setSessionId(newSessionId);
+      setStatus('streaming');
 
       clearStreamTimer();
 
-      let currentSeconds =
-        0;
+      let currentSeconds = 0;
 
-      timerRef.current =
-        setInterval(() => {
-          currentSeconds +=
-            1;
+      timerRef.current = setInterval(() => {
+        currentSeconds += 1;
 
-          setSeconds(
-            currentSeconds
-          );
+        setSeconds(currentSeconds);
 
-          if (
-            currentSeconds >=
-            REQUIRED_SECONDS
-          ) {
-            clearStreamTimer();
+        if (
+          currentSeconds >=
+          REQUIRED_SECONDS
+        ) {
+          clearStreamTimer();
 
-            finishStream(
-              newSessionId
-            );
-          }
-        }, 1000);
+          finishStream(newSessionId);
+        }
+      }, 1000);
     } catch (err) {
       console.error(
         'Start stream error:',
@@ -581,14 +519,12 @@ function StreamContent() {
       setSeconds(0);
 
       setError(
-        err?.response?.data
-          ?.message ||
+        err?.response?.data?.message ||
           err?.message ||
           'Could not start stream. Please try again.'
       );
     } finally {
-      startingRef.current =
-        false;
+      startingRef.current = false;
     }
   }
 
@@ -607,15 +543,13 @@ function StreamContent() {
 
     if (
       sessionId &&
-      seconds <
-        REQUIRED_SECONDS
+      seconds < REQUIRED_SECONDS
     ) {
       try {
         await API.post(
           '/api/streams/end',
           {
-            session_id:
-              sessionId,
+            session_id: sessionId,
           }
         );
       } catch (err) {
@@ -634,7 +568,7 @@ function StreamContent() {
   }
 
   /*
-   * Cleanup.
+   * Cleanup timer.
    */
   useEffect(() => {
     return () => {
@@ -646,9 +580,7 @@ function StreamContent() {
    * Loading.
    */
   if (loading && !track) {
-    return (
-      <Spinner fullscreen />
-    );
+    return <Spinner fullscreen />;
   }
 
   /*
@@ -674,21 +606,16 @@ function StreamContent() {
             marginBottom: 20,
           }}
         >
-          {error ||
-            'No track selected'}
+          {error || 'No track selected'}
         </p>
 
         <button
-          onClick={() =>
-            router.back()
-          }
+          onClick={() => router.back()}
           style={{
-            padding:
-              '12px 20px',
+            padding: '12px 20px',
             borderRadius: 10,
             border: 'none',
-            background:
-              '#4a9eff',
+            background: '#4a9eff',
             color: '#fff',
             fontWeight: 700,
             cursor: 'pointer',
@@ -700,20 +627,15 @@ function StreamContent() {
     );
   }
 
-  const progress =
-    Math.min(
-      (seconds /
-        REQUIRED_SECONDS) *
-        100,
-      100
-    );
+  const progress = Math.min(
+    (seconds / REQUIRED_SECONDS) * 100,
+    100
+  );
 
-  const remaining =
-    Math.max(
-      REQUIRED_SECONDS -
-        seconds,
-      0
-    );
+  const remaining = Math.max(
+    REQUIRED_SECONDS - seconds,
+    0
+  );
 
   const title =
     track.title ||
@@ -743,8 +665,7 @@ function StreamContent() {
       <div
         style={{
           height: 64,
-          padding:
-            '0 20px',
+          padding: '0 20px',
           display: 'flex',
           alignItems: 'center',
           gap: 14,
@@ -752,18 +673,14 @@ function StreamContent() {
             'rgba(13,31,60,0.92)',
           borderBottom:
             '1px solid rgba(255,255,255,0.06)',
-          position:
-            'sticky',
+          position: 'sticky',
           top: 0,
           zIndex: 20,
-          backdropFilter:
-            'blur(12px)',
+          backdropFilter: 'blur(12px)',
         }}
       >
         <button
-          onClick={() =>
-            router.back()
-          }
+          onClick={() => router.back()}
           aria-label="Go back"
           style={{
             width: 38,
@@ -774,8 +691,7 @@ function StreamContent() {
             border: 'none',
             display: 'flex',
             alignItems: 'center',
-            justifyContent:
-              'center',
+            justifyContent: 'center',
             cursor: 'pointer',
           }}
         >
@@ -798,8 +714,7 @@ function StreamContent() {
           <div
             style={{
               fontSize: 11,
-              color:
-                '#8A9BB0',
+              color: '#8A9BB0',
               marginTop: 2,
             }}
           >
@@ -810,14 +725,10 @@ function StreamContent() {
 
       <main
         style={{
-          width:
-            '100%',
-          maxWidth:
-            520,
-          margin:
-            '0 auto',
-          padding:
-            '22px 18px',
+          width: '100%',
+          maxWidth: 520,
+          margin: '0 auto',
+          padding: '22px 18px',
         }}
       >
         {/* TRACK INFO */}
@@ -836,14 +747,11 @@ function StreamContent() {
         >
           <div
             style={{
-              display:
-                'flex',
-              alignItems:
-                'center',
+              display: 'flex',
+              alignItems: 'center',
               gap: 14,
             }}
           >
-            {/* COVER */}
             <div
               style={{
                 width: 74,
@@ -854,25 +762,18 @@ function StreamContent() {
                 background:
                   'linear-gradient(135deg, #193B68, #102440)',
                 display: 'flex',
-                alignItems:
-                  'center',
-                justifyContent:
-                  'center',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               {track.cover_image ? (
                 <img
-                  src={
-                    track.cover_image
-                  }
+                  src={track.cover_image}
                   alt=""
                   style={{
-                    width:
-                      '100%',
-                    height:
-                      '100%',
-                    objectFit:
-                      'cover',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
                   }}
                 />
               ) : (
@@ -893,14 +794,10 @@ function StreamContent() {
                 style={{
                   fontSize: 18,
                   fontWeight: 800,
-                  margin:
-                    '0 0 5px',
-                  whiteSpace:
-                    'nowrap',
-                  overflow:
-                    'hidden',
-                  textOverflow:
-                    'ellipsis',
+                  margin: '0 0 5px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
                 {title}
@@ -909,15 +806,11 @@ function StreamContent() {
               <p
                 style={{
                   fontSize: 13,
-                  color:
-                    '#8A9BB0',
+                  color: '#8A9BB0',
                   margin: 0,
-                  whiteSpace:
-                    'nowrap',
-                  overflow:
-                    'hidden',
-                  textOverflow:
-                    'ellipsis',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
                 {artist}
@@ -926,11 +819,10 @@ function StreamContent() {
           </div>
         </section>
 
-        {/* PLAYER */}
+        {/* AUDIO PLAYER */}
         <section
           style={{
-            background:
-              '#0D1F3C',
+            background: '#0D1F3C',
             borderRadius: 22,
             padding: 16,
             marginBottom: 16,
@@ -940,21 +832,16 @@ function StreamContent() {
         >
           <div
             style={{
-              display:
-                'flex',
-              alignItems:
-                'center',
-              justifyContent:
-                'space-between',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               marginBottom: 12,
             }}
           >
             <div
               style={{
-                display:
-                  'flex',
-                alignItems:
-                  'center',
+                display: 'flex',
+                alignItems: 'center',
                 gap: 7,
               }}
             >
@@ -966,8 +853,7 @@ function StreamContent() {
               <span
                 style={{
                   fontSize: 12,
-                  color:
-                    '#8A9BB0',
+                  color: '#8A9BB0',
                   fontWeight: 600,
                 }}
               >
@@ -975,18 +861,14 @@ function StreamContent() {
               </span>
             </div>
 
-            {status ===
-              'streaming' && (
+            {status === 'streaming' && (
               <span
                 style={{
-                  display:
-                    'flex',
-                  alignItems:
-                    'center',
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: 5,
                   fontSize: 11,
-                  color:
-                    '#4ADE80',
+                  color: '#4ADE80',
                   fontWeight: 700,
                 }}
               >
@@ -994,92 +876,80 @@ function StreamContent() {
                   style={{
                     width: 6,
                     height: 6,
-                    borderRadius:
-                      '50%',
-                    background:
-                      '#4ADE80',
+                    borderRadius: '50%',
+                    background: '#4ADE80',
                     boxShadow:
                       '0 0 8px #4ADE80',
                   }}
                 />
+
                 STREAMING
               </span>
             )}
           </div>
 
-          {showEmbed &&
-          embedUrl ? (
+          {showEmbed && embedUrl ? (
             <div
               style={{
-                width:
-                  '100%',
-                overflow:
-                  'hidden',
-                borderRadius: 14,
-                background:
-                  '#081322',
+                width: '100%',
+                height: 170,
+                overflow: 'hidden',
+                borderRadius: 16,
+                background: '#081322',
+                border:
+                  '1px solid rgba(255,255,255,0.05)',
+                position: 'relative',
               }}
             >
               <iframe
-                key={
-                  `${sessionId || 'pending'}-${embedUrl}`
-                }
+                key={`${sessionId || 'pending'}-${embedUrl}`}
                 src={embedUrl}
-                title={
-                  `${title} - Audiomack`
-                }
-                style={{
-                  width:
-                    '100%',
-                  height: 150,
-                  border:
-                    'none',
-                  display:
-                    'block',
-                }}
+                title={`${title} - Audiomack`}
+                scrolling="no"
                 allow="autoplay; encrypted-media"
                 allowFullScreen
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '170px',
+                  border: 'none',
+                  display: 'block',
+                  overflow: 'hidden',
+                }}
               />
             </div>
           ) : (
             <div
               style={{
-                height: 150,
-                borderRadius: 14,
+                height: 170,
+                borderRadius: 16,
                 background:
                   'linear-gradient(145deg, rgba(74,158,255,0.08), rgba(255,255,255,0.025))',
                 border:
                   '1px solid rgba(255,255,255,0.05)',
-                display:
-                  'flex',
-                flexDirection:
-                  'column',
-                alignItems:
-                  'center',
-                justifyContent:
-                  'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               <div
                 style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius:
-                    '50%',
+                  width: 58,
+                  height: 58,
+                  borderRadius: '50%',
                   background:
                     'rgba(74,158,255,0.12)',
-                  display:
-                    'flex',
-                  alignItems:
-                    'center',
-                  justifyContent:
-                    'center',
-                  marginBottom:
-                    10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 12,
                 }}
               >
                 <Play
-                  size={24}
+                  size={26}
                   color="#4a9eff"
                   fill="#4a9eff"
                 />
@@ -1088,10 +958,9 @@ function StreamContent() {
               <p
                 style={{
                   margin: 0,
-                  color:
-                    '#fff',
-                  fontSize: 13,
-                  fontWeight: 600,
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 700,
                 }}
               >
                 Ready to stream
@@ -1099,10 +968,8 @@ function StreamContent() {
 
               <p
                 style={{
-                  margin:
-                    '4px 0 0',
-                  color:
-                    '#71849B',
+                  margin: '5px 0 0',
+                  color: '#71849B',
                   fontSize: 11,
                 }}
               >
@@ -1110,31 +977,51 @@ function StreamContent() {
               </p>
             </div>
           )}
+
+          {showEmbed &&
+            status === 'starting' && (
+              <div
+                style={{
+                  marginTop: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 7,
+                  color: '#8A9BB0',
+                  fontSize: 11,
+                }}
+              >
+                <Loader2
+                  size={13}
+                  style={{
+                    animation:
+                      'spin 1s linear infinite',
+                  }}
+                />
+
+                Preparing your stream...
+              </div>
+            )}
         </section>
 
         {/* EARNING TIMER */}
         <section
           style={{
-            background:
-              '#0D1F3C',
+            background: '#0D1F3C',
             borderRadius: 22,
-            padding:
-              '24px 18px',
+            padding: '24px 18px',
             marginBottom: 16,
             border:
               '1px solid rgba(255,255,255,0.06)',
-            textAlign:
-              'center',
+            textAlign: 'center',
           }}
         >
           <div
             style={{
               width: 148,
               height: 148,
-              margin:
-                '0 auto 18px',
-              borderRadius:
-                '50%',
+              margin: '0 auto 18px',
+              borderRadius: '50%',
               background: `conic-gradient(
                 #4a9eff ${progress}%,
                 rgba(74,158,255,0.10) ${progress}% 100%
@@ -1143,30 +1030,21 @@ function StreamContent() {
               transition:
                 'background 1s linear',
               boxShadow:
-                status ===
-                'streaming'
+                status === 'streaming'
                   ? '0 0 30px rgba(74,158,255,0.12)'
                   : 'none',
             }}
           >
             <div
               style={{
-                width:
-                  '100%',
-                height:
-                  '100%',
-                borderRadius:
-                  '50%',
-                background:
-                  '#0A1628',
-                display:
-                  'flex',
-                flexDirection:
-                  'column',
-                alignItems:
-                  'center',
-                justifyContent:
-                  'center',
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                background: '#0A1628',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               <span
@@ -1176,19 +1054,16 @@ function StreamContent() {
                   lineHeight: 1,
                 }}
               >
-                {status ===
-                'completed'
+                {status === 'completed'
                   ? '✓'
                   : remaining}
               </span>
 
-              {status !==
-                'completed' && (
+              {status !== 'completed' && (
                 <span
                   style={{
                     fontSize: 11,
-                    color:
-                      '#71849B',
+                    color: '#71849B',
                     marginTop: 6,
                   }}
                 >
@@ -1200,23 +1075,18 @@ function StreamContent() {
 
           <p
             style={{
-              margin:
-                '0 0 6px',
+              margin: '0 0 6px',
               fontSize: 16,
               fontWeight: 800,
             }}
           >
-            {status ===
-            'starting'
+            {status === 'starting'
               ? 'Starting your stream...'
-              : status ===
-                'streaming'
+              : status === 'streaming'
               ? 'Keep listening'
-              : status ===
-                'completing'
+              : status === 'completing'
               ? 'Adding your coins...'
-              : status ===
-                'completed'
+              : status === 'completed'
               ? 'Stream complete!'
               : '60 seconds to earn'}
           </p>
@@ -1224,42 +1094,34 @@ function StreamContent() {
           <p
             style={{
               margin: 0,
-              color:
-                '#71849B',
+              color: '#71849B',
               fontSize: 12,
               lineHeight: 1.5,
             }}
           >
-            {status ===
-            'streaming'
+            {status === 'streaming'
               ? 'Keep the music playing until the timer finishes.'
-              : status ===
-                'completed'
+              : status === 'completed'
               ? 'Your wallet has been updated.'
               : 'Start the stream and listen for 60 seconds to earn your reward.'}
           </p>
 
-          {/* SMALL PROGRESS BAR */}
           <div
             style={{
               height: 5,
               background:
                 'rgba(255,255,255,0.06)',
               borderRadius: 10,
-              overflow:
-                'hidden',
+              overflow: 'hidden',
               marginTop: 18,
             }}
           >
             <div
               style={{
-                height:
-                  '100%',
+                height: '100%',
                 width: `${progress}%`,
-                background:
-                  '#4a9eff',
-                borderRadius:
-                  10,
+                background: '#4a9eff',
+                borderRadius: 10,
                 transition:
                   'width 1s linear',
               }}
@@ -1268,8 +1130,7 @@ function StreamContent() {
         </section>
 
         {/* COMPLETED */}
-        {status ===
-        'completed' ? (
+        {status === 'completed' ? (
           <div>
             <div
               style={{
@@ -1279,13 +1140,10 @@ function StreamContent() {
                   'rgba(74,222,128,0.08)',
                 border:
                   '1px solid rgba(74,222,128,0.16)',
-                display:
-                  'flex',
-                alignItems:
-                  'center',
+                display: 'flex',
+                alignItems: 'center',
                 gap: 12,
-                marginBottom:
-                  14,
+                marginBottom: 14,
               }}
             >
               <CheckCircle
@@ -1297,8 +1155,7 @@ function StreamContent() {
                 <p
                   style={{
                     margin: 0,
-                    color:
-                      '#fff',
+                    color: '#fff',
                     fontWeight: 800,
                     fontSize: 14,
                   }}
@@ -1308,10 +1165,8 @@ function StreamContent() {
 
                 <p
                   style={{
-                    margin:
-                      '3px 0 0',
-                    color:
-                      '#8A9BB0',
+                    margin: '3px 0 0',
+                    color: '#8A9BB0',
                     fontSize: 11,
                   }}
                 >
@@ -1322,26 +1177,19 @@ function StreamContent() {
 
             <button
               onClick={() =>
-                router.push(
-                  '/home'
-                )
+                router.push('/home')
               }
               style={{
-                width:
-                  '100%',
-                padding:
-                  '16px',
+                width: '100%',
+                padding: '16px',
                 borderRadius: 15,
-                border:
-                  'none',
+                border: 'none',
                 background:
                   'linear-gradient(135deg, #4a9eff, #2d6be4)',
-                color:
-                  '#fff',
+                color: '#fff',
                 fontWeight: 800,
                 fontSize: 15,
-                cursor:
-                  'pointer',
+                cursor: 'pointer',
                 boxShadow:
                   '0 10px 25px rgba(74,158,255,0.18)',
               }}
@@ -1349,34 +1197,24 @@ function StreamContent() {
               Back to Feed
             </button>
           </div>
-        ) : status ===
-          'streaming' ? (
+        ) : status === 'streaming' ? (
           <button
-            onClick={
-              handleStopStreaming
-            }
+            onClick={handleStopStreaming}
             style={{
-              width:
-                '100%',
-              padding:
-                '17px',
+              width: '100%',
+              padding: '17px',
               borderRadius: 15,
               background:
                 'rgba(248,113,113,0.10)',
               border:
                 '1px solid rgba(248,113,113,0.24)',
-              color:
-                '#F87171',
+              color: '#F87171',
               fontWeight: 800,
               fontSize: 15,
-              cursor:
-                'pointer',
-              display:
-                'flex',
-              alignItems:
-                'center',
-              justifyContent:
-                'center',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               gap: 9,
             }}
           >
@@ -1389,79 +1227,62 @@ function StreamContent() {
           </button>
         ) : (
           <button
-            onClick={
-              handleStartStreaming
-            }
+            onClick={handleStartStreaming}
             disabled={
-              status ===
-                'starting' ||
-              status ===
-                'completing'
+              status === 'starting' ||
+              status === 'completing'
             }
             style={{
-              width:
-                '100%',
-              padding:
-                '17px',
+              width: '100%',
+              padding: '17px',
               borderRadius: 15,
-              border:
-                'none',
+              border: 'none',
               background:
-                status ===
-                  'starting' ||
-                status ===
-                  'completing'
+                status === 'starting' ||
+                status === 'completing'
                   ? 'rgba(255,255,255,0.08)'
                   : 'linear-gradient(135deg, #4a9eff, #2d6be4)',
               color:
-                status ===
-                  'starting' ||
-                status ===
-                  'completing'
+                status === 'starting' ||
+                status === 'completing'
                   ? '#71849B'
                   : '#fff',
               fontWeight: 800,
               fontSize: 15,
               cursor:
-                status ===
-                  'starting' ||
-                status ===
-                  'completing'
+                status === 'starting' ||
+                status === 'completing'
                   ? 'not-allowed'
                   : 'pointer',
-              display:
-                'flex',
-              alignItems:
-                'center',
-              justifyContent:
-                'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               gap: 9,
               boxShadow:
-                status ===
-                  'starting' ||
-                status ===
-                  'completing'
+                status === 'starting' ||
+                status === 'completing'
                   ? 'none'
                   : '0 10px 25px rgba(74,158,255,0.18)',
             }}
           >
-            <Play
-              size={18}
-              fill={
-                status ===
-                  'starting' ||
-                status ===
-                  'completing'
-                  ? '#71849B'
-                  : '#fff'
-              }
-            />
+            {status === 'starting' ? (
+              <Loader2
+                size={18}
+                style={{
+                  animation:
+                    'spin 1s linear infinite',
+                }}
+              />
+            ) : (
+              <Play
+                size={18}
+                fill="#fff"
+              />
+            )}
 
-            {status ===
-            'starting'
+            {status === 'starting'
               ? 'Starting...'
-              : status ===
-                'completing'
+              : status === 'completing'
               ? 'Completing...'
               : 'Start Streaming'}
           </button>
@@ -1482,10 +1303,8 @@ function StreamContent() {
           >
             <p
               style={{
-                color:
-                  '#F87171',
-                textAlign:
-                  'center',
+                color: '#F87171',
+                textAlign: 'center',
                 margin: 0,
                 fontSize: 12,
                 lineHeight: 1.5,
@@ -1499,20 +1318,29 @@ function StreamContent() {
         {/* INFO */}
         <p
           style={{
-            textAlign:
-              'center',
-            color:
-              '#52677F',
+            textAlign: 'center',
+            color: '#52677F',
             fontSize: 10,
             lineHeight: 1.5,
-            margin:
-              '18px 20px 0',
+            margin: '18px 20px 0',
           }}
         >
           Rewaiq verifies your streaming
           session before awarding coins.
         </p>
       </main>
+
+      <style jsx global>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -1520,9 +1348,7 @@ function StreamContent() {
 export default function StreamPage() {
   return (
     <Suspense
-      fallback={
-        <Spinner fullscreen />
-      }
+      fallback={<Spinner fullscreen />}
     >
       <StreamContent />
     </Suspense>
