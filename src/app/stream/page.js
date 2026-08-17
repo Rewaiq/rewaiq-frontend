@@ -17,6 +17,8 @@ import {
   Play,
   Square,
   CheckCircle,
+  Music2,
+  Volume2,
 } from 'lucide-react';
 
 import API from '@/lib/api';
@@ -150,9 +152,6 @@ function StreamContent() {
       const savedTrackId =
         getTrackId(savedTrack);
 
-      /*
-       * URL ID takes priority.
-       */
       const resolvedId =
         urlTrackId ||
         savedTrackId;
@@ -175,8 +174,7 @@ function StreamContent() {
       setTrackId(normalizedId);
 
       /*
-       * Show saved track immediately if
-       * it matches the requested ID.
+       * Show saved track immediately.
        */
       if (
         savedTrack &&
@@ -191,16 +189,8 @@ function StreamContent() {
       }
 
       try {
-        setLoading(
-          !savedTrack
-        );
-
+        setLoading(!savedTrack);
         setError('');
-
-        console.log(
-          'Loading stream track:',
-          normalizedId
-        );
 
         const response =
           await API.get(
@@ -227,26 +217,6 @@ function StreamContent() {
             loadedTrack
           );
 
-        /*
-         * Make sure backend returned
-         * a valid track.
-         */
-        if (
-          loadedId &&
-          String(loadedId) !==
-            normalizedId
-        ) {
-          console.warn(
-            'Returned track ID differs from requested ID',
-            {
-              requested:
-                normalizedId,
-              returned:
-                loadedId,
-            }
-          );
-        }
-
         setTrack(
           loadedTrack
         );
@@ -268,18 +238,13 @@ function StreamContent() {
         );
 
         if (!cancelled) {
-          /*
-           * Keep saved track if it matches.
-           */
           if (
             savedTrack &&
             savedTrackId &&
             String(savedTrackId) ===
               normalizedId
           ) {
-            setTrack(
-              savedTrack
-            );
+            setTrack(savedTrack);
             setError('');
           } else {
             setTrack(null);
@@ -307,35 +272,39 @@ function StreamContent() {
   }, [urlTrackId]);
 
   /*
-   * Helper to derive dynamic embed player URL
+   * Use the embed_url already stored
+   * in the Railway tracks table.
+   *
+   * We do NOT depend on audiomack_id.
    */
   const getEmbedUrl = () => {
     if (!track) return null;
 
-    if (track.embed_url) return track.embed_url;
-
-    const audiomackId =
-      track.audiomack_id ||
-      track.audiomackId ||
-      track.audiomack_track_id;
-
-    if (audiomackId) {
-      return `https://www.audiomack.com/embed/song/${encodeURIComponent(
-        audiomackId
-      )}?background=0&light=0&autoplay=1`;
+    if (track.embed_url) {
+      return track.embed_url;
     }
 
-    if (track.original_url?.includes('audiomack.com')) {
-      const parts = track.original_url.split('audiomack.com/')[1];
-      return parts
-        ? `https://audiomack.com/embed/${parts}`
-        : track.original_url;
+    if (
+      track.original_url &&
+      track.original_url.includes(
+        'audiomack.com'
+      )
+    ) {
+      const parts =
+        track.original_url.split(
+          'audiomack.com/'
+        )[1];
+
+      if (parts) {
+        return `https://audiomack.com/embed/${parts}`;
+      }
     }
 
     return null;
   };
 
-  const embedUrl = getEmbedUrl();
+  const embedUrl =
+    getEmbedUrl();
 
   /*
    * Clear timer.
@@ -356,8 +325,9 @@ function StreamContent() {
   async function finishStream(
     sid
   ) {
-    if (endingRef.current)
+    if (endingRef.current) {
       return;
+    }
 
     endingRef.current = true;
 
@@ -380,7 +350,7 @@ function StreamContent() {
       );
 
       /*
-       * Refresh balance.
+       * Refresh wallet balance.
        */
       try {
         const balanceResponse =
@@ -437,6 +407,7 @@ function StreamContent() {
       setSeconds(
         REQUIRED_SECONDS
       );
+
       setStatus(
         'completed'
       );
@@ -466,8 +437,9 @@ function StreamContent() {
    * Start streaming.
    */
   async function handleStartStreaming() {
-    if (startingRef.current)
+    if (startingRef.current) {
       return;
+    }
 
     if (
       status !== 'idle' &&
@@ -494,6 +466,13 @@ function StreamContent() {
       return;
     }
 
+    if (!embedUrl) {
+      setError(
+        'This track does not have a playable audio source.'
+      );
+      return;
+    }
+
     startingRef.current =
       true;
 
@@ -507,8 +486,7 @@ function StreamContent() {
       );
 
       /*
-       * Show player immediately
-       * after button click.
+       * Show Audiomack player.
        */
       setShowEmbed(true);
 
@@ -518,11 +496,12 @@ function StreamContent() {
 
       const trackUrl =
         track.original_url ||
-        track.audio_url ||
-        track.url ||
         embedUrl ||
         '';
 
+      /*
+       * Create backend session.
+       */
       const response =
         await API.post(
           '/api/streams/start',
@@ -680,13 +659,12 @@ function StreamContent() {
       <div
         style={{
           minHeight: '100vh',
-          background: '#0A1628',
+          background: '#07111F',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           color: '#8A9BB0',
-          fontSize: 18,
           padding: 24,
           textAlign: 'center',
         }}
@@ -737,24 +715,49 @@ function StreamContent() {
       0
     );
 
+  const title =
+    track.title ||
+    track.name ||
+    'Untitled Track';
+
+  const artist =
+    track.artist_name ||
+    track.artist ||
+    track.artistName ||
+    'Unknown Artist';
+
+  /*
+   * Main UI.
+   */
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: '#0A1628',
+        background:
+          'linear-gradient(180deg, #07111F 0%, #0A1628 100%)',
+        color: '#fff',
         paddingBottom: 40,
       }}
     >
       {/* HEADER */}
       <div
         style={{
+          height: 64,
           padding:
-            '16px 20px',
+            '0 20px',
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
+          gap: 14,
           background:
-            '#0D1F3C',
+            'rgba(13,31,60,0.92)',
+          borderBottom:
+            '1px solid rgba(255,255,255,0.06)',
+          position:
+            'sticky',
+          top: 0,
+          zIndex: 20,
+          backdropFilter:
+            'blur(12px)',
         }}
       >
         <button
@@ -763,212 +766,506 @@ function StreamContent() {
           }
           aria-label="Go back"
           style={{
-            background: 'none',
+            width: 38,
+            height: 38,
+            borderRadius: 12,
+            background:
+              'rgba(255,255,255,0.06)',
             border: 'none',
-            cursor: 'pointer',
-            padding: 0,
             display: 'flex',
             alignItems: 'center',
+            justifyContent:
+              'center',
+            cursor: 'pointer',
           }}
         >
           <ArrowLeft
-            size={22}
+            size={21}
             color="#fff"
           />
         </button>
 
-        <span
-          style={{
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: 16,
-          }}
-        >
-          Now Streaming
-        </span>
+        <div>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+            }}
+          >
+            Now Streaming
+          </div>
+
+          <div
+            style={{
+              fontSize: 11,
+              color:
+                '#8A9BB0',
+              marginTop: 2,
+            }}
+          >
+            Listen & earn coins
+          </div>
+        </div>
       </div>
 
-      <div
+      <main
         style={{
-          padding: 20,
+          width:
+            '100%',
+          maxWidth:
+            520,
+          margin:
+            '0 auto',
+          padding:
+            '22px 18px',
         }}
       >
-        {/* TRACK CARD */}
-        <div
+        {/* TRACK INFO */}
+        <section
           style={{
             background:
-              '#0D1F3C',
-            borderRadius: 16,
-            padding: 16,
-            marginBottom: 20,
-          }}
-        >
-          <p
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: '#fff',
-              margin:
-                '0 0 4px',
-            }}
-          >
-            {track.title ||
-              track.name ||
-              'Untitled Track'}
-          </p>
-
-          <p
-            style={{
-              fontSize: 13,
-              color: '#8A9BB0',
-              margin:
-                '0 0 16px',
-            }}
-          >
-            {track.artist_name ||
-              track.artist ||
-              track.artistName ||
-              'Unknown Artist'}
-          </p>
-
-          {/* PLAYER EMBED */}
-          {showEmbed &&
-          embedUrl ? (
-            <iframe
-              key={`embed-${embedUrl}`}
-              src={embedUrl}
-              title={
-                track.title ||
-                'Audio Player'
-              }
-              style={{
-                width: '100%',
-                height: 140,
-                border: 'none',
-                borderRadius: 10,
-                display: 'block',
-              }}
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-            />
-          ) : (
-            <div
-              style={{
-                height: 140,
-                borderRadius: 10,
-                background:
-                  'rgba(255,255,255,0.03)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <div
-                style={{
-                  textAlign:
-                    'center',
-                }}
-              >
-                <Play
-                  size={36}
-                  color="#4a9eff"
-                  style={{
-                    marginBottom: 8,
-                  }}
-                />
-
-                <p
-                  style={{
-                    fontSize: 12,
-                    color:
-                      '#8A9BB0',
-                    margin: 0,
-                  }}
-                >
-                  Press Start
-                  Streaming to
-                  play
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* TIMER */}
-        <div
-          style={{
-            background:
-              '#0D1F3C',
-            borderRadius: 16,
-            padding: 24,
-            textAlign: 'center',
-            marginBottom: 20,
+              'linear-gradient(145deg, #102747, #0D1F3C)',
+            borderRadius: 22,
+            padding: 18,
+            marginBottom: 16,
+            border:
+              '1px solid rgba(255,255,255,0.06)',
+            boxShadow:
+              '0 16px 40px rgba(0,0,0,0.22)',
           }}
         >
           <div
             style={{
-              width: 120,
-              height: 120,
-              borderRadius:
-                '50%',
-              border:
-                '6px solid rgba(74,158,255,0.15)',
-              borderTopColor:
-                status ===
-                'streaming'
-                  ? '#4a9eff'
-                  : status ===
-                    'completed'
-                  ? '#4a9eff'
-                  : 'rgba(74,158,255,0.15)',
-              margin:
-                '0 auto 16px',
-              transform: `rotate(${
-                progress *
-                3.6
-              }deg)`,
-              transition:
-                'transform 1s linear',
-            }}
-          />
-
-          <p
-            style={{
-              fontSize: 32,
-              fontWeight: 900,
-              color: '#fff',
-              margin: 0,
+              display:
+                'flex',
+              alignItems:
+                'center',
+              gap: 14,
             }}
           >
+            {/* COVER */}
+            <div
+              style={{
+                width: 74,
+                height: 74,
+                flexShrink: 0,
+                borderRadius: 16,
+                overflow: 'hidden',
+                background:
+                  'linear-gradient(135deg, #193B68, #102440)',
+                display: 'flex',
+                alignItems:
+                  'center',
+                justifyContent:
+                  'center',
+              }}
+            >
+              {track.cover_image ? (
+                <img
+                  src={
+                    track.cover_image
+                  }
+                  alt=""
+                  style={{
+                    width:
+                      '100%',
+                    height:
+                      '100%',
+                    objectFit:
+                      'cover',
+                  }}
+                />
+              ) : (
+                <Music2
+                  size={30}
+                  color="#4a9eff"
+                />
+              )}
+            </div>
+
+            <div
+              style={{
+                minWidth: 0,
+                flex: 1,
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 18,
+                  fontWeight: 800,
+                  margin:
+                    '0 0 5px',
+                  whiteSpace:
+                    'nowrap',
+                  overflow:
+                    'hidden',
+                  textOverflow:
+                    'ellipsis',
+                }}
+              >
+                {title}
+              </p>
+
+              <p
+                style={{
+                  fontSize: 13,
+                  color:
+                    '#8A9BB0',
+                  margin: 0,
+                  whiteSpace:
+                    'nowrap',
+                  overflow:
+                    'hidden',
+                  textOverflow:
+                    'ellipsis',
+                }}
+              >
+                {artist}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* PLAYER */}
+        <section
+          style={{
+            background:
+              '#0D1F3C',
+            borderRadius: 22,
+            padding: 16,
+            marginBottom: 16,
+            border:
+              '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          <div
+            style={{
+              display:
+                'flex',
+              alignItems:
+                'center',
+              justifyContent:
+                'space-between',
+              marginBottom: 12,
+            }}
+          >
+            <div
+              style={{
+                display:
+                  'flex',
+                alignItems:
+                  'center',
+                gap: 7,
+              }}
+            >
+              <Volume2
+                size={15}
+                color="#4a9eff"
+              />
+
+              <span
+                style={{
+                  fontSize: 12,
+                  color:
+                    '#8A9BB0',
+                  fontWeight: 600,
+                }}
+              >
+                AUDIO PLAYER
+              </span>
+            </div>
+
             {status ===
-            'completed'
-              ? '✓'
-              : `${remaining}s`}
-          </p>
+              'streaming' && (
+              <span
+                style={{
+                  display:
+                    'flex',
+                  alignItems:
+                    'center',
+                  gap: 5,
+                  fontSize: 11,
+                  color:
+                    '#4ADE80',
+                  fontWeight: 700,
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius:
+                      '50%',
+                    background:
+                      '#4ADE80',
+                    boxShadow:
+                      '0 0 8px #4ADE80',
+                  }}
+                />
+                STREAMING
+              </span>
+            )}
+          </div>
+
+          {showEmbed &&
+          embedUrl ? (
+            <div
+              style={{
+                width:
+                  '100%',
+                overflow:
+                  'hidden',
+                borderRadius: 14,
+                background:
+                  '#081322',
+              }}
+            >
+              <iframe
+                key={
+                  `${sessionId || 'pending'}-${embedUrl}`
+                }
+                src={embedUrl}
+                title={
+                  `${title} - Audiomack`
+                }
+                style={{
+                  width:
+                    '100%',
+                  height: 150,
+                  border:
+                    'none',
+                  display:
+                    'block',
+                }}
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                height: 150,
+                borderRadius: 14,
+                background:
+                  'linear-gradient(145deg, rgba(74,158,255,0.08), rgba(255,255,255,0.025))',
+                border:
+                  '1px solid rgba(255,255,255,0.05)',
+                display:
+                  'flex',
+                flexDirection:
+                  'column',
+                alignItems:
+                  'center',
+                justifyContent:
+                  'center',
+              }}
+            >
+              <div
+                style={{
+                  width: 54,
+                  height: 54,
+                  borderRadius:
+                    '50%',
+                  background:
+                    'rgba(74,158,255,0.12)',
+                  display:
+                    'flex',
+                  alignItems:
+                    'center',
+                  justifyContent:
+                    'center',
+                  marginBottom:
+                    10,
+                }}
+              >
+                <Play
+                  size={24}
+                  color="#4a9eff"
+                  fill="#4a9eff"
+                />
+              </div>
+
+              <p
+                style={{
+                  margin: 0,
+                  color:
+                    '#fff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Ready to stream
+              </p>
+
+              <p
+                style={{
+                  margin:
+                    '4px 0 0',
+                  color:
+                    '#71849B',
+                  fontSize: 11,
+                }}
+              >
+                Press Start Streaming below
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* EARNING TIMER */}
+        <section
+          style={{
+            background:
+              '#0D1F3C',
+            borderRadius: 22,
+            padding:
+              '24px 18px',
+            marginBottom: 16,
+            border:
+              '1px solid rgba(255,255,255,0.06)',
+            textAlign:
+              'center',
+          }}
+        >
+          <div
+            style={{
+              width: 148,
+              height: 148,
+              margin:
+                '0 auto 18px',
+              borderRadius:
+                '50%',
+              background: `conic-gradient(
+                #4a9eff ${progress}%,
+                rgba(74,158,255,0.10) ${progress}% 100%
+              )`,
+              padding: 7,
+              transition:
+                'background 1s linear',
+              boxShadow:
+                status ===
+                'streaming'
+                  ? '0 0 30px rgba(74,158,255,0.12)'
+                  : 'none',
+            }}
+          >
+            <div
+              style={{
+                width:
+                  '100%',
+                height:
+                  '100%',
+                borderRadius:
+                  '50%',
+                background:
+                  '#0A1628',
+                display:
+                  'flex',
+                flexDirection:
+                  'column',
+                alignItems:
+                  'center',
+                justifyContent:
+                  'center',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 34,
+                  fontWeight: 900,
+                  lineHeight: 1,
+                }}
+              >
+                {status ===
+                'completed'
+                  ? '✓'
+                  : remaining}
+              </span>
+
+              {status !==
+                'completed' && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color:
+                      '#71849B',
+                    marginTop: 6,
+                  }}
+                >
+                  seconds
+                </span>
+              )}
+            </div>
+          </div>
 
           <p
             style={{
-              fontSize: 12,
-              color: '#8A9BB0',
-              marginTop: 4,
-              marginBottom: 0,
+              margin:
+                '0 0 6px',
+              fontSize: 16,
+              fontWeight: 800,
             }}
           >
             {status ===
             'starting'
-              ? 'Starting stream...'
+              ? 'Starting your stream...'
               : status ===
                 'streaming'
-              ? 'Keep listening to earn coins'
+              ? 'Keep listening'
               : status ===
                 'completing'
               ? 'Adding your coins...'
               : status ===
                 'completed'
-              ? 'Stream complete — coins added!'
-              : 'Press Start to begin earning'}
+              ? 'Stream complete!'
+              : '60 seconds to earn'}
           </p>
-        </div>
+
+          <p
+            style={{
+              margin: 0,
+              color:
+                '#71849B',
+              fontSize: 12,
+              lineHeight: 1.5,
+            }}
+          >
+            {status ===
+            'streaming'
+              ? 'Keep the music playing until the timer finishes.'
+              : status ===
+                'completed'
+              ? 'Your wallet has been updated.'
+              : 'Start the stream and listen for 60 seconds to earn your reward.'}
+          </p>
+
+          {/* SMALL PROGRESS BAR */}
+          <div
+            style={{
+              height: 5,
+              background:
+                'rgba(255,255,255,0.06)',
+              borderRadius: 10,
+              overflow:
+                'hidden',
+              marginTop: 18,
+            }}
+          >
+            <div
+              style={{
+                height:
+                  '100%',
+                width: `${progress}%`,
+                background:
+                  '#4a9eff',
+                borderRadius:
+                  10,
+                transition:
+                  'width 1s linear',
+              }}
+            />
+          </div>
+        </section>
 
         {/* COMPLETED */}
         {status ===
@@ -976,42 +1273,51 @@ function StreamContent() {
           <div>
             <div
               style={{
-                textAlign:
+                padding: 16,
+                borderRadius: 16,
+                background:
+                  'rgba(74,222,128,0.08)',
+                border:
+                  '1px solid rgba(74,222,128,0.16)',
+                display:
+                  'flex',
+                alignItems:
                   'center',
-                marginBottom: 16,
+                gap: 12,
+                marginBottom:
+                  14,
               }}
             >
               <CheckCircle
-                size={36}
-                color="#4a9eff"
-                style={{
-                  marginBottom: 8,
-                }}
+                size={28}
+                color="#4ADE80"
               />
 
-              <p
-                style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: '#fff',
-                  margin: 0,
-                }}
-              >
-                Coins Earned!
-              </p>
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    color:
+                      '#fff',
+                    fontWeight: 800,
+                    fontSize: 14,
+                  }}
+                >
+                  Coins Earned!
+                </p>
 
-              <p
-                style={{
-                  fontSize: 12,
-                  color:
-                    '#8A9BB0',
-                  marginTop: 6,
-                }}
-              >
-                Your wallet
-                has been
-                updated.
-              </p>
+                <p
+                  style={{
+                    margin:
+                      '3px 0 0',
+                    color:
+                      '#8A9BB0',
+                    fontSize: 11,
+                  }}
+                >
+                  Your wallet has been updated successfully.
+                </p>
+              </div>
             </div>
 
             <button
@@ -1021,16 +1327,23 @@ function StreamContent() {
                 )
               }
               style={{
-                width: '100%',
-                padding: 16,
-                borderRadius: 14,
+                width:
+                  '100%',
+                padding:
+                  '16px',
+                borderRadius: 15,
+                border:
+                  'none',
                 background:
-                  '#4a9eff',
-                color: '#fff',
-                border: 'none',
-                fontWeight: 700,
-                fontSize: 16,
-                cursor: 'pointer',
+                  'linear-gradient(135deg, #4a9eff, #2d6be4)',
+                color:
+                  '#fff',
+                fontWeight: 800,
+                fontSize: 15,
+                cursor:
+                  'pointer',
+                boxShadow:
+                  '0 10px 25px rgba(74,158,255,0.18)',
               }}
             >
               Back to Feed
@@ -1043,33 +1356,36 @@ function StreamContent() {
               handleStopStreaming
             }
             style={{
-              width: '100%',
-              padding: 18,
-              borderRadius: 14,
+              width:
+                '100%',
+              padding:
+                '17px',
+              borderRadius: 15,
               background:
-                'rgba(248,113,113,0.12)',
+                'rgba(248,113,113,0.10)',
               border:
-                '1px solid rgba(248,113,113,0.3)',
-              color: '#F87171',
-              fontWeight: 700,
-              fontSize: 16,
-              cursor: 'pointer',
-              display: 'flex',
+                '1px solid rgba(248,113,113,0.24)',
+              color:
+                '#F87171',
+              fontWeight: 800,
+              fontSize: 15,
+              cursor:
+                'pointer',
+              display:
+                'flex',
               alignItems:
                 'center',
               justifyContent:
                 'center',
-              gap: 8,
+              gap: 9,
             }}
           >
             <Square
-              size={18}
+              size={17}
               fill="#F87171"
             />
 
-            <span>
-              Stop Streaming
-            </span>
+            Stop Streaming
           </button>
         ) : (
           <button
@@ -1083,9 +1399,13 @@ function StreamContent() {
                 'completing'
             }
             style={{
-              width: '100%',
-              padding: 18,
-              borderRadius: 14,
+              width:
+                '100%',
+              padding:
+                '17px',
+              borderRadius: 15,
+              border:
+                'none',
               background:
                 status ===
                   'starting' ||
@@ -1098,11 +1418,10 @@ function StreamContent() {
                   'starting' ||
                 status ===
                   'completing'
-                  ? '#8A9BB0'
+                  ? '#71849B'
                   : '#fff',
-              border: 'none',
-              fontWeight: 700,
-              fontSize: 16,
+              fontWeight: 800,
+              fontSize: 15,
               cursor:
                 status ===
                   'starting' ||
@@ -1110,12 +1429,20 @@ function StreamContent() {
                   'completing'
                   ? 'not-allowed'
                   : 'pointer',
-              display: 'flex',
+              display:
+                'flex',
               alignItems:
                 'center',
               justifyContent:
                 'center',
-              gap: 8,
+              gap: 9,
+              boxShadow:
+                status ===
+                  'starting' ||
+                status ===
+                  'completing'
+                  ? 'none'
+                  : '0 10px 25px rgba(74,158,255,0.18)',
             }}
           >
             <Play
@@ -1125,40 +1452,67 @@ function StreamContent() {
                   'starting' ||
                 status ===
                   'completing'
-                  ? '#8A9BB0'
+                  ? '#71849B'
                   : '#fff'
               }
             />
 
-            <span>
-              {status ===
-              'starting'
-                ? 'Starting...'
-                : status ===
-                  'completing'
-                ? 'Completing...'
-                : 'Start Streaming'}
-            </span>
+            {status ===
+            'starting'
+              ? 'Starting...'
+              : status ===
+                'completing'
+              ? 'Completing...'
+              : 'Start Streaming'}
           </button>
         )}
 
         {/* ERROR */}
         {error && (
-          <p
+          <div
             style={{
-              color:
-                '#F87171',
-              textAlign:
-                'center',
-              marginTop: 16,
-              fontSize: 13,
-              lineHeight: 1.5,
+              marginTop: 14,
+              padding: 12,
+              borderRadius: 12,
+              background:
+                'rgba(248,113,113,0.08)',
+              border:
+                '1px solid rgba(248,113,113,0.15)',
             }}
           >
-            {error}
-          </p>
+            <p
+              style={{
+                color:
+                  '#F87171',
+                textAlign:
+                  'center',
+                margin: 0,
+                fontSize: 12,
+                lineHeight: 1.5,
+              }}
+            >
+              {error}
+            </p>
+          </div>
         )}
-      </div>
+
+        {/* INFO */}
+        <p
+          style={{
+            textAlign:
+              'center',
+            color:
+              '#52677F',
+            fontSize: 10,
+            lineHeight: 1.5,
+            margin:
+              '18px 20px 0',
+          }}
+        >
+          Rewaiq verifies your streaming
+          session before awarding coins.
+        </p>
+      </main>
     </div>
   );
 }
