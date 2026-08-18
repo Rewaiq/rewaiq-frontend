@@ -892,7 +892,7 @@ function StreamContent() {
             <div
               style={{
                 width: '100%',
-                height: 170,
+                height: 252,
                 overflow: 'hidden',
                 borderRadius: 16,
                 background: '#081322',
@@ -913,17 +913,17 @@ function StreamContent() {
                   top: 0,
                   left: 0,
                   width: '100%',
-                  height: '170px',
+                  height: '252px',
                   border: 'none',
                   display: 'block',
-                  overflow: 'hidden',
+              
                 }}
               />
             </div>
           ) : (
             <div
               style={{
-                height: 170,
+                height: 100,
                 borderRadius: 16,
                 background:
                   'linear-gradient(145deg, rgba(74,158,255,0.08), rgba(255,255,255,0.025))',
@@ -937,8 +937,8 @@ function StreamContent() {
             >
               <div
                 style={{
-                  width: 58,
-                  height: 58,
+                  width: 100,
+                  height: 100,
                   borderRadius: '50%',
                   background:
                     'rgba(74,158,255,0.12)',
