@@ -20,17 +20,27 @@ import {
   Music2,
   Volume2,
   Loader2,
+  Hand,
   ShieldCheck,
+  Eye,
   AlertTriangle,
 } from 'lucide-react';
 
 import API from '@/lib/api';
 import Spinner from '@/components/Spinner';
 
+
 const REQUIRED_SECONDS = 60;
+
 const HEARTBEAT_INTERVAL_MS = 5000;
 
-const STORAGE_KEY = 'rewaiq_stream_track';
+const STORAGE_KEY =
+  'rewaiq_stream_track';
+
+
+// ============================================================
+// TRACK HELPERS
+// ============================================================
 
 function getTrackId(track) {
   if (!track) return null;
@@ -44,8 +54,14 @@ function getTrackId(track) {
   );
 }
 
+
 function saveTrackLocally(track) {
-  if (typeof window === 'undefined' || !track) return;
+  if (
+    typeof window === 'undefined' ||
+    !track
+  ) {
+    return;
+  }
 
   try {
     sessionStorage.setItem(
@@ -60,19 +76,30 @@ function saveTrackLocally(track) {
   }
 }
 
+
 function getSavedTrack() {
-  if (typeof window === 'undefined') return null;
+  if (
+    typeof window === 'undefined'
+  ) {
+    return null;
+  }
 
   try {
     const saved =
-      sessionStorage.getItem(STORAGE_KEY);
+      sessionStorage.getItem(
+        STORAGE_KEY
+      );
 
-    if (!saved) return null;
+    if (!saved) {
+      return null;
+    }
 
     return JSON.parse(saved);
+
   } catch (error) {
+
     console.warn(
-      'Could not read saved stream track:',
+      'Could not read saved track:',
       error
     );
 
@@ -80,22 +107,43 @@ function getSavedTrack() {
   }
 }
 
+
+// ============================================================
+// MAIN CONTENT
+// ============================================================
+
 function StreamContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+
+  const router =
+    useRouter();
+
+  const searchParams =
+    useSearchParams();
+
+
+  // ----------------------------------------------------------
+  // URL track
+  // ----------------------------------------------------------
 
   const urlTrackId =
     searchParams.get('id') ||
     searchParams.get('track_id') ||
     searchParams.get('trackId');
 
-  const [track, setTrack] = useState(null);
 
-  const [trackId, setTrackId] = useState(
-    urlTrackId
-      ? String(urlTrackId)
-      : null
-  );
+  // ----------------------------------------------------------
+  // State
+  // ----------------------------------------------------------
+
+  const [track, setTrack] =
+    useState(null);
+
+  const [trackId, setTrackId] =
+    useState(
+      urlTrackId
+        ? String(urlTrackId)
+        : null
+    );
 
   const [loading, setLoading] =
     useState(true);
@@ -106,14 +154,11 @@ function StreamContent() {
   const [showEmbed, setShowEmbed] =
     useState(false);
 
-  const [waitingForPlayback, setWaitingForPlayback] =
-    useState(false);
-
-  const [seconds, setSeconds] =
-    useState(0);
-
   const [sessionId, setSessionId] =
     useState(null);
+
+  const [verifiedSeconds, setVerifiedSeconds] =
+    useState(0);
 
   const [error, setError] =
     useState('');
@@ -121,886 +166,110 @@ function StreamContent() {
   const [rewarded, setRewarded] =
     useState(false);
 
-  const [challengeRequired, setChallengeRequired] =
+  const [onboarding, setOnboarding] =
     useState(false);
 
-  const [challengePassed, setChallengePassed] =
+  const [playConfirmed, setPlayConfirmed] =
+    useState(false);
+
+  const [challengeVisible, setChallengeVisible] =
     useState(false);
 
   const [challengeSubmitting, setChallengeSubmitting] =
     useState(false);
 
-  const [starting, setStarting] =
-    useState(false);
+  const [warning, setWarning] =
+    useState('');
 
-  const heartbeatRef = useRef(null);
+  const [pageVisible, setPageVisible] =
+    useState(true);
 
-  const heartbeatBusyRef =
+  const [pageFocused, setPageFocused] =
+    useState(true);
+
+
+  // ----------------------------------------------------------
+  // Refs
+  // ----------------------------------------------------------
+
+  const heartbeatRef =
+    useRef(null);
+
+  const startingRef =
     useRef(false);
 
   const endingRef =
     useRef(false);
 
-  const mountedRef =
-    useRef(true);
+  const challengeAnsweredRef =
+    useRef(false);
 
-  /*
-   * -------------------------------------------------------
-   * Sync URL track ID
-   * -------------------------------------------------------
-   */
+
+  // ==========================================================
+  // URL SYNC
+  // ==========================================================
 
   useEffect(() => {
+
     if (urlTrackId) {
-      setTrackId(String(urlTrackId));
+
+      setTrackId(
+        String(urlTrackId)
+      );
+
     }
+
   }, [urlTrackId]);
 
-  /*
-   * -------------------------------------------------------
-   * Load track
-   * -------------------------------------------------------
-   */
+
+  // ==========================================================
+  // PAGE VISIBILITY
+  // ==========================================================
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadTrack() {
-      const savedTrack =
-        getSavedTrack();
-
-      const savedTrackId =
-        getTrackId(savedTrack);
-
-      const resolvedId =
-        urlTrackId ||
-        savedTrackId;
-
-      if (!resolvedId) {
-        if (!cancelled) {
-          setLoading(false);
-          setTrack(null);
-          setError(
-            'No track selected'
-          );
-        }
-
-        return;
-      }
-
-      const normalizedId =
-        String(resolvedId);
-
-      setTrackId(normalizedId);
-
-      /*
-       * Show cached track immediately.
-       */
-
-      if (
-        savedTrack &&
-        savedTrackId &&
-        String(savedTrackId) ===
-          normalizedId
-      ) {
-        if (!cancelled) {
-          setTrack(savedTrack);
-          setLoading(false);
-        }
-      }
-
-      try {
-        setError('');
-
-        const response =
-          await API.get(
-            `/api/tracks/${encodeURIComponent(
-              normalizedId
-            )}`
-          );
-
-        if (cancelled) return;
-
-        const loadedTrack =
-          response?.data?.track ||
-          response?.data?.data ||
-          response?.data;
-
-        if (!loadedTrack) {
-          throw new Error(
-            'Track not found'
-          );
-        }
-
-        const loadedId =
-          getTrackId(
-            loadedTrack
-          );
-
-        setTrack(
-          loadedTrack
-        );
-
-        saveTrackLocally(
-          loadedTrack
-        );
-
-        setTrackId(
-          String(
-            loadedId ||
-              normalizedId
-          )
-        );
-      } catch (err) {
-        console.error(
-          'Track loading error:',
-          err
-        );
-
-        if (!cancelled) {
-          if (
-            savedTrack &&
-            savedTrackId &&
-            String(savedTrackId) ===
-              normalizedId
-          ) {
-            setTrack(
-              savedTrack
-            );
-
-            setError('');
-          } else {
-            setTrack(null);
-
-            setError(
-              err?.response?.data
-                ?.message ||
-                err?.message ||
-                'Track not found'
-            );
-          }
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadTrack();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [urlTrackId]);
-
-  /*
-   * -------------------------------------------------------
-   * Audiomack URL
-   * -------------------------------------------------------
-   */
-
-  function getEmbedUrl() {
-    if (!track) return null;
-
-    if (track.embed_url) {
-      return track.embed_url;
-    }
-
-    if (
-      track.original_url &&
-      track.original_url.includes(
-        'audiomack.com'
-      )
-    ) {
-      const parts =
-        track.original_url.split(
-          'audiomack.com/'
-        )[1];
-
-      if (parts) {
-        return `https://audiomack.com/embed/${parts}`;
-      }
-    }
-
-    return null;
-  }
-
-  const embedUrl =
-    getEmbedUrl();
-
-  /*
-   * -------------------------------------------------------
-   * Stop heartbeat
-   * -------------------------------------------------------
-   */
-
-  function stopHeartbeat() {
-    if (heartbeatRef.current) {
-      clearInterval(
-        heartbeatRef.current
-      );
-
-      heartbeatRef.current = null;
-    }
-  }
-
-  /*
-   * -------------------------------------------------------
-   * Send heartbeat
-   * -------------------------------------------------------
-   */
-
-  async function sendHeartbeat(
-    challengeResponse = false
-  ) {
-    if (!sessionId) return;
-
-    if (heartbeatBusyRef.current) {
-      return;
-    }
-
-    heartbeatBusyRef.current =
-      true;
-
-    try {
-      const response =
-        await API.post(
-          '/api/streams/heartbeat',
-          {
-            session_id:
-              sessionId,
-
-            /*
-             * Browser visibility.
-             */
-
-            visible:
-              document.visibilityState ===
-              'visible',
-
-            /*
-             * Window focus.
-             */
-
-            focused:
-              document.hasFocus(),
-
-            /*
-             * Only true when user
-             * explicitly answers the
-             * verification challenge.
-             */
-
-            challenge_response:
-              challengeResponse,
-          },
-          {
-            timeout: 10000,
-          }
-        );
-
-      const data =
-        response?.data || {};
-
-      /*
-       * Backend is authoritative.
-       */
-
-      const verified =
-        Number(
-          data.valid_seconds || 0
-        );
-
-      setSeconds(
-        Math.min(
-          verified,
-          REQUIRED_SECONDS
-        )
-      );
-
-      /*
-       * Challenge became due.
-       */
-
-      if (
-        data.challenge_required
-      ) {
-        setChallengeRequired(
-          true
-        );
-      }
-
-      if (
-        data.challenge_passed
-      ) {
-        setChallengePassed(
-          true
-        );
-
-        setChallengeRequired(
-          false
-        );
-      }
-
-      /*
-       * Backend says everything
-       * is verified.
-       */
-
-      if (
-        data.complete === true
-      ) {
-        stopHeartbeat();
-
-        await finishStream(
-          sessionId
-        );
-      }
-    } catch (err) {
-      console.error(
-        'Heartbeat error:',
-        err
-      );
-
-      /*
-       * Do not immediately fail
-       * the session for one missed
-       * heartbeat.
-       */
-
-    } finally {
-      heartbeatBusyRef.current =
-        false;
-    }
-  }
-
-  /*
-   * -------------------------------------------------------
-   * Start heartbeat verification
-   * -------------------------------------------------------
-   */
-
-  function startHeartbeat() {
-    stopHeartbeat();
-
-    /*
-     * Immediately send one.
-     */
-
-    sendHeartbeat(false);
-
-    /*
-     * Then every 5 seconds.
-     */
-
-    heartbeatRef.current =
-      setInterval(() => {
-        sendHeartbeat(false);
-      }, HEARTBEAT_INTERVAL_MS);
-  }
-
-  /*
-   * -------------------------------------------------------
-   * User confirms Audiomack Play
-   * -------------------------------------------------------
-   */
-
-  function confirmPlaybackStarted() {
-    if (!sessionId) {
-      setError(
-        'Streaming session was not created.'
-      );
-
-      return;
-    }
-
-    setError('');
-
-    setWaitingForPlayback(
-      false
-    );
-
-    setStatus(
-      'streaming'
-    );
-
-    setSeconds(0);
-
-    /*
-     * IMPORTANT:
-     *
-     * This is the earliest point
-     * where verification starts.
-     */
-
-    startHeartbeat();
-  }
-
-  /*
-   * -------------------------------------------------------
-   * Finish stream
-   * -------------------------------------------------------
-   */
-
-  async function finishStream(
-    sid
-  ) {
-    if (
-      endingRef.current
-    ) {
-      return;
-    }
-
-    endingRef.current =
-      true;
-
-    stopHeartbeat();
-
-    try {
-      setStatus(
-        'completing'
-      );
-
-      const response =
-        await API.post(
-          '/api/streams/end',
-          {
-            session_id:
-              sid,
-          },
-          {
-            timeout: 15000,
-          }
-        );
-
-      const data =
-        response?.data || {};
-
-      console.log(
-        'Stream completed:',
-        data
-      );
-
-      /*
-       * Update local wallet.
-       */
-
-      const backendBalance =
-        data.coin_balance;
-
-      if (
-        backendBalance !==
-          undefined &&
-        typeof window !==
-          'undefined'
-      ) {
-        const storedUser =
-          localStorage.getItem(
-            'rewaiq_user'
-          );
-
-        if (storedUser) {
-          try {
-            const user =
-              JSON.parse(
-                storedUser
-              );
-
-            user.coin_balance =
-              backendBalance;
-
-            localStorage.setItem(
-              'rewaiq_user',
-              JSON.stringify(
-                user
-              )
-            );
-          } catch (
-            storageError
-          ) {
-            console.warn(
-              'Could not update stored user:',
-              storageError
-            );
-          }
-        }
-      }
-
-      setRewarded(true);
-
-      setSeconds(
-        Number(
-          data.verified_seconds ||
-            REQUIRED_SECONDS
-        )
-      );
-
-      setChallengePassed(
-        true
-      );
-
-      setStatus(
-        'completed'
-      );
-
-      setSessionId(
-        null
-      );
-    } catch (err) {
-      console.error(
-        'Finish stream error:',
-        err
-      );
-
-      setError(
-        err?.response?.data
-          ?.message ||
-          err?.message ||
-          'Could not complete stream.'
-      );
-
-      setStatus(
-        'idle'
-      );
-    } finally {
-      endingRef.current =
-        false;
-    }
-  }
-
-  /*
-   * -------------------------------------------------------
-   * Challenge
-   * -------------------------------------------------------
-   */
-
-  async function answerChallenge() {
-    if (
-      challengeSubmitting ||
-      !sessionId
-    ) {
-      return;
-    }
-
-    setChallengeSubmitting(
-      true
-    );
-
-    try {
-      /*
-       * Send challenge response
-       * through heartbeat.
-       */
-
-      await sendHeartbeat(
-        true
-      );
-    } catch (err) {
-      console.error(
-        'Challenge error:',
-        err
-      );
-    } finally {
-      setChallengeSubmitting(
-        false
-      );
-    }
-  }
-
-  /*
-   * -------------------------------------------------------
-   * Start streaming
-   * -------------------------------------------------------
-   */
-
-  async function handleStartStreaming() {
-    if (starting) return;
-
-    if (
-      status !== 'idle' &&
-      status !== 'completed'
-    ) {
-      return;
-    }
-
-    if (!track) {
-      setError(
-        'No track selected'
-      );
-
-      return;
-    }
-
-    const resolvedTrackId =
-      getTrackId(track) ||
-      trackId;
-
-    if (!resolvedTrackId) {
-      setError(
-        'This track does not have a valid ID'
-      );
-
-      return;
-    }
-
-    if (!embedUrl) {
-      setError(
-        'This track does not have a playable audio source.'
-      );
-
-      return;
-    }
-
-    setStarting(true);
-
-    try {
-      setError('');
-
-      setRewarded(false);
-
-      setSeconds(0);
-
-      setChallengeRequired(
-        false
-      );
-
-      setChallengePassed(
-        false
-      );
-
-      setWaitingForPlayback(
-        false
-      );
-
-      stopHeartbeat();
-
-      saveTrackLocally(
-        track
-      );
-
-      /*
-       * Show Audiomack.
-       */
-
-      setShowEmbed(true);
-
-      setStatus(
-        'starting'
-      );
-
-      const trackUrl =
-        track.original_url ||
-        embedUrl ||
-        '';
-
-      /*
-       * Create backend session.
-       */
-
-      const response =
-        await API.post(
-          '/api/streams/start',
-          {
-            track_id:
-              resolvedTrackId,
-
-            track_url:
-              trackUrl,
-          },
-          {
-            timeout: 15000,
-          }
-        );
-
-      console.log(
-        'Stream start:',
-        response?.data
-      );
-
-      const newSessionId =
-        response?.data?.session
-          ?.id ||
-        response?.data
-          ?.session_id ||
-        response?.data?.id;
-
-      if (!newSessionId) {
-        throw new Error(
-          'Stream session was not created'
-        );
-      }
-
-      setSessionId(
-        newSessionId
-      );
-
-      /*
-       * IMPORTANT:
-       *
-       * Do NOT start the timer.
-       * Do NOT start heartbeat
-       * verification.
-       *
-       * Wait for user to press
-       * Audiomack Play.
-       */
-
-      setStatus(
-        'waiting_play'
-      );
-
-      setWaitingForPlayback(
-        true
-      );
-    } catch (err) {
-      console.error(
-        'Start stream error:',
-        err
-      );
-
-      stopHeartbeat();
-
-      setStatus(
-        'idle'
-      );
-
-      setShowEmbed(
-        false
-      );
-
-      setSessionId(
-        null
-      );
-
-      setSeconds(0);
-
-      setWaitingForPlayback(
-        false
-      );
-
-      setError(
-        err?.response?.data
-          ?.message ||
-          err?.message ||
-          'Could not start stream.'
-      );
-    } finally {
-      setStarting(false);
-    }
-  }
-
-  /*
-   * -------------------------------------------------------
-   * Stop streaming
-   * -------------------------------------------------------
-   */
-
-  async function handleStopStreaming() {
-    if (
-      status !== 'streaming' &&
-      status !== 'waiting_play' &&
-      status !== 'starting'
-    ) {
-      return;
-    }
-
-    stopHeartbeat();
-
-    /*
-     * If session exists, end it.
-     * Backend will fail it if it
-     * doesn't have enough verified time.
-     */
-
-    if (sessionId) {
-      try {
-        await API.post(
-          '/api/streams/end',
-          {
-            session_id:
-              sessionId,
-          },
-          {
-            timeout: 10000,
-          }
-        );
-      } catch (err) {
-        console.warn(
-          'Incomplete stream ended:',
-          err
-        );
-      }
-    }
-
-    setStatus(
-      'idle'
-    );
-
-    setShowEmbed(
-      false
-    );
-
-    setWaitingForPlayback(
-      false
-    );
-
-    setSeconds(0);
-
-    setSessionId(
-      null
-    );
-
-    setRewarded(false);
-
-    setChallengeRequired(
-      false
-    );
-
-    setChallengePassed(
-      false
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * Visibility/focus listeners
-   * -------------------------------------------------------
-   */
-
-  useEffect(() => {
-    if (
-      status !== 'streaming'
-    ) {
-      return;
-    }
 
     function handleVisibility() {
-      /*
-       * Do not immediately add time.
-       *
-       * Next heartbeat will tell
-       * backend whether the page is
-       * visible.
-       */
 
-      console.log(
-        'Visibility:',
-        document.visibilityState
+      const visible =
+        document.visibilityState ===
+        'visible';
+
+      setPageVisible(
+        visible
       );
+
+      if (!visible) {
+
+        setWarning(
+          'Keep Rewaiq open while streaming. Your hidden time will not be credited.'
+        );
+
+      } else {
+
+        setWarning('');
+      }
     }
+
 
     function handleFocus() {
-      console.log(
-        'Window focused'
+
+      setPageFocused(
+        true
       );
     }
 
+
     function handleBlur() {
-      console.log(
-        'Window blurred'
+
+      setPageFocused(
+        false
+      );
+
+      setWarning(
+        'Keep this page focused while streaming.'
       );
     }
+
 
     document.addEventListener(
       'visibilitychange',
@@ -1017,7 +286,9 @@ function StreamContent() {
       handleBlur
     );
 
+
     return () => {
+
       document.removeEventListener(
         'visibilitychange',
         handleVisibility
@@ -1032,81 +303,1152 @@ function StreamContent() {
         'blur',
         handleBlur
       );
+
     };
-  }, [status]);
 
-  /*
-   * -------------------------------------------------------
-   * Cleanup
-   * -------------------------------------------------------
-   */
-
-  useEffect(() => {
-    mountedRef.current =
-      true;
-
-    return () => {
-      mountedRef.current =
-        false;
-
-      stopHeartbeat();
-    };
   }, []);
 
-  /*
-   * -------------------------------------------------------
-   * Loading
-   * -------------------------------------------------------
-   */
+
+  // ==========================================================
+  // LOAD TRACK
+  // ==========================================================
+
+  useEffect(() => {
+
+    let cancelled = false;
+
+
+    async function loadTrack() {
+
+      const savedTrack =
+        getSavedTrack();
+
+      const savedTrackId =
+        getTrackId(
+          savedTrack
+        );
+
+
+      const resolvedId =
+        urlTrackId ||
+        savedTrackId;
+
+
+      if (!resolvedId) {
+
+        if (!cancelled) {
+
+          setLoading(false);
+
+          setError(
+            'No track selected'
+          );
+
+        }
+
+        return;
+      }
+
+
+      const normalizedId =
+        String(resolvedId);
+
+
+      setTrackId(
+        normalizedId
+      );
+
+
+      // ------------------------------------------------------
+      // Show cached track immediately
+      // ------------------------------------------------------
+
+      if (
+        savedTrack &&
+        savedTrackId &&
+        String(savedTrackId) ===
+          normalizedId
+      ) {
+
+        if (!cancelled) {
+
+          setTrack(
+            savedTrack
+          );
+
+          setLoading(false);
+        }
+      }
+
+
+      // ------------------------------------------------------
+      // Fetch latest track
+      // ------------------------------------------------------
+
+      try {
+
+        setError('');
+
+        const response =
+          await API.get(
+            `/api/tracks/${encodeURIComponent(
+              normalizedId
+            )}`
+          );
+
+
+        if (cancelled) {
+          return;
+        }
+
+
+        const loadedTrack =
+          response?.data?.track ||
+          response?.data?.data ||
+          response?.data;
+
+
+        if (!loadedTrack) {
+          throw new Error(
+            'Track not found'
+          );
+        }
+
+
+        setTrack(
+          loadedTrack
+        );
+
+        saveTrackLocally(
+          loadedTrack
+        );
+
+
+        const loadedId =
+          getTrackId(
+            loadedTrack
+          );
+
+
+        setTrackId(
+          String(
+            loadedId ||
+              normalizedId
+          )
+        );
+
+
+      } catch (err) {
+
+        console.error(
+          'Track loading error:',
+          err
+        );
+
+
+        if (!cancelled) {
+
+          if (
+            savedTrack &&
+            savedTrackId &&
+            String(savedTrackId) ===
+              normalizedId
+          ) {
+
+            setTrack(
+              savedTrack
+            );
+
+            setError('');
+
+          } else {
+
+            setTrack(null);
+
+            setError(
+              err?.response?.data?.message ||
+              err?.message ||
+              'Track not found'
+            );
+          }
+        }
+
+
+      } finally {
+
+        if (!cancelled) {
+
+          setLoading(false);
+
+        }
+      }
+    }
+
+
+    loadTrack();
+
+
+    return () => {
+
+      cancelled = true;
+
+    };
+
+  }, [urlTrackId]);
+
+
+  // ==========================================================
+  // EMBED URL
+  // ==========================================================
+
+  function getEmbedUrl() {
+
+    if (!track) {
+      return null;
+    }
+
+
+    if (track.embed_url) {
+      return track.embed_url;
+    }
+
+
+    if (
+      track.original_url &&
+      track.original_url.includes(
+        'audiomack.com'
+      )
+    ) {
+
+      const parts =
+        track.original_url.split(
+          'audiomack.com/'
+        )[1];
+
+
+      if (parts) {
+
+        return (
+          `https://audiomack.com/embed/${parts}`
+        );
+
+      }
+    }
+
+
+    return null;
+  }
+
+
+  const embedUrl =
+    getEmbedUrl();
+
+
+  // ==========================================================
+  // CLEAR HEARTBEAT
+  // ==========================================================
+
+  function clearHeartbeat() {
+
+    if (
+      heartbeatRef.current
+    ) {
+
+      clearInterval(
+        heartbeatRef.current
+      );
+
+      heartbeatRef.current =
+        null;
+    }
+  }
+
+
+  // ==========================================================
+  // SEND HEARTBEAT
+  // ==========================================================
+
+  async function sendHeartbeat(
+    challengeResponse = false
+  ) {
+
+    if (!sessionId) {
+      return;
+    }
+
+
+    try {
+
+      const response =
+        await API.post(
+          '/api/streams/heartbeat',
+          {
+            session_id:
+              sessionId,
+
+            visible:
+              document.visibilityState ===
+              'visible',
+
+            focused:
+              document.hasFocus(),
+
+            challenge_response:
+              challengeResponse
+          }
+        );
+
+
+      const data =
+        response?.data;
+
+
+      if (!data) {
+        return;
+      }
+
+
+      // ------------------------------------------------------
+      // Backend is authoritative
+      // ------------------------------------------------------
+
+      if (
+        typeof data.valid_seconds ===
+        'number'
+      ) {
+
+        setVerifiedSeconds(
+          Math.min(
+            data.valid_seconds,
+            REQUIRED_SECONDS
+          )
+        );
+      }
+
+
+      // ------------------------------------------------------
+      // Challenge
+      // ------------------------------------------------------
+
+      if (
+        data.challenge_required &&
+        !data.challenge_passed
+      ) {
+
+        setChallengeVisible(
+          true
+        );
+
+      }
+
+
+      // ------------------------------------------------------
+      // Complete
+      // ------------------------------------------------------
+
+      if (
+        data.complete
+      ) {
+
+        clearHeartbeat();
+
+        await finishStream(
+          sessionId
+        );
+      }
+
+
+    } catch (err) {
+
+      console.warn(
+        'Heartbeat failed:',
+        err
+      );
+
+    }
+  }
+
+
+  // ==========================================================
+  // START HEARTBEATS
+  // ==========================================================
+
+  function startHeartbeatLoop() {
+
+    clearHeartbeat();
+
+
+    // Send immediately.
+    sendHeartbeat(
+      false
+    );
+
+
+    heartbeatRef.current =
+      setInterval(() => {
+
+        sendHeartbeat(
+          false
+        );
+
+      }, HEARTBEAT_INTERVAL_MS);
+  }
+
+
+  // ==========================================================
+  // START STREAM
+  // ==========================================================
+
+  async function handleStartStreaming() {
+
+    if (
+      startingRef.current
+    ) {
+      return;
+    }
+
+
+    if (
+      status !== 'idle' &&
+      status !== 'completed'
+    ) {
+      return;
+    }
+
+
+    if (!track) {
+
+      setError(
+        'No track selected'
+      );
+
+      return;
+    }
+
+
+    const resolvedTrackId =
+      getTrackId(track) ||
+      trackId;
+
+
+    if (!resolvedTrackId) {
+
+      setError(
+        'This track does not have a valid ID'
+      );
+
+      return;
+    }
+
+
+    if (!embedUrl) {
+
+      setError(
+        'This track does not have a playable audio source.'
+      );
+
+      return;
+    }
+
+
+    startingRef.current =
+      true;
+
+
+    try {
+
+      setError('');
+
+      setWarning('');
+
+      setRewarded(false);
+
+      setVerifiedSeconds(0);
+
+      setPlayConfirmed(false);
+
+      setChallengeVisible(false);
+
+      challengeAnsweredRef.current =
+        false;
+
+
+      saveTrackLocally(
+        track
+      );
+
+
+      // ------------------------------------------------------
+      // Create server session
+      // ------------------------------------------------------
+
+      setStatus(
+        'starting'
+      );
+
+
+      const trackUrl =
+        track.original_url ||
+        embedUrl ||
+        '';
+
+
+      const response =
+        await API.post(
+          '/api/streams/start',
+          {
+            track_id:
+              resolvedTrackId,
+
+            track_url:
+              trackUrl
+          },
+          {
+            timeout: 15000
+          }
+        );
+
+
+      const newSessionId =
+        response?.data?.session?.id ||
+        response?.data?.session_id ||
+        response?.data?.id;
+
+
+      if (!newSessionId) {
+
+        throw new Error(
+          'Stream session was not created'
+        );
+      }
+
+
+      // ------------------------------------------------------
+      // Save session
+      // ------------------------------------------------------
+
+      setSessionId(
+        newSessionId
+      );
+
+
+      // ------------------------------------------------------
+      // Show player
+      // ------------------------------------------------------
+
+      setShowEmbed(
+        true
+      );
+
+
+      /*
+       * IMPORTANT:
+       *
+       * We DO NOT start heartbeat here.
+       *
+       * User must first click Play and confirm.
+       */
+
+      setStatus(
+        'awaiting_play'
+      );
+
+
+      setOnboarding(
+        true
+      );
+
+
+    } catch (err) {
+
+      console.error(
+        'Start stream error:',
+        err
+      );
+
+
+      clearHeartbeat();
+
+
+      setStatus(
+        'idle'
+      );
+
+      setShowEmbed(
+        false
+      );
+
+      setSessionId(
+        null
+      );
+
+      setVerifiedSeconds(
+        0
+      );
+
+
+      setError(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Could not start stream. Please try again.'
+      );
+
+
+    } finally {
+
+      startingRef.current =
+        false;
+
+    }
+  }
+
+
+  // ==========================================================
+  // USER CONFIRMS PLAY
+  // ==========================================================
+
+  function handlePlayConfirmed() {
+
+    if (!sessionId) {
+
+      setError(
+        'Streaming session is missing. Please try again.'
+      );
+
+      return;
+    }
+
+
+    setOnboarding(
+      false
+    );
+
+
+    setPlayConfirmed(
+      true
+    );
+
+
+    setStatus(
+      'streaming'
+    );
+
+
+    setWarning(
+      'Keep the music playing and keep this page open.'
+    );
+
+
+    /*
+     * THIS is the point where verification begins.
+     */
+    startHeartbeatLoop();
+  }
+
+
+  // ==========================================================
+  // CHALLENGE
+  // ==========================================================
+
+  async function handleChallengeConfirm() {
+
+    if (
+      challengeSubmitting ||
+      challengeAnsweredRef.current
+    ) {
+      return;
+    }
+
+
+    if (!sessionId) {
+      return;
+    }
+
+
+    setChallengeSubmitting(
+      true
+    );
+
+
+    try {
+
+      challengeAnsweredRef.current =
+        true;
+
+
+      const response =
+        await API.post(
+          '/api/streams/heartbeat',
+          {
+            session_id:
+              sessionId,
+
+            visible:
+              document.visibilityState ===
+              'visible',
+
+            focused:
+              document.hasFocus(),
+
+            challenge_response:
+              true
+          }
+        );
+
+
+      const data =
+        response?.data;
+
+
+      if (
+        typeof data?.valid_seconds ===
+        'number'
+      ) {
+
+        setVerifiedSeconds(
+          Math.min(
+            data.valid_seconds,
+            REQUIRED_SECONDS
+          )
+        );
+      }
+
+
+      if (
+        data?.challenge_passed
+      ) {
+
+        setChallengeVisible(
+          false
+        );
+
+
+        challengeAnsweredRef.current =
+          false;
+
+
+        setWarning(
+          'Verification passed. Keep listening.'
+        );
+
+
+        if (data.complete) {
+
+          clearHeartbeat();
+
+          await finishStream(
+            sessionId
+          );
+        }
+
+
+      } else {
+
+        challengeAnsweredRef.current =
+          false;
+
+        setChallengeVisible(
+          true
+        );
+
+        setError(
+          'Please confirm that you are still listening.'
+        );
+      }
+
+
+    } catch (err) {
+
+      challengeAnsweredRef.current =
+        false;
+
+
+      console.error(
+        'Challenge error:',
+        err
+      );
+
+
+      setError(
+        err?.response?.data?.message ||
+        'Could not verify your response.'
+      );
+
+    } finally {
+
+      setChallengeSubmitting(
+        false
+      );
+    }
+  }
+
+
+  // ==========================================================
+  // FINISH STREAM
+  // ==========================================================
+
+  async function finishStream(
+    sid
+  ) {
+
+    if (
+      endingRef.current
+    ) {
+      return;
+    }
+
+
+    endingRef.current =
+      true;
+
+
+    clearHeartbeat();
+
+
+    try {
+
+      setStatus(
+        'completing'
+      );
+
+
+      const response =
+        await API.post(
+          '/api/streams/end',
+          {
+            session_id:
+              sid
+          }
+        );
+
+
+      const data =
+        response?.data;
+
+
+      console.log(
+        'Stream completed:',
+        data
+      );
+
+
+      // ------------------------------------------------------
+      // Update local wallet
+      // ------------------------------------------------------
+
+      const backendBalance =
+        data?.coin_balance;
+
+
+      if (
+        backendBalance !==
+          undefined &&
+        typeof window !==
+          'undefined'
+      ) {
+
+        const storedUser =
+          localStorage.getItem(
+            'rewaiq_user'
+          );
+
+
+        if (storedUser) {
+
+          try {
+
+            const user =
+              JSON.parse(
+                storedUser
+              );
+
+
+            user.coin_balance =
+              backendBalance;
+
+
+            localStorage.setItem(
+              'rewaiq_user',
+              JSON.stringify(
+                user
+              )
+            );
+
+          } catch (storageError) {
+
+            console.warn(
+              'Could not update stored user:',
+              storageError
+            );
+          }
+        }
+      }
+
+
+      // ------------------------------------------------------
+      // Refresh balance
+      // ------------------------------------------------------
+
+      try {
+
+        const balanceResponse =
+          await API.get(
+            '/api/coins/balance'
+          );
+
+
+        const newBalance =
+          balanceResponse?.data?.balance ??
+          balanceResponse?.data?.coin_balance ??
+          balanceResponse?.data?.coins ??
+          balanceResponse?.data?.user
+            ?.coin_balance;
+
+
+        if (
+          newBalance !==
+            undefined &&
+          typeof window !==
+            'undefined'
+        ) {
+
+          const storedUser =
+            localStorage.getItem(
+              'rewaiq_user'
+            );
+
+
+          if (storedUser) {
+
+            try {
+
+              const user =
+                JSON.parse(
+                  storedUser
+                );
+
+
+              user.coin_balance =
+                newBalance;
+
+
+              localStorage.setItem(
+                'rewaiq_user',
+                JSON.stringify(
+                  user
+                )
+              );
+
+            } catch (storageError) {
+
+              console.warn(
+                'Could not update stored wallet:',
+                storageError
+              );
+            }
+          }
+        }
+
+      } catch (balanceError) {
+
+        console.warn(
+          'Could not refresh balance:',
+          balanceError
+        );
+      }
+
+
+      setVerifiedSeconds(
+        REQUIRED_SECONDS
+      );
+
+
+      setRewarded(
+        true
+      );
+
+
+      setStatus(
+        'completed'
+      );
+
+
+      setSessionId(
+        null
+      );
+
+
+    } catch (err) {
+
+      console.error(
+        'Finish stream error:',
+        err
+      );
+
+
+      setError(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Could not complete stream.'
+      );
+
+
+      setStatus(
+        'idle'
+      );
+
+
+      setShowEmbed(
+        false
+      );
+
+
+      setVerifiedSeconds(
+        0
+      );
+
+
+    } finally {
+
+      endingRef.current =
+        false;
+    }
+  }
+
+
+  // ==========================================================
+  // STOP STREAM
+  // ==========================================================
+
+  async function handleStopStreaming() {
+
+    if (
+      status !== 'streaming' &&
+      status !== 'awaiting_play'
+    ) {
+      return;
+    }
+
+
+    clearHeartbeat();
+
+
+    if (sessionId) {
+
+      try {
+
+        await API.post(
+          '/api/streams/end',
+          {
+            session_id:
+              sessionId
+          }
+        );
+
+      } catch (err) {
+
+        console.warn(
+          'Could not end stream:',
+          err
+        );
+      }
+    }
+
+
+    setStatus(
+      'idle'
+    );
+
+
+    setShowEmbed(
+      false
+    );
+
+
+    setSessionId(
+      null
+    );
+
+
+    setVerifiedSeconds(
+      0
+    );
+
+
+    setRewarded(
+      false
+    );
+
+
+    setPlayConfirmed(
+      false
+    );
+
+
+    setOnboarding(
+      false
+    );
+  }
+
+
+  // ==========================================================
+  // CLEANUP
+  // ==========================================================
+
+  useEffect(() => {
+
+    return () => {
+
+      clearHeartbeat();
+
+    };
+
+  }, []);
+
+
+  // ==========================================================
+  // LOADING
+  // ==========================================================
 
   if (
     loading &&
     !track
   ) {
+
     return (
-      <Spinner fullscreen />
+      <Spinner
+        fullscreen
+      />
     );
   }
 
-  /*
-   * -------------------------------------------------------
-   * No track
-   * -------------------------------------------------------
-   */
+
+  // ==========================================================
+  // NO TRACK
+  // ==========================================================
 
   if (!track) {
+
     return (
       <div
         style={{
-          minHeight:
-            '100vh',
-          background:
-            '#07111F',
-          display:
-            'flex',
-          flexDirection:
-            'column',
-          alignItems:
-            'center',
-          justifyContent:
-            'center',
-          color:
-            '#8A9BB0',
-          padding:
-            24,
-          textAlign:
-            'center',
+          minHeight: '100vh',
+          background: '#07111F',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#8A9BB0',
+          padding: 24,
+          textAlign: 'center'
         }}
       >
-        <p
-          style={{
-            marginBottom:
-              20,
-          }}
-        >
+
+        <p>
           {error ||
             'No track selected'}
         </p>
+
 
         <button
           onClick={() =>
@@ -1115,45 +1457,50 @@ function StreamContent() {
           style={{
             padding:
               '12px 20px',
-            borderRadius:
-              10,
-            border:
-              'none',
+            borderRadius: 10,
+            border: 'none',
             background:
               '#4a9eff',
-            color:
-              '#fff',
-            fontWeight:
-              700,
-            cursor:
-              'pointer',
+            color: '#fff',
+            fontWeight: 700,
+            cursor: 'pointer'
           }}
         >
           Go Back
         </button>
+
       </div>
     );
   }
 
+
+  // ==========================================================
+  // DISPLAY VALUES
+  // ==========================================================
+
   const progress =
     Math.min(
-      (seconds /
-        REQUIRED_SECONDS) *
-        100,
+      (
+        verifiedSeconds /
+        REQUIRED_SECONDS
+      ) * 100,
       100
     );
+
 
   const remaining =
     Math.max(
       REQUIRED_SECONDS -
-        seconds,
+        verifiedSeconds,
       0
     );
+
 
   const title =
     track.title ||
     track.name ||
     'Untitled Track';
+
 
   const artist =
     track.artist_name ||
@@ -1161,77 +1508,62 @@ function StreamContent() {
     track.artistName ||
     'Unknown Artist';
 
-  /*
-   * -------------------------------------------------------
-   * UI
-   * -------------------------------------------------------
-   */
+
+  // ==========================================================
+  // MAIN UI
+  // ==========================================================
 
   return (
     <div
       style={{
-        minHeight:
-          '100vh',
+        minHeight: '100vh',
         background:
           'linear-gradient(180deg, #07111F 0%, #0A1628 100%)',
-        color:
-          '#fff',
-        paddingBottom:
-          40,
+        color: '#fff',
+        paddingBottom: 40
       }}
     >
-      {/* HEADER */}
+
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
 
       <div
         style={{
-          height:
-            64,
+          height: 64,
           padding:
             '0 20px',
-          display:
-            'flex',
-          alignItems:
-            'center',
-          gap:
-            14,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
           background:
             'rgba(13,31,60,0.92)',
           borderBottom:
             '1px solid rgba(255,255,255,0.06)',
-          position:
-            'sticky',
-          top:
-            0,
-          zIndex:
-            20,
+          position: 'sticky',
+          top: 0,
+          zIndex: 20,
           backdropFilter:
-            'blur(12px)',
+            'blur(12px)'
         }}
       >
+
         <button
           onClick={() =>
             router.back()
           }
           aria-label="Go back"
           style={{
-            width:
-              38,
-            height:
-              38,
-            borderRadius:
-              12,
+            width: 38,
+            height: 38,
+            borderRadius: 12,
             background:
               'rgba(255,255,255,0.06)',
-            border:
-              'none',
-            display:
-              'flex',
-            alignItems:
-              'center',
-            justifyContent:
-              'center',
-            cursor:
-              'pointer',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer'
           }}
         >
           <ArrowLeft
@@ -1240,132 +1572,123 @@ function StreamContent() {
           />
         </button>
 
+
         <div>
+
           <div
             style={{
-              fontSize:
-                15,
-              fontWeight:
-                700,
+              fontSize: 15,
+              fontWeight: 700
             }}
           >
             Now Streaming
           </div>
 
+
           <div
             style={{
-              fontSize:
-                11,
-              color:
-                '#8A9BB0',
-              marginTop:
-                2,
+              fontSize: 11,
+              color: '#8A9BB0',
+              marginTop: 2
             }}
           >
             Listen & earn coins
           </div>
+
         </div>
+
       </div>
+
 
       <main
         style={{
-          width:
-            '100%',
-          maxWidth:
-            520,
-          margin:
-            '0 auto',
+          width: '100%',
+          maxWidth: 520,
+          margin: '0 auto',
           padding:
-            '22px 18px',
+            '22px 18px'
         }}
       >
-        {/* TRACK INFO */}
+
+        {/* ===================================================
+            TRACK INFO
+        ==================================================== */}
 
         <section
           style={{
             background:
               'linear-gradient(145deg, #102747, #0D1F3C)',
-            borderRadius:
-              22,
-            padding:
-              18,
-            marginBottom:
-              16,
+            borderRadius: 22,
+            padding: 18,
+            marginBottom: 16,
             border:
               '1px solid rgba(255,255,255,0.06)',
             boxShadow:
-              '0 16px 40px rgba(0,0,0,0.22)',
+              '0 16px 40px rgba(0,0,0,0.22)'
           }}
         >
+
           <div
             style={{
-              display:
-                'flex',
-              alignItems:
-                'center',
-              gap:
-                14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14
             }}
           >
+
             <div
               style={{
-                width:
-                  74,
-                height:
-                  74,
-                flexShrink:
-                  0,
-                borderRadius:
-                  16,
-                overflow:
-                  'hidden',
+                width: 74,
+                height: 74,
+                flexShrink: 0,
+                borderRadius: 16,
+                overflow: 'hidden',
                 background:
                   'linear-gradient(135deg, #193B68, #102440)',
-                display:
-                  'flex',
-                alignItems:
-                  'center',
-                justifyContent:
-                  'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
+
               {track.cover_image ? (
+
                 <img
                   src={
                     track.cover_image
                   }
                   alt=""
                   style={{
-                    width:
-                      '100%',
-                    height:
-                      '100%',
+                    width: '100%',
+                    height: '100%',
                     objectFit:
-                      'cover',
+                      'cover'
                   }}
                 />
+
               ) : (
+
                 <Music2
                   size={30}
                   color="#4a9eff"
                 />
+
               )}
+
             </div>
+
 
             <div
               style={{
-                minWidth:
-                  0,
-                flex:
-                  1,
+                minWidth: 0,
+                flex: 1
               }}
             >
+
               <p
                 style={{
-                  fontSize:
-                    18,
-                  fontWeight:
-                    800,
+                  fontSize: 18,
+                  fontWeight: 800,
                   margin:
                     '0 0 5px',
                   whiteSpace:
@@ -1373,149 +1696,144 @@ function StreamContent() {
                   overflow:
                     'hidden',
                   textOverflow:
-                    'ellipsis',
+                    'ellipsis'
                 }}
               >
                 {title}
               </p>
 
+
               <p
                 style={{
-                  fontSize:
-                    13,
-                  color:
-                    '#8A9BB0',
-                  margin:
-                    0,
+                  fontSize: 13,
+                  color: '#8A9BB0',
+                  margin: 0,
                   whiteSpace:
                     'nowrap',
                   overflow:
                     'hidden',
                   textOverflow:
-                    'ellipsis',
+                    'ellipsis'
                 }}
               >
                 {artist}
               </p>
+
             </div>
+
           </div>
+
         </section>
 
-        {/* AUDIO PLAYER */}
+
+        {/* ===================================================
+            AUDIO PLAYER
+        ==================================================== */}
 
         <section
           style={{
             background:
               '#0D1F3C',
-            borderRadius:
-              22,
-            padding:
-              16,
-            marginBottom:
-              16,
+            borderRadius: 22,
+            padding: 16,
+            marginBottom: 16,
             border:
-              '1px solid rgba(255,255,255,0.06)',
+              '1px solid rgba(255,255,255,0.06)'
           }}
         >
+
           <div
             style={{
-              display:
-                'flex',
-              alignItems:
-                'center',
+              display: 'flex',
+              alignItems: 'center',
               justifyContent:
                 'space-between',
-              marginBottom:
-                12,
+              marginBottom: 12
             }}
           >
+
             <div
               style={{
-                display:
-                  'flex',
-                alignItems:
-                  'center',
-                gap:
-                  7,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7
               }}
             >
+
               <Volume2
                 size={15}
                 color="#4a9eff"
               />
 
+
               <span
                 style={{
-                  fontSize:
-                    12,
-                  color:
-                    '#8A9BB0',
-                  fontWeight:
-                    600,
+                  fontSize: 12,
+                  color: '#8A9BB0',
+                  fontWeight: 600
                 }}
               >
                 AUDIO PLAYER
               </span>
+
             </div>
+
 
             {status ===
               'streaming' && (
+
               <span
                 style={{
-                  display:
-                    'flex',
-                  alignItems:
-                    'center',
-                  gap:
-                    5,
-                  fontSize:
-                    11,
-                  color:
-                    '#4ADE80',
-                  fontWeight:
-                    700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 11,
+                  color: '#4ADE80',
+                  fontWeight: 700
                 }}
               >
+
                 <span
                   style={{
-                    width:
-                      6,
-                    height:
-                      6,
+                    width: 6,
+                    height: 6,
                     borderRadius:
                       '50%',
                     background:
                       '#4ADE80',
                     boxShadow:
-                      '0 0 8px #4ADE80',
+                      '0 0 8px #4ADE80'
                   }}
                 />
 
-                VERIFIED
+                VERIFYING
+
               </span>
+
             )}
+
           </div>
+
 
           {showEmbed &&
           embedUrl ? (
+
             <div
               style={{
-                width:
-                  '100%',
-                height:
-                  252,
+                width: '100%',
+                height: 252,
                 overflow:
                   'hidden',
-                borderRadius:
-                  16,
+                borderRadius: 16,
                 background:
                   '#081322',
                 border:
                   '1px solid rgba(255,255,255,0.05)',
                 position:
-                  'relative',
+                  'relative'
               }}
             >
+
               <iframe
                 key={`${sessionId || 'pending'}-${embedUrl}`}
                 src={embedUrl}
@@ -1526,408 +1844,132 @@ function StreamContent() {
                 style={{
                   position:
                     'absolute',
-                  top:
-                    0,
-                  left:
-                    0,
-                  width:
-                    '100%',
-                  height:
-                    '252px',
-                  border:
-                    'none',
-                  display:
-                    'block',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: 252,
+                  border: 'none',
+                  display: 'block'
                 }}
               />
 
-              {/* PLAY POINTER */}
 
-              {waitingForPlayback && (
+              {/* --------------------------------------------
+                  PLAY GUIDANCE
+              --------------------------------------------- */}
+
+              {status ===
+                'awaiting_play' && (
+
                 <div
                   style={{
                     position:
                       'absolute',
-                    left:
-                      18,
-                    bottom:
-                      18,
-                    pointerEvents:
-                      'none',
-                    zIndex:
-                      5,
-                    display:
-                      'flex',
+                    inset: 0,
+                    background:
+                      'rgba(3,10,20,0.38)',
+                    display: 'flex',
                     alignItems:
+                      'flex-start',
+                    justifyContent:
                       'center',
-                    gap:
-                      8,
-                    animation:
-                      'pointToPlay 1s ease-in-out infinite',
+                    pointerEvents:
+                      'none'
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize:
-                        32,
-                      filter:
-                        'drop-shadow(0 3px 6px rgba(0,0,0,0.6))',
-                    }}
-                  >
-                    👆
-                  </span>
 
-                  <span
+                  <div
                     style={{
+                      marginTop: 12,
+                      padding:
+                        '8px 12px',
+                      borderRadius:
+                        10,
                       background:
                         '#4a9eff',
                       color:
                         '#fff',
-                      padding:
-                        '7px 10px',
-                      borderRadius:
-                        9,
-                      fontSize:
-                        11,
-                      fontWeight:
-                        800,
+                      fontSize: 11,
+                      fontWeight: 800,
                       boxShadow:
-                        '0 6px 18px rgba(0,0,0,0.35)',
+                        '0 8px 20px rgba(0,0,0,0.3)'
                     }}
                   >
-                    TAP PLAY
-                  </span>
+                    👆 Tap Play in Audiomack
+                  </div>
+
                 </div>
+
               )}
+
             </div>
+
           ) : (
+
             <div
               style={{
-                height:
-                  100,
-                borderRadius:
-                  16,
+                height: 100,
+                borderRadius: 16,
                 background:
                   'linear-gradient(145deg, rgba(74,158,255,0.08), rgba(255,255,255,0.025))',
                 border:
                   '1px solid rgba(255,255,255,0.05)',
-                display:
-                  'flex',
+                display: 'flex',
                 flexDirection:
                   'column',
                 alignItems:
                   'center',
                 justifyContent:
-                  'center',
+                  'center'
               }}
             >
+
               <Music2
-                size={28}
+                size={26}
                 color="#4a9eff"
               />
+
 
               <p
                 style={{
                   margin:
                     '8px 0 0',
-                  color:
-                    '#fff',
-                  fontSize:
-                    14,
-                  fontWeight:
-                    700,
+                  fontSize: 14,
+                  fontWeight: 700
                 }}
               >
                 Ready to stream
               </p>
+
             </div>
+
           )}
 
-          {/* ONBOARDING */}
-
-          {waitingForPlayback && (
-            <div
-              style={{
-                marginTop:
-                  14,
-                padding:
-                  '18px 16px',
-                borderRadius:
-                  16,
-                background:
-                  'linear-gradient(135deg, rgba(74,158,255,0.14), rgba(74,158,255,0.05))',
-                border:
-                  '1px solid rgba(74,158,255,0.28)',
-                textAlign:
-                  'center',
-              }}
-            >
-              <div
-                style={{
-                  fontSize:
-                    34,
-                  marginBottom:
-                    6,
-                  animation:
-                    'bounceHand 1s ease-in-out infinite',
-                }}
-              >
-                👆
-              </div>
-
-              <p
-                style={{
-                  margin:
-                    '0 0 6px',
-                  fontSize:
-                    15,
-                  fontWeight:
-                    800,
-                }}
-              >
-                Step 1 — Press Play
-              </p>
-
-              <p
-                style={{
-                  margin:
-                    '0 auto 14px',
-                  maxWidth:
-                    340,
-                  fontSize:
-                    12,
-                  lineHeight:
-                    1.5,
-                  color:
-                    '#8A9BB0',
-                }}
-              >
-                Tap the{' '}
-                <strong
-                  style={{
-                    color:
-                      '#fff',
-                  }}
-                >
-                  Play
-                </strong>{' '}
-                button inside the
-                Audiomack player above.
-              </p>
-
-              <div
-                style={{
-                  padding:
-                    '9px 12px',
-                  borderRadius:
-                    10,
-                  background:
-                    'rgba(248,113,113,0.08)',
-                  border:
-                    '1px solid rgba(248,113,113,0.16)',
-                  color:
-                    '#FCA5A5',
-                  fontSize:
-                    11,
-                  lineHeight:
-                    1.45,
-                  marginBottom:
-                    14,
-                }}
-              >
-                <AlertTriangle
-                  size={13}
-                  style={{
-                    verticalAlign:
-                      'middle',
-                    marginRight:
-                      5,
-                  }}
-                />
-
-                Do not confirm until
-                you have actually pressed
-                Play.
-              </div>
-
-              <button
-                onClick={
-                  confirmPlaybackStarted
-                }
-                style={{
-                  width:
-                    '100%',
-                  padding:
-                    '14px',
-                  borderRadius:
-                    13,
-                  border:
-                    'none',
-                  background:
-                    'linear-gradient(135deg, #4a9eff, #2d6be4)',
-                  color:
-                    '#fff',
-                  fontWeight:
-                    800,
-                  fontSize:
-                    14,
-                  cursor:
-                    'pointer',
-                  boxShadow:
-                    '0 8px 20px rgba(74,158,255,0.18)',
-                }}
-              >
-                ✓ I've Pressed Play — Start Verification
-              </button>
-            </div>
-          )}
-
-          {status ===
-            'starting' && (
-            <div
-              style={{
-                marginTop:
-                  10,
-                display:
-                  'flex',
-                alignItems:
-                  'center',
-                justifyContent:
-                  'center',
-                gap:
-                  7,
-                color:
-                  '#8A9BB0',
-                fontSize:
-                  11,
-              }}
-            >
-              <Loader2
-                size={13}
-                style={{
-                  animation:
-                    'spin 1s linear infinite',
-                }}
-              />
-
-              Preparing your stream...
-            </div>
-          )}
         </section>
 
-        {/* CHALLENGE */}
 
-        {challengeRequired &&
-          !challengePassed && (
-            <section
-              style={{
-                background:
-                  'rgba(250,204,21,0.08)',
-                border:
-                  '1px solid rgba(250,204,21,0.25)',
-                borderRadius:
-                  18,
-                padding:
-                  18,
-                marginBottom:
-                  16,
-                textAlign:
-                  'center',
-              }}
-            >
-              <ShieldCheck
-                size={30}
-                color="#FACC15"
-              />
-
-              <p
-                style={{
-                  margin:
-                    '8px 0 5px',
-                  fontSize:
-                    15,
-                  fontWeight:
-                    800,
-                }}
-              >
-                Quick listening check
-              </p>
-
-              <p
-                style={{
-                  margin:
-                    '0 0 14px',
-                  fontSize:
-                    12,
-                  color:
-                    '#A7B4C5',
-                  lineHeight:
-                    1.5,
-                }}
-              >
-                Are you still listening to
-                the track?
-              </p>
-
-              <button
-                onClick={
-                  answerChallenge
-                }
-                disabled={
-                  challengeSubmitting
-                }
-                style={{
-                  width:
-                    '100%',
-                  padding:
-                    '14px',
-                  border:
-                    'none',
-                  borderRadius:
-                    13,
-                  background:
-                    '#FACC15',
-                  color:
-                    '#111827',
-                  fontWeight:
-                    900,
-                  cursor:
-                    challengeSubmitting
-                      ? 'not-allowed'
-                      : 'pointer',
-                }}
-              >
-                {challengeSubmitting
-                  ? 'Verifying...'
-                  : 'Yes, I’m Listening'}
-              </button>
-            </section>
-          )}
-
-        {/* TIMER */}
+        {/* ===================================================
+            VERIFICATION STATUS
+        ==================================================== */}
 
         <section
           style={{
             background:
               '#0D1F3C',
-            borderRadius:
-              22,
+            borderRadius: 22,
             padding:
               '24px 18px',
-            marginBottom:
-              16,
+            marginBottom: 16,
             border:
               '1px solid rgba(255,255,255,0.06)',
-            textAlign:
-              'center',
+            textAlign: 'center'
           }}
         >
+
           <div
             style={{
-              width:
-                148,
-              height:
-                148,
+              width: 148,
+              height: 148,
               margin:
                 '0 auto 18px',
               borderRadius:
@@ -1937,210 +1979,302 @@ function StreamContent() {
                   #4a9eff ${progress}%,
                   rgba(74,158,255,0.10) ${progress}% 100%
                 )`,
-              padding:
-                7,
+              padding: 7,
               transition:
                 'background 1s linear',
               boxShadow:
                 status ===
                 'streaming'
                   ? '0 0 30px rgba(74,158,255,0.12)'
-                  : 'none',
+                  : 'none'
             }}
           >
+
             <div
               style={{
-                width:
-                  '100%',
-                height:
-                  '100%',
+                width: '100%',
+                height: '100%',
                 borderRadius:
                   '50%',
                 background:
                   '#0A1628',
-                display:
-                  'flex',
+                display: 'flex',
                 flexDirection:
                   'column',
                 alignItems:
                   'center',
                 justifyContent:
-                  'center',
+                  'center'
               }}
             >
+
               <span
                 style={{
-                  fontSize:
-                    34,
-                  fontWeight:
-                    900,
-                  lineHeight:
-                    1,
+                  fontSize: 34,
+                  fontWeight: 900,
+                  lineHeight: 1
                 }}
               >
+
                 {status ===
                 'completed'
                   ? '✓'
-                  : remaining}
+                  : verifiedSeconds}
+
               </span>
+
 
               {status !==
                 'completed' && (
+
                 <span
                   style={{
-                    fontSize:
-                      11,
-                    color:
-                      '#71849B',
-                    marginTop:
-                      6,
+                    fontSize: 11,
+                    color: '#71849B',
+                    marginTop: 6
                   }}
                 >
                   verified seconds
                 </span>
+
               )}
+
             </div>
+
           </div>
+
 
           <p
             style={{
               margin:
                 '0 0 6px',
-              fontSize:
-                16,
-              fontWeight:
-                800,
+              fontSize: 16,
+              fontWeight: 800
             }}
           >
+
             {status ===
-            'waiting_play'
-              ? 'Waiting for playback'
+              'starting'
+              ? 'Preparing stream...'
+              : status ===
+                'awaiting_play'
+              ? 'Press Play to begin'
               : status ===
                 'streaming'
-              ? 'Keep listening'
+              ? 'Listening verification active'
               : status ===
                 'completing'
               ? 'Adding your coins...'
               : status ===
                 'completed'
               ? 'Stream complete!'
-              : '60 seconds to earn'}
+              : '60 verified seconds to earn'}
+
           </p>
+
 
           <p
             style={{
-              margin:
-                0,
-              color:
-                '#71849B',
-              fontSize:
-                12,
-              lineHeight:
-                1.5,
+              margin: 0,
+              color: '#71849B',
+              fontSize: 12,
+              lineHeight: 1.5
             }}
           >
+
             {status ===
-            'waiting_play'
-              ? 'Press Play in Audiomack, then confirm below.'
+              'awaiting_play'
+              ? 'Play the music in Audiomack, then confirm below.'
               : status ===
                 'streaming'
-              ? 'Rewaiq is verifying your listening session.'
+              ? `Keep listening. ${remaining} verified seconds remaining.`
               : status ===
                 'completed'
               ? 'Your wallet has been updated.'
-              : 'Start the stream and complete the verified listening period.'}
+              : 'You must listen for 60 verified seconds to earn.'}
+
           </p>
+
+
+          {/* Progress */}
 
           <div
             style={{
-              height:
-                5,
+              height: 5,
               background:
                 'rgba(255,255,255,0.06)',
-              borderRadius:
-                10,
+              borderRadius: 10,
               overflow:
                 'hidden',
-              marginTop:
-                18,
+              marginTop: 18
             }}
           >
+
             <div
               style={{
-                height:
-                  '100%',
+                height: '100%',
                 width:
                   `${progress}%`,
                 background:
                   '#4a9eff',
-                borderRadius:
-                  10,
+                borderRadius: 10,
                 transition:
-                  'width 1s linear',
+                  'width 1s linear'
               }}
             />
+
           </div>
+
+
+          {/* Verification indicators */}
+
+          {status ===
+            'streaming' && (
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent:
+                  'center',
+                gap: 16,
+                marginTop: 14,
+                fontSize: 10,
+                color: '#71849B'
+              }}
+            >
+
+              <span>
+                <Eye
+                  size={12}
+                  style={{
+                    verticalAlign:
+                      'middle',
+                    marginRight: 4
+                  }}
+                />
+                Page visible
+              </span>
+
+
+              <span>
+                <ShieldCheck
+                  size={12}
+                  style={{
+                    verticalAlign:
+                      'middle',
+                    marginRight: 4
+                  }}
+                />
+                Server verified
+              </span>
+
+            </div>
+
+          )}
+
         </section>
 
-        {/* COMPLETED */}
+
+        {/* ===================================================
+            WARNING
+        ==================================================== */}
+
+        {warning && (
+          <div
+            style={{
+              padding: 12,
+              borderRadius: 14,
+              background:
+                'rgba(251,191,36,0.08)',
+              border:
+                '1px solid rgba(251,191,36,0.18)',
+              marginBottom: 14,
+              display: 'flex',
+              alignItems:
+                'center',
+              gap: 9
+            }}
+          >
+
+            <AlertTriangle
+              size={18}
+              color="#FBBF24"
+            />
+
+
+            <span
+              style={{
+                color: '#FBBF24',
+                fontSize: 11,
+                lineHeight: 1.5
+              }}
+            >
+              {warning}
+            </span>
+
+          </div>
+        )}
+
+
+        {/* ===================================================
+            COMPLETED
+        ==================================================== */}
 
         {status ===
         'completed' ? (
+
           <div>
+
             <div
               style={{
-                padding:
-                  16,
-                borderRadius:
-                  16,
+                padding: 16,
+                borderRadius: 16,
                 background:
                   'rgba(74,222,128,0.08)',
                 border:
                   '1px solid rgba(74,222,128,0.16)',
-                display:
-                  'flex',
+                display: 'flex',
                 alignItems:
                   'center',
-                gap:
-                  12,
-                marginBottom:
-                  14,
+                gap: 12,
+                marginBottom: 14
               }}
             >
+
               <CheckCircle
                 size={28}
                 color="#4ADE80"
               />
 
+
               <div>
+
                 <p
                   style={{
-                    margin:
-                      0,
-                    fontWeight:
-                      800,
-                    fontSize:
-                      14,
+                    margin: 0,
+                    fontWeight: 800,
+                    fontSize: 14
                   }}
                 >
                   Coins Earned!
                 </p>
 
+
                 <p
                   style={{
                     margin:
                       '3px 0 0',
-                    color:
-                      '#8A9BB0',
-                    fontSize:
-                      11,
+                    color: '#8A9BB0',
+                    fontSize: 11
                   }}
                 >
-                  Your wallet has been
-                  updated successfully.
+                  Your wallet has been updated successfully.
                 </p>
+
               </div>
+
             </div>
+
 
             <button
               onClick={() =>
@@ -2149,139 +2283,627 @@ function StreamContent() {
                 )
               }
               style={{
-                width:
-                  '100%',
-                padding:
-                  '16px',
-                borderRadius:
-                  15,
-                border:
-                  'none',
+                width: '100%',
+                padding: 16,
+                borderRadius: 15,
+                border: 'none',
                 background:
                   'linear-gradient(135deg, #4a9eff, #2d6be4)',
-                color:
-                  '#fff',
-                fontWeight:
-                  800,
-                fontSize:
-                  15,
-                cursor:
-                  'pointer',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: 15,
+                cursor: 'pointer'
               }}
             >
               Back to Feed
             </button>
+
           </div>
-        ) : (
+
+        ) : status ===
+          'streaming' ? (
+
           <button
             onClick={
               handleStopStreaming
             }
-            disabled={
-              status ===
-                'idle' ||
-              status ===
-                'completed'
-            }
             style={{
-              width:
-                '100%',
-              padding:
-                '17px',
-              borderRadius:
-                15,
+              width: '100%',
+              padding: 17,
+              borderRadius: 15,
               background:
                 'rgba(248,113,113,0.10)',
               border:
                 '1px solid rgba(248,113,113,0.24)',
-              color:
-                '#F87171',
-              fontWeight:
-                800,
-              fontSize:
-                15,
-              cursor:
-                status ===
-                  'idle'
-                  ? 'not-allowed'
-                  : 'pointer',
-              display:
-                'flex',
+              color: '#F87171',
+              fontWeight: 800,
+              fontSize: 15,
+              cursor: 'pointer',
+              display: 'flex',
               alignItems:
                 'center',
               justifyContent:
                 'center',
-              gap:
-                9,
+              gap: 9
             }}
           >
+
             <Square
               size={17}
               fill="#F87171"
             />
 
-            Cancel Streaming
+            Stop Streaming
+
           </button>
+
+        ) : status ===
+          'awaiting_play' ? (
+
+          <button
+            onClick={
+              handlePlayConfirmed
+            }
+            style={{
+              width: '100%',
+              padding: 17,
+              borderRadius: 15,
+              border: 'none',
+              background:
+                'linear-gradient(135deg, #4a9eff, #2d6be4)',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: 15,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems:
+                'center',
+              justifyContent:
+                'center',
+              gap: 9,
+              boxShadow:
+                '0 10px 25px rgba(74,158,255,0.18)'
+            }}
+          >
+
+            <Hand
+              size={18}
+            />
+
+            I've Pressed Play — Start Verification
+
+          </button>
+
+        ) : (
+
+          <button
+            onClick={
+              handleStartStreaming
+            }
+            disabled={
+              status ===
+                'starting' ||
+              status ===
+                'completing'
+            }
+            style={{
+              width: '100%',
+              padding: 17,
+              borderRadius: 15,
+              border: 'none',
+              background:
+                'linear-gradient(135deg, #4a9eff, #2d6be4)',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: 15,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems:
+                'center',
+              justifyContent:
+                'center',
+              gap: 9
+            }}
+          >
+
+            {status ===
+            'starting' ? (
+
+              <Loader2
+                size={18}
+                style={{
+                  animation:
+                    'spin 1s linear infinite'
+                }}
+              />
+
+            ) : (
+
+              <Play
+                size={18}
+                fill="#fff"
+              />
+
+            )}
+
+
+            {status ===
+              'starting'
+              ? 'Preparing...'
+              : 'Start Streaming'}
+
+          </button>
+
         )}
 
-        {/* ERROR */}
+
+        {/* ===================================================
+            ERROR
+        ==================================================== */}
 
         {error && (
+
           <div
             style={{
-              marginTop:
-                14,
-              padding:
-                12,
-              borderRadius:
-                12,
+              marginTop: 14,
+              padding: 12,
+              borderRadius: 12,
               background:
                 'rgba(248,113,113,0.08)',
               border:
-                '1px solid rgba(248,113,113,0.15)',
+                '1px solid rgba(248,113,113,0.15)'
             }}
           >
+
             <p
               style={{
-                color:
-                  '#F87171',
+                color: '#F87171',
                 textAlign:
                   'center',
-                margin:
-                  0,
-                fontSize:
-                  12,
-                lineHeight:
-                  1.5,
+                margin: 0,
+                fontSize: 12,
+                lineHeight: 1.5
               }}
             >
               {error}
             </p>
+
           </div>
+
         )}
+
+
+        {/* ===================================================
+            INFO
+        ==================================================== */}
 
         <p
           style={{
-            textAlign:
-              'center',
-            color:
-              '#52677F',
-            fontSize:
-              10,
-            lineHeight:
-              1.5,
+            textAlign: 'center',
+            color: '#52677F',
+            fontSize: 10,
+            lineHeight: 1.5,
             margin:
-              '18px 20px 0',
+              '18px 20px 0'
           }}
         >
-          Rewaiq verifies your session
-          using server-side heartbeats
-          before awarding coins.
+          Rewaiq verifies your listening activity using server-side heartbeats, page visibility and focus before awarding coins.
         </p>
+
       </main>
 
+
+      {/* =====================================================
+          ONBOARDING OVERLAY
+      ====================================================== */}
+
+      {onboarding && (
+
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            background:
+              'rgba(2,8,18,0.78)',
+            display: 'flex',
+            alignItems:
+              'center',
+            justifyContent:
+              'center',
+            padding: 20
+          }}
+        >
+
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 400,
+              background:
+                '#102440',
+              borderRadius: 24,
+              padding: 24,
+              border:
+                '1px solid rgba(255,255,255,0.08)',
+              boxShadow:
+                '0 30px 80px rgba(0,0,0,0.45)'
+            }}
+          >
+
+            <div
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius:
+                  '50%',
+                background:
+                  'rgba(74,158,255,0.12)',
+                display: 'flex',
+                alignItems:
+                  'center',
+                justifyContent:
+                  'center',
+                margin:
+                  '0 auto 16px'
+              }}
+            >
+
+              <Hand
+                size={27}
+                color="#4a9eff"
+              />
+
+            </div>
+
+
+            <h2
+              style={{
+                textAlign:
+                  'center',
+                margin:
+                  '0 0 10px',
+                fontSize: 21,
+                fontWeight: 900
+              }}
+            >
+              One quick step
+            </h2>
+
+
+            <p
+              style={{
+                textAlign:
+                  'center',
+                color: '#8A9BB0',
+                fontSize: 13,
+                lineHeight: 1.6,
+                margin:
+                  '0 0 20px'
+              }}
+            >
+              Your stream session is ready. Now start the music in Audiomack.
+            </p>
+
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection:
+                  'column',
+                gap: 12,
+                marginBottom: 20
+              }}
+            >
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 11,
+                  alignItems:
+                    'center',
+                  padding: 12,
+                  borderRadius: 13,
+                  background:
+                    'rgba(255,255,255,0.04)'
+                }}
+              >
+
+                <strong
+                  style={{
+                    width: 25,
+                    height: 25,
+                    borderRadius:
+                      '50%',
+                    background:
+                      '#4a9eff',
+                    display: 'flex',
+                    alignItems:
+                      'center',
+                    justifyContent:
+                      'center',
+                    fontSize: 12
+                  }}
+                >
+                  1
+                </strong>
+
+
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: '#D5DFEB'
+                  }}
+                >
+                  Tap <b>Play</b> in the Audiomack player.
+                </span>
+
+              </div>
+
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 11,
+                  alignItems:
+                    'center',
+                  padding: 12,
+                  borderRadius: 13,
+                  background:
+                    'rgba(255,255,255,0.04)'
+                }}
+              >
+
+                <strong
+                  style={{
+                    width: 25,
+                    height: 25,
+                    borderRadius:
+                      '50%',
+                    background:
+                      '#4a9eff',
+                    display: 'flex',
+                    alignItems:
+                      'center',
+                    justifyContent:
+                      'center',
+                    fontSize: 12
+                  }}
+                >
+                  2
+                </strong>
+
+
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: '#D5DFEB'
+                  }}
+                >
+                  Keep the music playing.
+                </span>
+
+              </div>
+
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 11,
+                  alignItems:
+                    'center',
+                  padding: 12,
+                  borderRadius: 13,
+                  background:
+                    'rgba(248,113,113,0.07)',
+                  border:
+                    '1px solid rgba(248,113,113,0.12)'
+                }}
+              >
+
+                <AlertTriangle
+                  size={22}
+                  color="#F87171"
+                />
+
+
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: '#FCA5A5',
+                    lineHeight: 1.5
+                  }}
+                >
+                  <b>Important:</b> If you don't press Play, your listening time will not be verified.
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <button
+              onClick={
+                handlePlayConfirmed
+              }
+              style={{
+                width: '100%',
+                padding: 15,
+                border: 'none',
+                borderRadius: 14,
+                background:
+                  'linear-gradient(135deg, #4a9eff, #2d6be4)',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: 14,
+                cursor: 'pointer'
+              }}
+            >
+              I've Pressed Play
+            </button>
+
+
+            <button
+              onClick={
+                handleStopStreaming
+              }
+              style={{
+                width: '100%',
+                padding:
+                  '12px',
+                marginTop: 8,
+                border: 'none',
+                background:
+                  'transparent',
+                color: '#71849B',
+                fontSize: 12,
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* =====================================================
+          CHALLENGE MODAL
+      ====================================================== */}
+
+      {challengeVisible && (
+
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 110,
+            background:
+              'rgba(2,8,18,0.82)',
+            display: 'flex',
+            alignItems:
+              'center',
+            justifyContent:
+              'center',
+            padding: 20
+          }}
+        >
+
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 380,
+              background:
+                '#102440',
+              borderRadius: 22,
+              padding: 24,
+              border:
+                '1px solid rgba(255,255,255,0.08)',
+              textAlign:
+                'center',
+              boxShadow:
+                '0 30px 80px rgba(0,0,0,0.45)'
+            }}
+          >
+
+            <div
+              style={{
+                width: 58,
+                height: 58,
+                borderRadius:
+                  '50%',
+                background:
+                  'rgba(74,158,255,0.12)',
+                display: 'flex',
+                alignItems:
+                  'center',
+                justifyContent:
+                  'center',
+                margin:
+                  '0 auto 15px'
+              }}
+            >
+
+              <ShieldCheck
+                size={30}
+                color="#4a9eff"
+              />
+
+            </div>
+
+
+            <h2
+              style={{
+                margin:
+                  '0 0 9px',
+                fontSize: 20,
+                fontWeight: 900
+              }}
+            >
+              Still listening?
+            </h2>
+
+
+            <p
+              style={{
+                color: '#8A9BB0',
+                fontSize: 12,
+                lineHeight: 1.6,
+                margin:
+                  '0 0 20px'
+              }}
+            >
+              Rewaiq needs to confirm that you are still actively listening before continuing to count your verified time.
+            </p>
+
+
+            <button
+              disabled={
+                challengeSubmitting
+              }
+              onClick={
+                handleChallengeConfirm
+              }
+              style={{
+                width: '100%',
+                padding: 15,
+                border: 'none',
+                borderRadius: 14,
+                background:
+                  'linear-gradient(135deg, #4a9eff, #2d6be4)',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: 14,
+                cursor:
+                  challengeSubmitting
+                    ? 'not-allowed'
+                    : 'pointer',
+                opacity:
+                  challengeSubmitting
+                    ? 0.7
+                    : 1
+              }}
+            >
+
+              {challengeSubmitting
+                ? 'Verifying...'
+                : 'Yes, I’m Listening'}
+
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+
       <style jsx global>{`
+
         @keyframes spin {
+
           from {
             transform: rotate(0deg);
           }
@@ -2289,42 +2911,31 @@ function StreamContent() {
           to {
             transform: rotate(360deg);
           }
+
         }
 
-        @keyframes bounceHand {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-
-          50% {
-            transform: translateY(-7px);
-          }
-        }
-
-        @keyframes pointToPlay {
-          0%,
-          100% {
-            transform: translateX(0);
-          }
-
-          50% {
-            transform: translateX(8px);
-          }
-        }
       `}</style>
+
     </div>
   );
 }
 
+
+// ============================================================
+// PAGE WRAPPER
+// ============================================================
+
 export default function StreamPage() {
+
   return (
     <Suspense
       fallback={
-        <Spinner fullscreen />
+        <Spinner
+          fullscreen
+        />
       }
     >
       <StreamContent />
     </Suspense>
   );
-            }
+    }
