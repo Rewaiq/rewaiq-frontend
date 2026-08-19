@@ -14,6 +14,7 @@ import {
 
 import {
   ArrowLeft,
+  ArrowDown,
   Play,
   Square,
   CheckCircle,
@@ -33,6 +34,10 @@ import Spinner from '@/components/Spinner';
 
 const REQUIRED_SECONDS = 60;
 const HEARTBEAT_INTERVAL = 5000;
+
+// Fallback only — how long we wait before auto-advancing if
+// the user doesn't tap the "I've pressed Play" prompt.
+const PLAY_STEP_DURATION_MS = 8000;
 
 const STORAGE_KEY =
   'rewaiq_stream_track';
@@ -174,10 +179,21 @@ function StreamContent() {
 
   // -------------------------------------------------------
   // Onboarding / verification UI
+  //
+  // onboardingStep:
+  //   1 = arrow points at the real Audiomack Play button.
+  //       Pressing play inside Audiomack is mandatory before
+  //       the user can move on.
+  //   2 = arrow points at the "I've Started Playing" button,
+  //       which the user must tap to actually begin the
+  //       verification clock.
   // -------------------------------------------------------
 
   const [showOnboarding, setShowOnboarding] =
     useState(false);
+
+  const [onboardingStep, setOnboardingStep] =
+    useState(1);
 
   const [showScreenshotPrompt, setShowScreenshotPrompt] =
     useState(false);
@@ -587,6 +603,11 @@ function StreamContent() {
 
       // ---------------------------------------------------
       // Update verified time
+      //
+      // IMPORTANT: we always trust the SERVER's valid_seconds.
+      // We never increment this locally, so the displayed
+      // timer can never race ahead of what the backend has
+      // actually verified.
       // ---------------------------------------------------
 
       if (
@@ -1067,7 +1088,11 @@ function StreamContent() {
 
 
       // ---------------------------------------------------
-      // Show player
+      // Show player + start the mandatory two-step guide.
+      //
+      // Step 1: point at the real Audiomack Play button.
+      // The user MUST press play there before step 2 can
+      // begin — they cannot skip straight to confirming.
       // ---------------------------------------------------
 
       setShowEmbed(
@@ -1081,6 +1106,8 @@ function StreamContent() {
       statusRef.current =
         'awaiting_play';
 
+
+      setOnboardingStep(1);
 
       setShowOnboarding(
         true
@@ -1126,6 +1153,54 @@ function StreamContent() {
 
 
   // =======================================================
+  // ONBOARDING STEP ADVANCE
+  //
+  // The real Audiomack Play button lives inside a cross-origin
+  // iframe, so we cannot detect a click on it directly — no
+  // page can, for any embedded player it doesn't control.
+  //
+  // Instead, step 1 advances to step 2 when the user taps the
+  // "I've pressed Play" prompt on the instruction card itself
+  // (see handleAcknowledgePlayTap below). A longer fallback
+  // timer still runs underneath in case they miss the tap
+  // prompt, so the guide never gets permanently stuck.
+  // =======================================================
+
+  useEffect(() => {
+
+    if (
+      !showOnboarding ||
+      onboardingStep !== 1
+    ) {
+      return;
+    }
+
+    const timer =
+      setTimeout(() => {
+        setOnboardingStep(2);
+      }, PLAY_STEP_DURATION_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+
+  }, [
+    showOnboarding,
+    onboardingStep
+  ]);
+
+
+  function handleAcknowledgePlayTap() {
+
+    if (onboardingStep !== 1) {
+      return;
+    }
+
+    setOnboardingStep(2);
+  }
+
+
+  // =======================================================
   // USER CONFIRMS PLAYBACK
   // =======================================================
 
@@ -1149,6 +1224,8 @@ function StreamContent() {
     setShowOnboarding(
       false
     );
+
+    setOnboardingStep(1);
 
 
     // IMPORTANT:
@@ -1306,6 +1383,10 @@ function StreamContent() {
 
     setShowOnboarding(
       false
+    );
+
+    setOnboardingStep(
+      1
     );
   }
 
@@ -1999,10 +2080,15 @@ function StreamContent() {
 
 
               {/* =================================================
-                  PLAY GUIDE
+                  PLAY GUIDE — STEP 1
+                  Arrow points directly at the real Audiomack Play
+                  button (bottom-left of the embedded player).
+                  Pressing play there is mandatory — the user
+                  cannot begin verification without it.
               ================================================= */}
 
-              {showOnboarding && (
+              {showOnboarding &&
+                onboardingStep === 1 && (
 
                 <div
                   className="stream-guide"
@@ -2022,6 +2108,9 @@ function StreamContent() {
                 >
 
                   <div
+                    onClick={
+                      handleAcknowledgePlayTap
+                    }
                     style={{
                       position:
                         'absolute',
@@ -2048,7 +2137,18 @@ function StreamContent() {
                         '1px solid rgba(74,158,255,0.35)',
 
                       boxShadow:
-                        '0 10px 30px rgba(0,0,0,0.35)'
+                        '0 10px 30px rgba(0,0,0,0.35)',
+
+                      // This card intercepts taps on purpose
+                      // (unlike the rest of the guide, which
+                      // stays pointerEvents:none so real taps
+                      // reach the Audiomack player underneath).
+
+                      pointerEvents:
+                        'auto',
+
+                      cursor:
+                        'pointer'
                     }}
                   >
 
@@ -2097,44 +2197,48 @@ function StreamContent() {
                       }}
                     >
                       Tap the Play button
-                      inside the Audiomack
-                      player below.
+                      below to begin, then
+                      tap this card to
+                      continue.
                     </div>
 
                   </div>
 
 
-                  <div
-                    className="play-pointer"
+                  {/* Arrow pointing at the real Play
+                      button, bottom-left of the player. */}
+
+                  <svg
+                    className="play-arrow"
+                    width="90"
+                    height="90"
+                    viewBox="0 0 90 90"
                     style={{
                       position:
                         'absolute',
 
                       left:
-                        '50%',
+                        '2%',
 
                       top:
-                        '58%',
-
-                      transform:
-                        'translate(-50%, -50%)',
-
-                      width:
-                        64,
-
-                      height:
-                        64,
-
-                      borderRadius:
-                        '50%',
-
-                      border:
-                        '3px solid #4a9eff',
-
-                      boxShadow:
-                        '0 0 0 10px rgba(74,158,255,0.12), 0 0 30px rgba(74,158,255,0.35)'
+                        '46%'
                     }}
-                  />
+                  >
+
+                    <path
+                      d="M75 10 C 40 15, 15 45, 15 75"
+                      stroke="#4a9eff"
+                      strokeWidth="3.5"
+                      fill="none"
+                      strokeLinecap="round"
+                    />
+
+                    <polygon
+                      points="4,72 24,68 15,88"
+                      fill="#4a9eff"
+                    />
+
+                  </svg>
 
                 </div>
               )}
@@ -2192,7 +2296,10 @@ function StreamContent() {
 
 
         {/* =================================================
-            PLAYBACK CONFIRMATION
+            PLAYBACK CONFIRMATION — STEP 2
+            Only reachable after Step 1's arrow has pointed at
+            the real Play button. The arrow now shifts to this
+            confirm button to guide the next tap.
         ================================================= */}
 
         {status ===
@@ -2264,10 +2371,33 @@ function StreamContent() {
               tap the button below.
             </p>
 
+            {showOnboarding &&
+              onboardingStep === 2 && (
+
+              <div
+                className="confirm-arrow-bounce"
+                style={{
+                  marginBottom:
+                    6,
+
+                  color:
+                    '#4a9eff'
+                }}
+              >
+
+                <ArrowDown
+                  size={22}
+                />
+
+              </div>
+            )}
+
             <button
-              onClick={
-                handlePlaybackConfirmation
-              }
+              onClick={() => {
+
+                handlePlaybackConfirmation();
+
+              }}
               style={{
                 width:
                   '100%',
@@ -2586,121 +2716,6 @@ function StreamContent() {
           </div>
 
         </section>
-
-
-        {/* =================================================
-            CHALLENGE
-        ================================================= */}
-
-        {challengeVisible &&
-          status ===
-            'streaming' && (
-
-          <section
-            style={{
-              padding:
-                18,
-
-              borderRadius:
-                18,
-
-              background:
-                'linear-gradient(145deg, #162E50, #102440)',
-
-              border:
-                '1px solid rgba(74,158,255,0.30)',
-
-              marginBottom:
-                16,
-
-              textAlign:
-                'center',
-
-              boxShadow:
-                '0 15px 35px rgba(0,0,0,0.25)'
-            }}
-          >
-
-            <ShieldCheck
-              size={32}
-              color="#4a9eff"
-            />
-
-            <p
-              style={{
-                fontSize:
-                  17,
-
-                fontWeight:
-                  900,
-
-                margin:
-                  '10px 0 5px'
-              }}
-            >
-              Quick listening check
-            </p>
-
-            <p
-              style={{
-                color:
-                  '#9DB0C7',
-
-                fontSize:
-                  12,
-
-                margin:
-                  '0 0 15px'
-              }}
-            >
-              Are you still listening
-              to the track?
-            </p>
-
-            <button
-              onClick={
-                handleChallenge
-              }
-              disabled={
-                challengeSubmitting
-              }
-              style={{
-                width:
-                  '100%',
-
-                padding:
-                  '14px',
-
-                borderRadius:
-                  13,
-
-                border:
-                  'none',
-
-                background:
-                  '#4a9eff',
-
-                color:
-                  '#fff',
-
-                fontWeight:
-                  800,
-
-                opacity:
-                  challengeSubmitting
-                    ? 0.6
-                    : 1
-              }}
-            >
-
-              {challengeSubmitting
-                ? 'Checking...'
-                : "Yes, I'm Listening"}
-
-            </button>
-
-          </section>
-        )}
 
 
         {/* =================================================
@@ -3181,14 +3196,196 @@ function StreamContent() {
               '18px 20px 0'
           }}
         >
-          Rewaiq verifies your
-          streaming session using
-          server-side heartbeats,
-          page visibility and
-          listening challenges.
+          Your listening time is
+          being verified by Rewaiq.
+          Keep this page visible and
+          keep the music playing.
+          We'll occasionally check
+          that you're still listening.
         </p>
 
       </main>
+
+
+      {/* ===================================================
+          LISTENING CHALLENGE — FULL-SCREEN MODAL
+          Sits above everything (including the sticky header)
+          so it's unmissable no matter where the user has
+          scrolled. There is no dismiss/close path — the only
+          way past it is tapping the confirm button, which
+          sends challenge_response: true on the next heartbeat.
+          The Audiomack iframe keeps playing underneath, so
+          verified seconds keep accruing while they respond.
+      =================================================== */}
+
+      {challengeVisible &&
+        status === 'streaming' && (
+
+        <div
+          style={{
+            position:
+              'fixed',
+
+            inset:
+              0,
+
+            background:
+              'rgba(3,8,18,0.85)',
+
+            backdropFilter:
+              'blur(4px)',
+
+            display:
+              'flex',
+
+            alignItems:
+              'center',
+
+            justifyContent:
+              'center',
+
+            zIndex:
+              100,
+
+            padding:
+              20
+          }}
+        >
+
+          <div
+            className="challenge-pop"
+            style={{
+              width:
+                '100%',
+
+              maxWidth:
+                360,
+
+              padding:
+                26,
+
+              borderRadius:
+                22,
+
+              background:
+                'linear-gradient(145deg, #162E50, #102440)',
+
+              border:
+                '1px solid rgba(74,158,255,0.35)',
+
+              textAlign:
+                'center',
+
+              boxShadow:
+                '0 25px 60px rgba(0,0,0,0.5)'
+            }}
+          >
+
+            <ShieldCheck
+              size={38}
+              color="#4a9eff"
+            />
+
+            <p
+              style={{
+                fontSize:
+                  19,
+
+                fontWeight:
+                  900,
+
+                margin:
+                  '14px 0 6px'
+              }}
+            >
+              Quick listening check
+            </p>
+
+            <p
+              style={{
+                color:
+                  '#9DB0C7',
+
+                fontSize:
+                  13,
+
+                margin:
+                  '0 0 18px',
+
+                lineHeight:
+                  1.5
+              }}
+            >
+              Are you still listening
+              to the track?
+            </p>
+
+            <div
+              className="confirm-arrow-bounce"
+              style={{
+                marginBottom:
+                  8,
+
+                color:
+                  '#4a9eff'
+              }}
+            >
+
+              <ArrowDown
+                size={22}
+              />
+
+            </div>
+
+            <button
+              onClick={
+                handleChallenge
+              }
+              disabled={
+                challengeSubmitting
+              }
+              style={{
+                width:
+                  '100%',
+
+                padding:
+                  '15px',
+
+                borderRadius:
+                  14,
+
+                border:
+                  'none',
+
+                background:
+                  '#4a9eff',
+
+                color:
+                  '#fff',
+
+                fontWeight:
+                  800,
+
+                fontSize:
+                  15,
+
+                opacity:
+                  challengeSubmitting
+                    ? 0.6
+                    : 1
+              }}
+            >
+
+              {challengeSubmitting
+                ? 'Checking...'
+                : "Yes, I'm Still Listening"}
+
+            </button>
+
+          </div>
+
+        </div>
+      )}
 
 
       {/* ===================================================
@@ -3212,21 +3409,19 @@ function StreamContent() {
         }
 
 
-        @keyframes pulsePlay {
+        @keyframes arrowPulse {
 
           0% {
             transform:
-              translate(-50%, -50%)
-              scale(0.90);
+              scale(0.94);
 
             opacity:
-              0.6;
+              0.65;
           }
 
           50% {
             transform:
-              translate(-50%, -50%)
-              scale(1.05);
+              scale(1.06);
 
             opacity:
               1;
@@ -3234,23 +3429,95 @@ function StreamContent() {
 
           100% {
             transform:
-              translate(-50%, -50%)
-              scale(0.90);
+              scale(0.94);
 
             opacity:
-              0.6;
+              0.65;
           }
 
         }
 
 
-        .play-pointer {
+        .play-arrow {
 
           animation:
-            pulsePlay
-            1.5s
+            arrowPulse
+            1.3s
             ease-in-out
             infinite;
+
+          transform-origin:
+            center;
+
+        }
+
+
+        @keyframes bounceDown {
+
+          0%,
+          100% {
+            transform:
+              translateY(0);
+
+            opacity:
+              0.7;
+          }
+
+          50% {
+            transform:
+              translateY(6px);
+
+            opacity:
+              1;
+          }
+
+        }
+
+
+        .confirm-arrow-bounce {
+
+          display:
+            flex;
+
+          justify-content:
+            center;
+
+          animation:
+            bounceDown
+            1s
+            ease-in-out
+            infinite;
+
+        }
+
+
+        @keyframes challengePop {
+
+          from {
+            transform:
+              scale(0.92);
+
+            opacity:
+              0;
+          }
+
+          to {
+            transform:
+              scale(1);
+
+            opacity:
+              1;
+          }
+
+        }
+
+
+        .challenge-pop {
+
+          animation:
+            challengePop
+            0.25s
+            ease-out;
 
         }
 
