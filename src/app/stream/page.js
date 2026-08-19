@@ -96,6 +96,7 @@ function getSavedTrack() {
     return JSON.parse(saved);
 
   } catch (error) {
+
     console.warn(
       'Could not read saved stream track:',
       error
@@ -139,7 +140,7 @@ function StreamContent() {
 
 
   // -------------------------------------------------------
-  // UI state
+  // UI
   // -------------------------------------------------------
 
   const [loading, setLoading] =
@@ -175,14 +176,8 @@ function StreamContent() {
   // -------------------------------------------------------
   // ONBOARDING
   //
-  // Step 1:
-  // User must interact with the actual Audiomack player.
-  //
-  // Step 2:
-  // User confirms that they pressed Play.
-  //
-  // IMPORTANT:
-  // There is NO automatic timer.
+  // 1 = Press Play inside Audiomack
+  // 2 = Confirm that playback has started
   // -------------------------------------------------------
 
   const [showOnboarding, setShowOnboarding] =
@@ -232,20 +227,26 @@ function StreamContent() {
   // =======================================================
 
   useEffect(() => {
+
     sessionIdRef.current =
       sessionId;
+
   }, [sessionId]);
 
 
   useEffect(() => {
+
     playbackStartedRef.current =
       playbackStarted;
+
   }, [playbackStarted]);
 
 
   useEffect(() => {
+
     statusRef.current =
       status;
+
   }, [status]);
 
 
@@ -256,12 +257,51 @@ function StreamContent() {
   useEffect(() => {
 
     if (urlTrackId) {
+
       setTrackId(
         String(urlTrackId)
       );
+
     }
 
   }, [urlTrackId]);
+
+
+  // =======================================================
+  // LOCK PAGE DURING ONBOARDING
+  // =======================================================
+
+  useEffect(() => {
+
+    if (!showOnboarding) {
+      document.body.style.overflow = '';
+      return;
+    }
+
+    const previousOverflow =
+      document.body.style.overflow;
+
+    const previousTouchAction =
+      document.body.style.touchAction;
+
+    document.body.style.overflow =
+      'hidden';
+
+    document.body.style.touchAction =
+      'none';
+
+
+    return () => {
+
+      document.body.style.overflow =
+        previousOverflow;
+
+      document.body.style.touchAction =
+        previousTouchAction;
+
+    };
+
+  }, [showOnboarding]);
 
 
   // =======================================================
@@ -295,6 +335,7 @@ function StreamContent() {
           setError(
             'No track selected'
           );
+
         }
 
         return;
@@ -326,7 +367,9 @@ function StreamContent() {
           );
 
           setLoading(false);
+
         }
+
       }
 
 
@@ -353,9 +396,11 @@ function StreamContent() {
           response?.data;
 
         if (!loadedTrack) {
+
           throw new Error(
             'Track not found'
           );
+
         }
 
         setTrack(
@@ -409,21 +454,29 @@ function StreamContent() {
               err?.message ||
               'Track not found'
             );
+
           }
+
         }
 
       } finally {
 
         if (!cancelled) {
+
           setLoading(false);
+
         }
+
       }
+
     }
 
     loadTrack();
 
     return () => {
+
       cancelled = true;
+
     };
 
   }, [urlTrackId]);
@@ -460,7 +513,9 @@ function StreamContent() {
         return (
           `https://audiomack.com/embed/${parts}`
         );
+
       }
+
     }
 
     return null;
@@ -472,19 +527,7 @@ function StreamContent() {
 
 
   // =======================================================
-  // STEP 1 LOCK
-  //
-  // Only the header/back button and Audiomack player should
-  // remain interactive.
-  // =======================================================
-
-  const isStepOneLocked =
-    showOnboarding &&
-    onboardingStep === 1;
-
-
-  // =======================================================
-  // CLEAR HEARTBEAT
+  // HEARTBEAT
   // =======================================================
 
   function clearHeartbeat() {
@@ -499,13 +542,11 @@ function StreamContent() {
 
       heartbeatRef.current =
         null;
+
     }
+
   }
 
-
-  // =======================================================
-  // PAGE VISIBILITY
-  // =======================================================
 
   function getPageState() {
 
@@ -518,6 +559,7 @@ function StreamContent() {
         visible: true,
         focused: true
       };
+
     }
 
     return {
@@ -528,13 +570,11 @@ function StreamContent() {
 
       focused:
         document.hasFocus()
+
     };
+
   }
 
-
-  // =======================================================
-  // HEARTBEAT
-  // =======================================================
 
   async function sendHeartbeat(
     challengeResponse = undefined
@@ -551,7 +591,9 @@ function StreamContent() {
       !currentPlaybackStarted ||
       heartbeatBusyRef.current
     ) {
+
       return null;
+
     }
 
     heartbeatBusyRef.current =
@@ -576,6 +618,7 @@ function StreamContent() {
 
         playback_started:
           true
+
       };
 
 
@@ -586,6 +629,7 @@ function StreamContent() {
 
         payload.challenge_response =
           challengeResponse;
+
       }
 
 
@@ -600,10 +644,6 @@ function StreamContent() {
         response?.data || {};
 
 
-      // ---------------------------------------------------
-      // Verified time
-      // ---------------------------------------------------
-
       if (
         typeof data.valid_seconds ===
         'number'
@@ -615,12 +655,9 @@ function StreamContent() {
             REQUIRED_SECONDS
           )
         );
+
       }
 
-
-      // ---------------------------------------------------
-      // Challenge
-      // ---------------------------------------------------
 
       if (
         data.challenge_required &&
@@ -630,12 +667,9 @@ function StreamContent() {
         setChallengeVisible(
           true
         );
+
       }
 
-
-      // ---------------------------------------------------
-      // Complete
-      // ---------------------------------------------------
 
       if (
         data.complete
@@ -646,7 +680,9 @@ function StreamContent() {
         await finishStream(
           currentSessionId
         );
+
       }
+
 
       return data;
 
@@ -663,13 +699,11 @@ function StreamContent() {
 
       heartbeatBusyRef.current =
         false;
+
     }
+
   }
 
-
-  // =======================================================
-  // START HEARTBEAT LOOP
-  // =======================================================
 
   function startHeartbeatLoop() {
 
@@ -680,10 +714,13 @@ function StreamContent() {
     heartbeatRef.current =
       setInterval(
         () => {
+
           sendHeartbeat();
+
         },
         HEARTBEAT_INTERVAL
       );
+
   }
 
 
@@ -698,7 +735,9 @@ function StreamContent() {
     if (
       endingRef.current
     ) {
+
       return;
+
     }
 
     endingRef.current =
@@ -723,20 +762,10 @@ function StreamContent() {
         );
 
 
-      console.log(
-        'Stream completed:',
-        response?.data
-      );
-
-
       const backendBalance =
         response?.data
           ?.coin_balance;
 
-
-      // ---------------------------------------------------
-      // Update local user
-      // ---------------------------------------------------
 
       if (
         backendBalance !==
@@ -775,8 +804,11 @@ function StreamContent() {
               'Could not update stored user:',
               storageError
             );
+
           }
+
         }
+
       }
 
 
@@ -836,8 +868,11 @@ function StreamContent() {
                 'Could not update stored wallet:',
                 storageError
               );
+
             }
+
           }
+
         }
 
       } catch (
@@ -848,6 +883,7 @@ function StreamContent() {
           'Could not refresh coin balance:',
           balanceError
         );
+
       }
 
 
@@ -870,6 +906,7 @@ function StreamContent() {
       setChallengeVisible(
         false
       );
+
 
       sessionIdRef.current =
         null;
@@ -920,7 +957,9 @@ function StreamContent() {
 
       endingRef.current =
         false;
+
     }
+
   }
 
 
@@ -933,14 +972,18 @@ function StreamContent() {
     if (
       startingRef.current
     ) {
+
       return;
+
     }
 
     if (
       status !== 'idle' &&
       status !== 'completed'
     ) {
+
       return;
+
     }
 
     if (!track) {
@@ -950,6 +993,7 @@ function StreamContent() {
       );
 
       return;
+
     }
 
     const resolvedTrackId =
@@ -963,6 +1007,7 @@ function StreamContent() {
       );
 
       return;
+
     }
 
     if (!embedUrl) {
@@ -972,6 +1017,7 @@ function StreamContent() {
       );
 
       return;
+
     }
 
 
@@ -1001,15 +1047,10 @@ function StreamContent() {
         false
       );
 
-
       saveTrackLocally(
         track
       );
 
-
-      // ---------------------------------------------------
-      // Create backend session
-      // ---------------------------------------------------
 
       setStatus(
         'starting'
@@ -1052,12 +1093,9 @@ function StreamContent() {
         throw new Error(
           'Stream session was not created'
         );
+
       }
 
-
-      // ---------------------------------------------------
-      // Set session immediately
-      // ---------------------------------------------------
 
       sessionIdRef.current =
         newSessionId;
@@ -1066,10 +1104,6 @@ function StreamContent() {
         newSessionId
       );
 
-
-      // ---------------------------------------------------
-      // Show player
-      // ---------------------------------------------------
 
       setShowEmbed(
         true
@@ -1082,13 +1116,6 @@ function StreamContent() {
       statusRef.current =
         'awaiting_play';
 
-
-      // ---------------------------------------------------
-      // IMPORTANT
-      //
-      // Always start at Step 1.
-      // There is NO timer that automatically advances it.
-      // ---------------------------------------------------
 
       setOnboardingStep(
         1
@@ -1133,15 +1160,19 @@ function StreamContent() {
 
       startingRef.current =
         false;
+
     }
+
   }
 
 
   // =======================================================
   // STEP 1 CONFIRMATION
   //
-  // User explicitly confirms that they pressed Play.
-  // There is no automatic progression.
+  // IMPORTANT:
+  // There is NO timer.
+  //
+  // User must deliberately tap the guide card.
   // =======================================================
 
   function handleAcknowledgePlayTap() {
@@ -1149,17 +1180,20 @@ function StreamContent() {
     if (
       onboardingStep !== 1
     ) {
+
       return;
+
     }
 
     setOnboardingStep(
       2
     );
+
   }
 
 
   // =======================================================
-  // USER CONFIRMS PLAYBACK
+  // STEP 2
   // =======================================================
 
   function handlePlaybackConfirmation() {
@@ -1167,15 +1201,14 @@ function StreamContent() {
     const currentSession =
       sessionIdRef.current;
 
-    if (
-      !currentSession
-    ) {
+    if (!currentSession) {
 
       setError(
         'Streaming session is not ready.'
       );
 
       return;
+
     }
 
 
@@ -1207,11 +1240,12 @@ function StreamContent() {
 
 
     startHeartbeatLoop();
+
   }
 
 
   // =======================================================
-  // CHALLENGE RESPONSE
+  // CHALLENGE
   // =======================================================
 
   async function handleChallenge() {
@@ -1220,7 +1254,9 @@ function StreamContent() {
       challengeSubmitting ||
       !sessionIdRef.current
     ) {
+
       return;
+
     }
 
     setChallengeSubmitting(
@@ -1250,6 +1286,7 @@ function StreamContent() {
         setError(
           'Please confirm that you are still listening.'
         );
+
       }
 
     } finally {
@@ -1257,12 +1294,14 @@ function StreamContent() {
       setChallengeSubmitting(
         false
       );
+
     }
+
   }
 
 
   // =======================================================
-  // STOP STREAMING
+  // STOP
   // =======================================================
 
   async function handleStopStreaming() {
@@ -1273,9 +1312,7 @@ function StreamContent() {
       sessionIdRef.current;
 
 
-    if (
-      currentSession
-    ) {
+    if (currentSession) {
 
       try {
 
@@ -1293,7 +1330,9 @@ function StreamContent() {
           'Could not end stream:',
           err
         );
+
       }
+
     }
 
 
@@ -1342,6 +1381,7 @@ function StreamContent() {
     setOnboardingStep(
       1
     );
+
   }
 
 
@@ -1357,7 +1397,9 @@ function StreamContent() {
         document.visibilityState !==
         'visible'
       ) {
+
         return;
+
       }
 
       if (
@@ -1367,7 +1409,9 @@ function StreamContent() {
       ) {
 
         sendHeartbeat();
+
       }
+
     }
 
 
@@ -1383,6 +1427,7 @@ function StreamContent() {
         'visibilitychange',
         handleVisibility
       );
+
     };
 
   }, []);
@@ -1403,6 +1448,7 @@ function StreamContent() {
 
       playbackStartedRef.current =
         false;
+
     };
 
   }, []);
@@ -1455,6 +1501,7 @@ function StreamContent() {
     return (
       <Spinner fullscreen />
     );
+
   }
 
 
@@ -1465,6 +1512,7 @@ function StreamContent() {
   if (!track) {
 
     return (
+
       <div
         style={{
           minHeight:
@@ -1529,7 +1577,9 @@ function StreamContent() {
         </button>
 
       </div>
+
     );
+
   }
 
 
@@ -1538,7 +1588,13 @@ function StreamContent() {
   // =======================================================
 
   return (
+
     <div
+      className={
+        showOnboarding
+          ? 'stream-page onboarding-active'
+          : 'stream-page'
+      }
       style={{
         minHeight:
           '100vh',
@@ -1550,16 +1606,12 @@ function StreamContent() {
           '#fff',
 
         paddingBottom:
-          40,
-
-        overflowX:
-          'hidden'
+          40
       }}
     >
 
       {/* =================================================
           HEADER
-          BACK REMAINS ACTIVE DURING STEP 1
       ================================================= */}
 
       <div
@@ -1629,8 +1681,11 @@ function StreamContent() {
             justifyContent:
               'center',
 
-            cursor:
-              'pointer'
+            position:
+              'relative',
+
+            zIndex:
+              300
           }}
         >
 
@@ -1690,94 +1745,18 @@ function StreamContent() {
           padding:
             '22px 18px',
 
-          position:
-            'relative'
+          pointerEvents:
+            showOnboarding
+              ? 'none'
+              : 'auto'
         }}
       >
-
-        {/* =================================================
-            LOCK NOTICE
-        ================================================= */}
-
-        {isStepOneLocked && (
-
-          <div
-            style={{
-              position:
-                'sticky',
-
-              top:
-                76,
-
-              zIndex:
-                40,
-
-              marginBottom:
-                12,
-
-              padding:
-                '10px 13px',
-
-              borderRadius:
-                12,
-
-              background:
-                'rgba(74,158,255,0.12)',
-
-              border:
-                '1px solid rgba(74,158,255,0.25)',
-
-              display:
-                'flex',
-
-              alignItems:
-                'center',
-
-              gap:
-                9,
-
-              pointerEvents:
-                'none'
-            }}
-          >
-
-            <Hand
-              size={17}
-              color="#4a9eff"
-            />
-
-            <span
-              style={{
-                fontSize:
-                  11,
-
-                color:
-                  '#B7C9DE',
-
-                lineHeight:
-                  1.4
-              }}
-            >
-              Step 1 of 2 — Press Play
-              in the Audiomack player
-              below.
-            </span>
-
-          </div>
-
-        )}
-
 
         {/* =================================================
             TRACK INFO
         ================================================= */}
 
         <section
-          className={
-            isStepOneLocked
-              ? 'locked-section'
-              : ''
-          }
           style={{
             background:
               'linear-gradient(145deg, #102747, #0D1F3C)',
@@ -1932,7 +1911,6 @@ function StreamContent() {
 
         {/* =================================================
             AUDIO PLAYER
-            THIS REMAINS INTERACTIVE DURING STEP 1
         ================================================= */}
 
         <section
@@ -1950,13 +1928,7 @@ function StreamContent() {
               16,
 
             border:
-              '1px solid rgba(255,255,255,0.06)',
-
-            position:
-              'relative',
-
-            zIndex:
-              60
+              '1px solid rgba(255,255,255,0.06)'
           }}
         >
 
@@ -2068,6 +2040,12 @@ function StreamContent() {
           embedUrl ? (
 
             <div
+              className={
+                showOnboarding &&
+                onboardingStep === 1
+                  ? 'player-guide-target'
+                  : ''
+              }
               style={{
                 width:
                   '100%',
@@ -2088,10 +2066,7 @@ function StreamContent() {
                   '1px solid rgba(255,255,255,0.05)',
 
                 position:
-                  'relative',
-
-                zIndex:
-                  70
+                  'relative'
               }}
             >
 
@@ -2126,10 +2101,7 @@ function StreamContent() {
                     'none',
 
                   display:
-                    'block',
-
-                  zIndex:
-                    71
+                    'block'
                 }}
               />
 
@@ -2142,6 +2114,7 @@ function StreamContent() {
                 onboardingStep === 1 && (
 
                 <div
+                  className="guide-overlay"
                   style={{
                     position:
                       'absolute',
@@ -2149,25 +2122,180 @@ function StreamContent() {
                     inset:
                       0,
 
-                    pointerEvents:
-                      'none',
-
                     zIndex:
-                      80
+                      10
                   }}
                 >
 
-                  {/* ---------------------------------------------
-                      GUIDE CARD
+                  {/* Animated target pulse */}
 
-                      This is the ONLY clickable guide element.
-                  --------------------------------------------- */}
+                  <div
+                    className="play-target-pulse"
+                    style={{
+                      position:
+                        'absolute',
+
+                      left:
+                        12,
+
+                      bottom:
+                        12,
+
+                      width:
+                        70,
+
+                      height:
+                        70,
+
+                      borderRadius:
+                        '50%',
+
+                      border:
+                        '3px solid #4a9eff',
+
+                      boxShadow:
+                        '0 0 0 6px rgba(74,158,255,0.12), 0 0 30px rgba(74,158,255,0.55)',
+
+                      pointerEvents:
+                        'none'
+                    }}
+                  />
+
+                  {/* PLAY label */}
+
+                  <div
+                    className="tap-play-label"
+                    style={{
+                      position:
+                        'absolute',
+
+                      left:
+                        88,
+
+                      bottom:
+                        46,
+
+                      padding:
+                        '7px 11px',
+
+                      borderRadius:
+                        999,
+
+                      background:
+                        '#4a9eff',
+
+                      color:
+                        '#fff',
+
+                      fontSize:
+                        10,
+
+                      fontWeight:
+                        900,
+
+                      letterSpacing:
+                        '0.7px',
+
+                      boxShadow:
+                        '0 8px 25px rgba(74,158,255,0.45)'
+                    }}
+                  >
+                    TAP PLAY
+                  </div>
+
+
+                  {/* Large curved arrow */}
+
+                  <svg
+                    className="sharp-play-arrow"
+                    width="150"
+                    height="150"
+                    viewBox="0 0 150 150"
+                    style={{
+                      position:
+                        'absolute',
+
+                      left:
+                        48,
+
+                      bottom:
+                        62,
+
+                      overflow:
+                        'visible',
+
+                      pointerEvents:
+                        'none'
+                    }}
+                  >
+
+                    <defs>
+
+                      <filter
+                        id="arrowGlow"
+                        x="-50%"
+                        y="-50%"
+                        width="200%"
+                        height="200%"
+                      >
+
+                        <feGaussianBlur
+                          stdDeviation="3"
+                          result="blur"
+                        />
+
+                        <feMerge>
+
+                          <feMergeNode
+                            in="blur"
+                          />
+
+                          <feMergeNode
+                            in="SourceGraphic"
+                          />
+
+                        </feMerge>
+
+                      </filter>
+
+                    </defs>
+
+
+                    <path
+                      d="
+                        M 130 12
+                        C 85 15,
+                          40 38,
+                          34 102
+                      "
+                      stroke="#4a9eff"
+                      strokeWidth="6"
+                      fill="none"
+                      strokeLinecap="round"
+                      filter="url(#arrowGlow)"
+                    />
+
+
+                    <polygon
+                      points="
+                        18,98
+                        48,94
+                        34,122
+                      "
+                      fill="#4a9eff"
+                      filter="url(#arrowGlow)"
+                    />
+
+                  </svg>
+
+
+                  {/* Instruction card */}
 
                   <button
-                    type="button"
                     onClick={
                       handleAcknowledgePlayTap
                     }
+                    className="play-instruction-card"
                     style={{
                       position:
                         'absolute',
@@ -2181,32 +2309,32 @@ function StreamContent() {
                       right:
                         14,
 
-                      padding:
-                        '12px 14px',
+                      border:
+                        '1px solid rgba(74,158,255,0.55)',
 
                       borderRadius:
-                        13,
+                        16,
 
                       background:
-                        'rgba(5,12,24,0.96)',
-
-                      border:
-                        '1px solid rgba(74,158,255,0.45)',
-
-                      boxShadow:
-                        '0 12px 35px rgba(0,0,0,0.45)',
-
-                      pointerEvents:
-                        'auto',
-
-                      cursor:
-                        'pointer',
+                        'rgba(5,12,24,0.97)',
 
                       color:
                         '#fff',
 
+                      padding:
+                        '14px 15px',
+
                       textAlign:
-                        'left'
+                        'left',
+
+                      cursor:
+                        'pointer',
+
+                      boxShadow:
+                        '0 14px 35px rgba(0,0,0,0.55)',
+
+                      pointerEvents:
+                        'auto'
                     }}
                   >
 
@@ -2219,95 +2347,132 @@ function StreamContent() {
                           'center',
 
                         gap:
-                          8
+                          10
                       }}
                     >
 
-                      <Hand
-                        size={19}
-                        color="#4a9eff"
-                      />
-
-                      <strong
+                      <div
+                        className="guide-hand"
                         style={{
-                          fontSize:
-                            13
+                          width:
+                            38,
+
+                          height:
+                            38,
+
+                          borderRadius:
+                            12,
+
+                          background:
+                            'rgba(74,158,255,0.14)',
+
+                          display:
+                            'flex',
+
+                          alignItems:
+                            'center',
+
+                          justifyContent:
+                            'center'
                         }}
                       >
-                        Step 1: Press Play
-                      </strong>
+
+                        <Hand
+                          size={21}
+                          color="#4a9eff"
+                        />
+
+                      </div>
+
+
+                      <div
+                        style={{
+                          flex:
+                            1
+                        }}
+                      >
+
+                        <div
+                          style={{
+                            fontSize:
+                              14,
+
+                            fontWeight:
+                              900
+                          }}
+                        >
+                          Step 1 — Press Play
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize:
+                              11,
+
+                            color:
+                              '#9DB0C7',
+
+                            marginTop:
+                              4,
+
+                            lineHeight:
+                              1.45
+                          }}
+                        >
+                          Tap the ▶ Play button
+                          inside the Audiomack
+                          player.
+                        </div>
+
+                      </div>
 
                     </div>
 
 
                     <div
+                      className="guide-continue"
                       style={{
-                        fontSize:
+                        marginTop:
                           11,
 
+                        paddingTop:
+                          10,
+
+                        borderTop:
+                          '1px solid rgba(255,255,255,0.07)',
+
+                        display:
+                          'flex',
+
+                        alignItems:
+                          'center',
+
+                        justifyContent:
+                          'space-between',
+
+                        fontSize:
+                          10,
+
                         color:
-                          '#A9BCD3',
+                          '#4a9eff',
 
-                        marginTop:
-                          6,
-
-                        lineHeight:
-                          1.5
+                        fontWeight:
+                          800
                       }}
                     >
-                      Tap the real Play
-                      button in Audiomack.
-                      After you press it,
-                      tap this instruction
-                      to continue.
+
+                      <span>
+                        AFTER PLAYING,
+                        TAP HERE
+                      </span>
+
+                      <ArrowDown
+                        size={16}
+                      />
+
                     </div>
 
                   </button>
-
-
-                  {/* ---------------------------------------------
-                      ARROW
-
-                      Points toward the lower-left player controls.
-                  --------------------------------------------- */}
-
-                  <svg
-                    width="100"
-                    height="100"
-                    viewBox="0 0 100 100"
-                    style={{
-                      position:
-                        'absolute',
-
-                      left:
-                        '1%',
-
-                      bottom:
-                        28,
-
-                      pointerEvents:
-                        'none',
-
-                      overflow:
-                        'visible'
-                    }}
-                  >
-
-                    <path
-                      d="M82 12 C 55 18, 28 42, 17 78"
-                      stroke="#4a9eff"
-                      strokeWidth="4"
-                      fill="none"
-                      strokeLinecap="round"
-                      className="play-arrow"
-                    />
-
-                    <polygon
-                      points="7,72 25,72 16,91"
-                      fill="#4a9eff"
-                    />
-
-                  </svg>
 
                 </div>
               )}
@@ -2359,13 +2524,14 @@ function StreamContent() {
               </p>
 
             </div>
+
           )}
 
         </section>
 
 
         {/* =================================================
-            STEP 2
+            STEP 2 CONFIRMATION
         ================================================= */}
 
         {status ===
@@ -2373,8 +2539,9 @@ function StreamContent() {
 
           <section
             className={
-              isStepOneLocked
-                ? 'locked-section'
+              showOnboarding &&
+              onboardingStep === 2
+                ? 'step-two-highlight'
                 : ''
             }
             style={{
@@ -2394,7 +2561,16 @@ function StreamContent() {
                 16,
 
               textAlign:
-                'center'
+                'center',
+
+              position:
+                'relative',
+
+              zIndex:
+                showOnboarding &&
+                onboardingStep === 2
+                  ? 301
+                  : 'auto'
             }}
           >
 
@@ -2438,11 +2614,9 @@ function StreamContent() {
               }}
             >
               Press Play inside the
-              Audiomack player.
-              Once the music has
-              started, tap the
-              confirmation above
-              the player.
+              Audiomack player. Once
+              the music has started,
+              tap the button below.
             </p>
 
 
@@ -2450,10 +2624,10 @@ function StreamContent() {
               onboardingStep === 2 && (
 
               <div
-                className="confirm-arrow-bounce"
+                className="step-two-arrow"
                 style={{
                   marginBottom:
-                    6,
+                    5,
 
                   color:
                     '#4a9eff'
@@ -2461,19 +2635,17 @@ function StreamContent() {
               >
 
                 <ArrowDown
-                  size={22}
+                  size={27}
                 />
 
               </div>
+
             )}
 
 
             <button
               onClick={
                 handlePlaybackConfirmation
-              }
-              disabled={
-                onboardingStep !== 2
               }
               style={{
                 width:
@@ -2489,14 +2661,10 @@ function StreamContent() {
                   'none',
 
                 background:
-                  onboardingStep === 2
-                    ? 'linear-gradient(135deg, #4a9eff, #2d6be4)'
-                    : 'rgba(255,255,255,0.08)',
+                  'linear-gradient(135deg, #4a9eff, #2d6be4)',
 
                 color:
-                  onboardingStep === 2
-                    ? '#fff'
-                    : '#52677F',
+                  '#fff',
 
                 fontWeight:
                   800,
@@ -2504,21 +2672,18 @@ function StreamContent() {
                 fontSize:
                   14,
 
-                cursor:
+                boxShadow:
+                  showOnboarding &&
                   onboardingStep === 2
-                    ? 'pointer'
-                    : 'not-allowed',
-
-                opacity:
-                  onboardingStep === 2
-                    ? 1
-                    : 0.65
+                    ? '0 0 0 5px rgba(74,158,255,0.18), 0 12px 30px rgba(45,107,228,0.35)'
+                    : 'none'
               }}
             >
               ✓ I've Started Playing
             </button>
 
           </section>
+
         )}
 
 
@@ -2580,15 +2745,10 @@ function StreamContent() {
 
 
         {/* =================================================
-            EARNING TIMER
+            TIMER
         ================================================= */}
 
         <section
-          className={
-            isStepOneLocked
-              ? 'locked-section'
-              : ''
-          }
           style={{
             background:
               '#0D1F3C',
@@ -2702,6 +2862,7 @@ function StreamContent() {
                 >
                   verified seconds
                 </span>
+
               )}
 
             </div>
@@ -2816,7 +2977,7 @@ function StreamContent() {
 
 
         {/* =================================================
-            SCREENSHOT CHECKPOINT
+            SCREENSHOT
         ================================================= */}
 
         {showScreenshotPrompt &&
@@ -2896,8 +3057,6 @@ function StreamContent() {
                   onboarding, take a
                   screenshot showing
                   the Audiomack player.
-                  This is an additional
-                  verification step.
                 </p>
 
               </div>
@@ -2905,11 +3064,12 @@ function StreamContent() {
             </div>
 
           </section>
+
         )}
 
 
         {/* =================================================
-            COMPLETED / ACTION
+            COMPLETED
         ================================================= */}
 
         {status ===
@@ -2956,9 +3116,6 @@ function StreamContent() {
                   style={{
                     margin:
                       0,
-
-                    color:
-                      '#fff',
 
                     fontWeight:
                       800,
@@ -3108,12 +3265,7 @@ function StreamContent() {
                 'center',
 
               gap:
-                9,
-
-              opacity:
-                isStepOneLocked
-                  ? 0.5
-                  : 1
+                9
             }}
           >
 
@@ -3134,9 +3286,9 @@ function StreamContent() {
                   1.5
               }}
             >
-              {isStepOneLocked
-                ? 'Step 1 is active. Press Play in Audiomack first.'
-                : 'Press the confirmation button above to start verification.'}
+              Your earning timer has
+              not started. Press Play
+              in Audiomack first.
             </span>
 
           </div>
@@ -3272,19 +3424,11 @@ function StreamContent() {
             </p>
 
           </div>
+
         )}
 
 
-        {/* =================================================
-            INFO
-        ================================================= */}
-
         <p
-          className={
-            isStepOneLocked
-              ? 'locked-section'
-              : ''
-          }
           style={{
             textAlign:
               'center',
@@ -3306,11 +3450,117 @@ function StreamContent() {
           being verified by Rewaiq.
           Keep this page visible and
           keep the music playing.
-          We'll occasionally check
-          that you're still listening.
         </p>
 
       </main>
+
+
+      {/* ===================================================
+          ONBOARDING LOCK OVERLAY
+      =================================================== */}
+
+      {showOnboarding && (
+
+        <div
+          className="onboarding-lock"
+          style={{
+            position:
+              'fixed',
+
+            inset:
+              0,
+
+            zIndex:
+              150,
+
+            background:
+              'rgba(1,6,15,0.62)',
+
+            pointerEvents:
+              'auto'
+          }}
+        >
+
+          {/* Keep the target player visible */}
+
+          {onboardingStep === 1 && (
+
+            <div
+              className="player-spotlight"
+              style={{
+                position:
+                  'absolute',
+
+                top:
+                  '50%',
+
+                left:
+                  '50%',
+
+                width:
+                  'calc(100% - 36px)',
+
+                maxWidth:
+                  520,
+
+                height:
+                  252,
+
+                transform:
+                  'translate(-50%, -50%)',
+
+                borderRadius:
+                  16,
+
+                pointerEvents:
+                  'none'
+              }}
+            />
+
+          )}
+
+
+          {/* Step 2 spotlight */}
+
+          {onboardingStep === 2 && (
+
+            <div
+              className="step-two-spotlight"
+              style={{
+                position:
+                  'absolute',
+
+                top:
+                  '58%',
+
+                left:
+                  '50%',
+
+                width:
+                  'calc(100% - 36px)',
+
+                maxWidth:
+                  520,
+
+                height:
+                  180,
+
+                transform:
+                  'translate(-50%, -50%)',
+
+                borderRadius:
+                  20,
+
+                pointerEvents:
+                  'none'
+              }}
+            />
+
+          )}
+
+        </div>
+
+      )}
 
 
       {/* ===================================================
@@ -3344,7 +3594,7 @@ function StreamContent() {
               'center',
 
             zIndex:
-              300,
+              500,
 
             padding:
               20
@@ -3484,6 +3734,7 @@ function StreamContent() {
           </div>
 
         </div>
+
       )}
 
 
@@ -3493,18 +3744,9 @@ function StreamContent() {
 
       <style jsx global>{`
 
-        /*
-         * During Step 1:
-         *
-         * - Header/back remains active.
-         * - Audiomack player remains active.
-         * - Everything marked .locked-section is inactive.
-         */
-
-        .locked-section {
-          pointer-events: none !important;
-          user-select: none !important;
-          -webkit-user-select: none !important;
+        * {
+          box-sizing:
+            border-box;
         }
 
 
@@ -3534,40 +3776,54 @@ function StreamContent() {
         }
 
 
-        @keyframes arrowPulse {
+        /* ================================================
+           SHARP PLAY ARROW
+        ================================================= */
 
-          0% {
+        @keyframes sharpArrow {
+
+          0%,
+          100% {
+
             transform:
-              scale(0.94);
+              translate(0, 0)
+              scale(1);
 
             opacity:
-              0.65;
+              0.75;
+
           }
 
-          50% {
+          35% {
+
             transform:
-              scale(1.06);
+              translate(-7px, 7px)
+              scale(1.04);
 
             opacity:
               1;
+
           }
 
-          100% {
+          70% {
+
             transform:
-              scale(0.94);
+              translate(3px, -3px)
+              scale(1);
 
             opacity:
-              0.65;
+              0.9;
+
           }
 
         }
 
 
-        .play-arrow {
+        .sharp-play-arrow {
 
           animation:
-            arrowPulse
-            1.3s
+            sharpArrow
+            1.5s
             ease-in-out
             infinite;
 
@@ -3577,38 +3833,188 @@ function StreamContent() {
         }
 
 
-        @keyframes bounceDown {
+        /* ================================================
+           TARGET PULSE
+        ================================================= */
 
-          0%,
-          100% {
+        @keyframes targetPulse {
+
+          0% {
+
             transform:
-              translateY(0);
+              scale(0.88);
 
             opacity:
-              0.7;
+              0.55;
+
           }
 
           50% {
+
             transform:
-              translateY(6px);
+              scale(1.12);
 
             opacity:
               1;
+
+          }
+
+          100% {
+
+            transform:
+              scale(0.88);
+
+            opacity:
+              0.55;
+
           }
 
         }
 
 
-        .confirm-arrow-bounce {
-
-          display:
-            flex;
-
-          justify-content:
-            center;
+        .play-target-pulse {
 
           animation:
-            bounceDown
+            targetPulse
+            1.2s
+            ease-in-out
+            infinite;
+
+        }
+
+
+        /* ================================================
+           GUIDE CARD
+        ================================================= */
+
+        @keyframes guideCardPulse {
+
+          0%,
+          100% {
+
+            box-shadow:
+              0 14px 35px rgba(0,0,0,0.55),
+              0 0 0 0 rgba(74,158,255,0.0);
+
+          }
+
+          50% {
+
+            box-shadow:
+              0 18px 40px rgba(0,0,0,0.65),
+              0 0 0 5px rgba(74,158,255,0.10);
+
+          }
+
+        }
+
+
+        .play-instruction-card {
+
+          animation:
+            guideCardPulse
+            1.8s
+            ease-in-out
+            infinite;
+
+        }
+
+
+        .play-instruction-card:hover {
+
+          transform:
+            translateY(-1px);
+
+        }
+
+
+        .play-instruction-card:active {
+
+          transform:
+            scale(0.98);
+
+        }
+
+
+        /* ================================================
+           HAND
+        ================================================= */
+
+        @keyframes handTap {
+
+          0%,
+          100% {
+
+            transform:
+              translateY(0)
+              rotate(0deg);
+
+          }
+
+          40% {
+
+            transform:
+              translateY(4px)
+              rotate(-6deg);
+
+          }
+
+          70% {
+
+            transform:
+              translateY(-2px)
+              rotate(3deg);
+
+          }
+
+        }
+
+
+        .guide-hand {
+
+          animation:
+            handTap
+            1.1s
+            ease-in-out
+            infinite;
+
+        }
+
+
+        /* ================================================
+           TAP PLAY LABEL
+        ================================================= */
+
+        @keyframes labelPulse {
+
+          0%,
+          100% {
+
+            transform:
+              scale(1);
+
+            opacity:
+              0.85;
+
+          }
+
+          50% {
+
+            transform:
+              scale(1.08);
+
+            opacity:
+              1;
+
+          }
+
+        }
+
+
+        .tap-play-label {
+
+          animation:
+            labelPulse
             1s
             ease-in-out
             infinite;
@@ -3616,22 +4022,166 @@ function StreamContent() {
         }
 
 
+        /* ================================================
+           CONTINUE ARROW
+        ================================================= */
+
+        @keyframes continueBounce {
+
+          0%,
+          100% {
+
+            transform:
+              translateY(0);
+
+          }
+
+          50% {
+
+            transform:
+              translateY(5px);
+
+          }
+
+        }
+
+
+        .guide-continue svg {
+
+          animation:
+            continueBounce
+            0.9s
+            ease-in-out
+            infinite;
+
+        }
+
+
+        /* ================================================
+           SPOTLIGHT
+        ================================================= */
+
+        .player-spotlight {
+
+          box-shadow:
+            0 0 0 9999px rgba(1,6,15,0.78),
+            0 0 0 3px rgba(74,158,255,0.75),
+            0 0 45px rgba(74,158,255,0.35);
+
+          animation:
+            spotlightPulse
+            1.8s
+            ease-in-out
+            infinite;
+
+        }
+
+
+        @keyframes spotlightPulse {
+
+          0%,
+          100% {
+
+            box-shadow:
+              0 0 0 9999px rgba(1,6,15,0.78),
+              0 0 0 2px rgba(74,158,255,0.55),
+              0 0 30px rgba(74,158,255,0.25);
+
+          }
+
+          50% {
+
+            box-shadow:
+              0 0 0 9999px rgba(1,6,15,0.72),
+              0 0 0 4px rgba(74,158,255,0.95),
+              0 0 55px rgba(74,158,255,0.45);
+
+          }
+
+        }
+
+
+        /* ================================================
+           STEP 2
+        ================================================= */
+
+        .step-two-spotlight {
+
+          box-shadow:
+            0 0 0 9999px rgba(1,6,15,0.80),
+            0 0 0 3px rgba(74,158,255,0.75),
+            0 0 45px rgba(74,158,255,0.35);
+
+          animation:
+            spotlightPulse
+            1.6s
+            ease-in-out
+            infinite;
+
+        }
+
+
+        @keyframes stepTwoArrow {
+
+          0%,
+          100% {
+
+            transform:
+              translateY(-3px);
+
+            opacity:
+              0.65;
+
+          }
+
+          50% {
+
+            transform:
+              translateY(7px);
+
+            opacity:
+              1;
+
+          }
+
+        }
+
+
+        .step-two-arrow {
+
+          animation:
+            stepTwoArrow
+            0.85s
+            ease-in-out
+            infinite;
+
+        }
+
+
+        /* ================================================
+           CHALLENGE
+        ================================================= */
+
         @keyframes challengePop {
 
           from {
+
             transform:
               scale(0.92);
 
             opacity:
               0;
+
           }
 
           to {
+
             transform:
               scale(1);
 
             opacity:
               1;
+
           }
 
         }
@@ -3646,9 +4196,48 @@ function StreamContent() {
 
         }
 
+
+        /* ================================================
+           MOBILE
+        ================================================= */
+
+        @media (
+          max-width: 480px
+        ) {
+
+          .sharp-play-arrow {
+
+            left:
+              38px !important;
+
+            bottom:
+              55px !important;
+
+            width:
+              130px !important;
+
+            height:
+              130px !important;
+
+          }
+
+
+          .tap-play-label {
+
+            left:
+              78px !important;
+
+            bottom:
+              38px !important;
+
+          }
+
+        }
+
       `}</style>
 
     </div>
+
   );
 }
 
@@ -3660,12 +4249,17 @@ function StreamContent() {
 export default function StreamPage() {
 
   return (
+
     <Suspense
       fallback={
         <Spinner fullscreen />
       }
     >
+
       <StreamContent />
+
     </Suspense>
+
   );
+
 }
