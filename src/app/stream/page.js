@@ -35,10 +35,6 @@ import Spinner from '@/components/Spinner';
 const REQUIRED_SECONDS = 60;
 const HEARTBEAT_INTERVAL = 5000;
 
-// Fallback only — how long we wait before auto-advancing if
-// the user doesn't tap the "I've pressed Play" prompt.
-const PLAY_STEP_DURATION_MS = 8000;
-
 const STORAGE_KEY =
   'rewaiq_stream_track';
 
@@ -100,7 +96,6 @@ function getSavedTrack() {
     return JSON.parse(saved);
 
   } catch (error) {
-
     console.warn(
       'Could not read saved stream track:',
       error
@@ -178,15 +173,16 @@ function StreamContent() {
 
 
   // -------------------------------------------------------
-  // Onboarding / verification UI
+  // ONBOARDING
   //
-  // onboardingStep:
-  //   1 = arrow points at the real Audiomack Play button.
-  //       Pressing play inside Audiomack is mandatory before
-  //       the user can move on.
-  //   2 = arrow points at the "I've Started Playing" button,
-  //       which the user must tap to actually begin the
-  //       verification clock.
+  // Step 1:
+  // User must interact with the actual Audiomack player.
+  //
+  // Step 2:
+  // User confirms that they pressed Play.
+  //
+  // IMPORTANT:
+  // There is NO automatic timer.
   // -------------------------------------------------------
 
   const [showOnboarding, setShowOnboarding] =
@@ -206,11 +202,7 @@ function StreamContent() {
 
 
   // -------------------------------------------------------
-  // IMPORTANT REFS
-  //
-  // These prevent React's asynchronous state updates from
-  // causing the heartbeat loop to use an old session ID or
-  // old playbackStarted value.
+  // REFS
   // -------------------------------------------------------
 
   const sessionIdRef =
@@ -221,7 +213,6 @@ function StreamContent() {
 
   const statusRef =
     useRef('idle');
-
 
   const heartbeatRef =
     useRef(null);
@@ -318,7 +309,7 @@ function StreamContent() {
 
 
       // ---------------------------------------------------
-      // Show cached track immediately
+      // Cached track
       // ---------------------------------------------------
 
       if (
@@ -340,7 +331,7 @@ function StreamContent() {
 
 
       // ---------------------------------------------------
-      // Fetch fresh track
+      // Fresh track
       // ---------------------------------------------------
 
       try {
@@ -481,6 +472,18 @@ function StreamContent() {
 
 
   // =======================================================
+  // STEP 1 LOCK
+  //
+  // Only the header/back button and Audiomack player should
+  // remain interactive.
+  // =======================================================
+
+  const isStepOneLocked =
+    showOnboarding &&
+    onboardingStep === 1;
+
+
+  // =======================================================
   // CLEAR HEARTBEAT
   // =======================================================
 
@@ -536,10 +539,6 @@ function StreamContent() {
   async function sendHeartbeat(
     challengeResponse = undefined
   ) {
-
-    // IMPORTANT:
-    // Read the CURRENT values from refs instead of the
-    // values captured by an older React render.
 
     const currentSessionId =
       sessionIdRef.current;
@@ -602,12 +601,7 @@ function StreamContent() {
 
 
       // ---------------------------------------------------
-      // Update verified time
-      //
-      // IMPORTANT: we always trust the SERVER's valid_seconds.
-      // We never increment this locally, so the displayed
-      // timer can never race ahead of what the backend has
-      // actually verified.
+      // Verified time
       // ---------------------------------------------------
 
       if (
@@ -681,20 +675,12 @@ function StreamContent() {
 
     clearHeartbeat();
 
-    // First verification request.
-    //
-    // It will NOT award time because the backend intentionally
-    // treats the first heartbeat as the clock starting point.
-
     sendHeartbeat();
-
 
     heartbeatRef.current =
       setInterval(
         () => {
-
           sendHeartbeat();
-
         },
         HEARTBEAT_INTERVAL
       );
@@ -885,8 +871,6 @@ function StreamContent() {
         false
       );
 
-      // Clear active session refs.
-
       sessionIdRef.current =
         null;
 
@@ -1072,11 +1056,7 @@ function StreamContent() {
 
 
       // ---------------------------------------------------
-      // IMPORTANT:
-      // Set the ref IMMEDIATELY.
-      //
-      // This means the heartbeat loop doesn't have to wait
-      // for React to re-render.
+      // Set session immediately
       // ---------------------------------------------------
 
       sessionIdRef.current =
@@ -1088,11 +1068,7 @@ function StreamContent() {
 
 
       // ---------------------------------------------------
-      // Show player + start the mandatory two-step guide.
-      //
-      // Step 1: point at the real Audiomack Play button.
-      // The user MUST press play there before step 2 can
-      // begin — they cannot skip straight to confirming.
+      // Show player
       // ---------------------------------------------------
 
       setShowEmbed(
@@ -1107,7 +1083,16 @@ function StreamContent() {
         'awaiting_play';
 
 
-      setOnboardingStep(1);
+      // ---------------------------------------------------
+      // IMPORTANT
+      //
+      // Always start at Step 1.
+      // There is NO timer that automatically advances it.
+      // ---------------------------------------------------
+
+      setOnboardingStep(
+        1
+      );
 
       setShowOnboarding(
         true
@@ -1153,50 +1138,23 @@ function StreamContent() {
 
 
   // =======================================================
-  // ONBOARDING STEP ADVANCE
+  // STEP 1 CONFIRMATION
   //
-  // The real Audiomack Play button lives inside a cross-origin
-  // iframe, so we cannot detect a click on it directly — no
-  // page can, for any embedded player it doesn't control.
-  //
-  // Instead, step 1 advances to step 2 when the user taps the
-  // "I've pressed Play" prompt on the instruction card itself
-  // (see handleAcknowledgePlayTap below). A longer fallback
-  // timer still runs underneath in case they miss the tap
-  // prompt, so the guide never gets permanently stuck.
+  // User explicitly confirms that they pressed Play.
+  // There is no automatic progression.
   // =======================================================
 
-  useEffect(() => {
+  function handleAcknowledgePlayTap() {
 
     if (
-      !showOnboarding ||
       onboardingStep !== 1
     ) {
       return;
     }
 
-    const timer =
-      setTimeout(() => {
-        setOnboardingStep(2);
-      }, PLAY_STEP_DURATION_MS);
-
-    return () => {
-      clearTimeout(timer);
-    };
-
-  }, [
-    showOnboarding,
-    onboardingStep
-  ]);
-
-
-  function handleAcknowledgePlayTap() {
-
-    if (onboardingStep !== 1) {
-      return;
-    }
-
-    setOnboardingStep(2);
+    setOnboardingStep(
+      2
+    );
   }
 
 
@@ -1225,11 +1183,10 @@ function StreamContent() {
       false
     );
 
-    setOnboardingStep(1);
+    setOnboardingStep(
+      1
+    );
 
-
-    // IMPORTANT:
-    // Set the ref BEFORE starting heartbeat.
 
     playbackStartedRef.current =
       true;
@@ -1248,9 +1205,6 @@ function StreamContent() {
 
     setError('');
 
-
-    // Now the first heartbeat can actually use the
-    // correct session ID and playback state.
 
     startHeartbeatLoop();
   }
@@ -1392,7 +1346,7 @@ function StreamContent() {
 
 
   // =======================================================
-  // PAGE VISIBILITY
+  // VISIBILITY
   // =======================================================
 
   useEffect(() => {
@@ -1596,12 +1550,16 @@ function StreamContent() {
           '#fff',
 
         paddingBottom:
-          40
+          40,
+
+        overflowX:
+          'hidden'
       }}
     >
 
       {/* =================================================
           HEADER
+          BACK REMAINS ACTIVE DURING STEP 1
       ================================================= */}
 
       <div
@@ -1634,7 +1592,7 @@ function StreamContent() {
             0,
 
           zIndex:
-            20,
+            200,
 
           backdropFilter:
             'blur(12px)'
@@ -1669,7 +1627,10 @@ function StreamContent() {
               'center',
 
             justifyContent:
-              'center'
+              'center',
+
+            cursor:
+              'pointer'
           }}
         >
 
@@ -1727,15 +1688,96 @@ function StreamContent() {
             '0 auto',
 
           padding:
-            '22px 18px'
+            '22px 18px',
+
+          position:
+            'relative'
         }}
       >
+
+        {/* =================================================
+            LOCK NOTICE
+        ================================================= */}
+
+        {isStepOneLocked && (
+
+          <div
+            style={{
+              position:
+                'sticky',
+
+              top:
+                76,
+
+              zIndex:
+                40,
+
+              marginBottom:
+                12,
+
+              padding:
+                '10px 13px',
+
+              borderRadius:
+                12,
+
+              background:
+                'rgba(74,158,255,0.12)',
+
+              border:
+                '1px solid rgba(74,158,255,0.25)',
+
+              display:
+                'flex',
+
+              alignItems:
+                'center',
+
+              gap:
+                9,
+
+              pointerEvents:
+                'none'
+            }}
+          >
+
+            <Hand
+              size={17}
+              color="#4a9eff"
+            />
+
+            <span
+              style={{
+                fontSize:
+                  11,
+
+                color:
+                  '#B7C9DE',
+
+                lineHeight:
+                  1.4
+              }}
+            >
+              Step 1 of 2 — Press Play
+              in the Audiomack player
+              below.
+            </span>
+
+          </div>
+
+        )}
+
 
         {/* =================================================
             TRACK INFO
         ================================================= */}
 
         <section
+          className={
+            isStepOneLocked
+              ? 'locked-section'
+              : ''
+          }
           style={{
             background:
               'linear-gradient(145deg, #102747, #0D1F3C)',
@@ -1890,6 +1932,7 @@ function StreamContent() {
 
         {/* =================================================
             AUDIO PLAYER
+            THIS REMAINS INTERACTIVE DURING STEP 1
         ================================================= */}
 
         <section
@@ -1907,7 +1950,13 @@ function StreamContent() {
               16,
 
             border:
-              '1px solid rgba(255,255,255,0.06)'
+              '1px solid rgba(255,255,255,0.06)',
+
+            position:
+              'relative',
+
+            zIndex:
+              60
           }}
         >
 
@@ -2039,7 +2088,10 @@ function StreamContent() {
                   '1px solid rgba(255,255,255,0.05)',
 
                 position:
-                  'relative'
+                  'relative',
+
+                zIndex:
+                  70
               }}
             >
 
@@ -2074,24 +2126,22 @@ function StreamContent() {
                     'none',
 
                   display:
-                    'block'
+                    'block',
+
+                  zIndex:
+                    71
                 }}
               />
 
 
               {/* =================================================
-                  PLAY GUIDE — STEP 1
-                  Arrow points directly at the real Audiomack Play
-                  button (bottom-left of the embedded player).
-                  Pressing play there is mandatory — the user
-                  cannot begin verification without it.
+                  STEP 1 GUIDE
               ================================================= */}
 
               {showOnboarding &&
                 onboardingStep === 1 && (
 
                 <div
-                  className="stream-guide"
                   style={{
                     position:
                       'absolute',
@@ -2103,11 +2153,18 @@ function StreamContent() {
                       'none',
 
                     zIndex:
-                      5
+                      80
                   }}
                 >
 
-                  <div
+                  {/* ---------------------------------------------
+                      GUIDE CARD
+
+                      This is the ONLY clickable guide element.
+                  --------------------------------------------- */}
+
+                  <button
+                    type="button"
                     onClick={
                       handleAcknowledgePlayTap
                     }
@@ -2116,39 +2173,40 @@ function StreamContent() {
                         'absolute',
 
                       top:
-                        16,
+                        14,
 
                       left:
-                        16,
+                        14,
 
                       right:
-                        16,
+                        14,
 
                       padding:
-                        '11px 13px',
+                        '12px 14px',
 
                       borderRadius:
-                        12,
+                        13,
 
                       background:
-                        'rgba(5,12,24,0.94)',
+                        'rgba(5,12,24,0.96)',
 
                       border:
-                        '1px solid rgba(74,158,255,0.35)',
+                        '1px solid rgba(74,158,255,0.45)',
 
                       boxShadow:
-                        '0 10px 30px rgba(0,0,0,0.35)',
-
-                      // This card intercepts taps on purpose
-                      // (unlike the rest of the guide, which
-                      // stays pointerEvents:none so real taps
-                      // reach the Audiomack player underneath).
+                        '0 12px 35px rgba(0,0,0,0.45)',
 
                       pointerEvents:
                         'auto',
 
                       cursor:
-                        'pointer'
+                        'pointer',
+
+                      color:
+                        '#fff',
+
+                      textAlign:
+                        'left'
                     }}
                   >
 
@@ -2166,7 +2224,7 @@ function StreamContent() {
                     >
 
                       <Hand
-                        size={18}
+                        size={19}
                         color="#4a9eff"
                       />
 
@@ -2181,60 +2239,71 @@ function StreamContent() {
 
                     </div>
 
+
                     <div
                       style={{
                         fontSize:
                           11,
 
                         color:
-                          '#9DB0C7',
+                          '#A9BCD3',
 
                         marginTop:
-                          5,
+                          6,
 
                         lineHeight:
-                          1.45
+                          1.5
                       }}
                     >
-                      Tap the Play button
-                      below to begin, then
-                      tap this card to
-                      continue.
+                      Tap the real Play
+                      button in Audiomack.
+                      After you press it,
+                      tap this instruction
+                      to continue.
                     </div>
 
-                  </div>
+                  </button>
 
 
-                  {/* Arrow pointing at the real Play
-                      button, bottom-left of the player. */}
+                  {/* ---------------------------------------------
+                      ARROW
+
+                      Points toward the lower-left player controls.
+                  --------------------------------------------- */}
 
                   <svg
-                    className="play-arrow"
-                    width="90"
-                    height="90"
-                    viewBox="0 0 90 90"
+                    width="100"
+                    height="100"
+                    viewBox="0 0 100 100"
                     style={{
                       position:
                         'absolute',
 
                       left:
-                        '2%',
+                        '1%',
 
-                      top:
-                        '46%'
+                      bottom:
+                        28,
+
+                      pointerEvents:
+                        'none',
+
+                      overflow:
+                        'visible'
                     }}
                   >
 
                     <path
-                      d="M75 10 C 40 15, 15 45, 15 75"
+                      d="M82 12 C 55 18, 28 42, 17 78"
                       stroke="#4a9eff"
-                      strokeWidth="3.5"
+                      strokeWidth="4"
                       fill="none"
                       strokeLinecap="round"
+                      className="play-arrow"
                     />
 
                     <polygon
-                      points="4,72 24,68 15,88"
+                      points="7,72 25,72 16,91"
                       fill="#4a9eff"
                     />
 
@@ -2296,16 +2365,18 @@ function StreamContent() {
 
 
         {/* =================================================
-            PLAYBACK CONFIRMATION — STEP 2
-            Only reachable after Step 1's arrow has pointed at
-            the real Play button. The arrow now shifts to this
-            confirm button to guide the next tap.
+            STEP 2
         ================================================= */}
 
         {status ===
           'awaiting_play' && (
 
           <section
+            className={
+              isStepOneLocked
+                ? 'locked-section'
+                : ''
+            }
             style={{
               background:
                 'rgba(74,158,255,0.08)',
@@ -2347,6 +2418,7 @@ function StreamContent() {
               Start the music first
             </p>
 
+
             <p
               style={{
                 margin:
@@ -2366,10 +2438,13 @@ function StreamContent() {
               }}
             >
               Press Play inside the
-              Audiomack player. Once
-              the music has started,
-              tap the button below.
+              Audiomack player.
+              Once the music has
+              started, tap the
+              confirmation above
+              the player.
             </p>
+
 
             {showOnboarding &&
               onboardingStep === 2 && (
@@ -2392,12 +2467,14 @@ function StreamContent() {
               </div>
             )}
 
+
             <button
-              onClick={() => {
-
-                handlePlaybackConfirmation();
-
-              }}
+              onClick={
+                handlePlaybackConfirmation
+              }
+              disabled={
+                onboardingStep !== 2
+              }
               style={{
                 width:
                   '100%',
@@ -2412,16 +2489,30 @@ function StreamContent() {
                   'none',
 
                 background:
-                  'linear-gradient(135deg, #4a9eff, #2d6be4)',
+                  onboardingStep === 2
+                    ? 'linear-gradient(135deg, #4a9eff, #2d6be4)'
+                    : 'rgba(255,255,255,0.08)',
 
                 color:
-                  '#fff',
+                  onboardingStep === 2
+                    ? '#fff'
+                    : '#52677F',
 
                 fontWeight:
                   800,
 
                 fontSize:
-                  14
+                  14,
+
+                cursor:
+                  onboardingStep === 2
+                    ? 'pointer'
+                    : 'not-allowed',
+
+                opacity:
+                  onboardingStep === 2
+                    ? 1
+                    : 0.65
               }}
             >
               ✓ I've Started Playing
@@ -2493,6 +2584,11 @@ function StreamContent() {
         ================================================= */}
 
         <section
+          className={
+            isStepOneLocked
+              ? 'locked-section'
+              : ''
+          }
           style={{
             background:
               '#0D1F3C',
@@ -2587,6 +2683,7 @@ function StreamContent() {
                   ? '✓'
                   : remaining}
               </span>
+
 
               {status !==
                 'completed' && (
@@ -3011,7 +3108,12 @@ function StreamContent() {
                 'center',
 
               gap:
-                9
+                9,
+
+              opacity:
+                isStepOneLocked
+                  ? 0.5
+                  : 1
             }}
           >
 
@@ -3032,9 +3134,9 @@ function StreamContent() {
                   1.5
               }}
             >
-              Your earning timer has
-              not started. Press Play
-              in Audiomack first.
+              {isStepOneLocked
+                ? 'Step 1 is active. Press Play in Audiomack first.'
+                : 'Press the confirmation button above to start verification.'}
             </span>
 
           </div>
@@ -3170,7 +3272,6 @@ function StreamContent() {
             </p>
 
           </div>
-
         )}
 
 
@@ -3179,6 +3280,11 @@ function StreamContent() {
         ================================================= */}
 
         <p
+          className={
+            isStepOneLocked
+              ? 'locked-section'
+              : ''
+          }
           style={{
             textAlign:
               'center',
@@ -3208,14 +3314,7 @@ function StreamContent() {
 
 
       {/* ===================================================
-          LISTENING CHALLENGE — FULL-SCREEN MODAL
-          Sits above everything (including the sticky header)
-          so it's unmissable no matter where the user has
-          scrolled. There is no dismiss/close path — the only
-          way past it is tapping the confirm button, which
-          sends challenge_response: true on the next heartbeat.
-          The Audiomack iframe keeps playing underneath, so
-          verified seconds keep accruing while they respond.
+          LISTENING CHALLENGE
       =================================================== */}
 
       {challengeVisible &&
@@ -3245,7 +3344,7 @@ function StreamContent() {
               'center',
 
             zIndex:
-              100,
+              300,
 
             padding:
               20
@@ -3394,6 +3493,21 @@ function StreamContent() {
 
       <style jsx global>{`
 
+        /*
+         * During Step 1:
+         *
+         * - Header/back remains active.
+         * - Audiomack player remains active.
+         * - Everything marked .locked-section is inactive.
+         */
+
+        .locked-section {
+          pointer-events: none !important;
+          user-select: none !important;
+          -webkit-user-select: none !important;
+        }
+
+
         @keyframes spin {
 
           from {
@@ -3405,6 +3519,17 @@ function StreamContent() {
             transform:
               rotate(360deg);
           }
+
+        }
+
+
+        .spin {
+
+          animation:
+            spin
+            1s
+            linear
+            infinite;
 
         }
 
@@ -3518,17 +3643,6 @@ function StreamContent() {
             challengePop
             0.25s
             ease-out;
-
-        }
-
-
-        .spin {
-
-          animation:
-            spin
-            1s
-            linear
-            infinite;
 
         }
 
