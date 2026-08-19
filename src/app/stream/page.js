@@ -27,6 +27,7 @@ import {
   Eye,
   AlertTriangle,
   Radio,
+  MousePointer2,
 } from 'lucide-react';
 
 import API from '@/lib/api';
@@ -34,7 +35,6 @@ import Spinner from '@/components/Spinner';
 
 const REQUIRED_SECONDS = 60;
 const HEARTBEAT_INTERVAL = 5000;
-
 const STORAGE_KEY = 'rewaiq_stream_track';
 
 // =========================================================
@@ -101,14 +101,12 @@ function getSavedTrack() {
 }
 
 // =========================================================
-// MAIN STREAM CONTENT
+// MAIN CONTENT
 // =========================================================
 
 function StreamContent() {
   const router = useRouter();
-
-  const searchParams =
-    useSearchParams();
+  const searchParams = useSearchParams();
 
   const urlTrackId =
     searchParams.get('id') ||
@@ -119,18 +117,16 @@ function StreamContent() {
   // TRACK
   // -------------------------------------------------------
 
-  const [track, setTrack] =
-    useState(null);
+  const [track, setTrack] = useState(null);
 
-  const [trackId, setTrackId] =
-    useState(
-      urlTrackId
-        ? String(urlTrackId)
-        : null
-    );
+  const [trackId, setTrackId] = useState(
+    urlTrackId
+      ? String(urlTrackId)
+      : null
+  );
 
   // -------------------------------------------------------
-  // UI STATE
+  // UI
   // -------------------------------------------------------
 
   const [loading, setLoading] =
@@ -164,10 +160,13 @@ function StreamContent() {
   // -------------------------------------------------------
   // ONBOARDING
   //
-  // 1 = User must press Play / click "✓ I've Pressed Play".
-  // 2 = User must click "✓ I've Started Playing".
+  // STEP 1:
+  // User presses Play inside Audiomack.
   //
-  // Explicit two-step guide, no auto-advance or timers.
+  // STEP 2:
+  // User confirms that music has started.
+  //
+  // Nothing auto-closes.
   // -------------------------------------------------------
 
   const [showOnboarding, setShowOnboarding] =
@@ -178,6 +177,10 @@ function StreamContent() {
 
   const [showScreenshotPrompt, setShowScreenshotPrompt] =
     useState(false);
+
+  // -------------------------------------------------------
+  // CHALLENGE
+  // -------------------------------------------------------
 
   const [challengeVisible, setChallengeVisible] =
     useState(false);
@@ -211,7 +214,7 @@ function StreamContent() {
     useRef(false);
 
   // =======================================================
-  // KEEP REFS SYNCHRONIZED
+  // REF SYNCHRONIZATION
   // =======================================================
 
   useEffect(() => {
@@ -267,6 +270,7 @@ function StreamContent() {
             'No track selected'
           );
         }
+
         return;
       }
 
@@ -277,7 +281,10 @@ function StreamContent() {
         normalizedId
       );
 
-      // Cached track
+      // ---------------------------------------------------
+      // USE CACHED TRACK IMMEDIATELY
+      // ---------------------------------------------------
+
       if (
         savedTrack &&
         savedTrackId &&
@@ -288,11 +295,15 @@ function StreamContent() {
           setTrack(
             savedTrack
           );
+
           setLoading(false);
         }
       }
 
-      // Fresh track
+      // ---------------------------------------------------
+      // FETCH FRESH TRACK
+      // ---------------------------------------------------
+
       try {
         setError('');
 
@@ -351,9 +362,11 @@ function StreamContent() {
             setTrack(
               savedTrack
             );
+
             setError('');
           } else {
             setTrack(null);
+
             setError(
               err?.response?.data?.message ||
               err?.message ||
@@ -413,7 +426,7 @@ function StreamContent() {
     getEmbedUrl();
 
   // =======================================================
-  // CLEAR HEARTBEAT
+  // HEARTBEAT CLEANUP
   // =======================================================
 
   function clearHeartbeat() {
@@ -440,7 +453,7 @@ function StreamContent() {
     ) {
       return {
         visible: true,
-        focused: true
+        focused: true,
       };
     }
 
@@ -448,8 +461,9 @@ function StreamContent() {
       visible:
         document.visibilityState ===
         'visible',
+
       focused:
-        document.hasFocus()
+        document.hasFocus(),
     };
   }
 
@@ -480,17 +494,20 @@ function StreamContent() {
     try {
       const {
         visible,
-        focused
+        focused,
       } =
         getPageState();
 
       const payload = {
         session_id:
           currentSessionId,
+
         visible,
+
         focused,
+
         playback_started:
-          true
+          true,
       };
 
       if (
@@ -604,7 +621,7 @@ function StreamContent() {
           '/api/streams/end',
           {
             session_id:
-              sid
+              sid,
           }
         );
 
@@ -718,6 +735,10 @@ function StreamContent() {
         );
       }
 
+      // ---------------------------------------------------
+      // FINAL UI
+      // ---------------------------------------------------
+
       setVerifiedSeconds(
         REQUIRED_SECONDS
       );
@@ -745,11 +766,23 @@ function StreamContent() {
         false
       );
 
+      setOnboardingStep(
+        1
+      );
+
       sessionIdRef.current =
         null;
 
       playbackStartedRef.current =
         false;
+
+      setSessionId(
+        null
+      );
+
+      setPlaybackStarted(
+        false
+      );
     } catch (err) {
       console.error(
         'Finish stream error:',
@@ -818,6 +851,7 @@ function StreamContent() {
       setError(
         'No track selected'
       );
+
       return;
     }
 
@@ -829,6 +863,7 @@ function StreamContent() {
       setError(
         'This track does not have a valid ID'
       );
+
       return;
     }
 
@@ -836,6 +871,7 @@ function StreamContent() {
       setError(
         'This track does not have a playable audio source.'
       );
+
       return;
     }
 
@@ -886,11 +922,12 @@ function StreamContent() {
           {
             track_id:
               resolvedTrackId,
+
             track_url:
-              trackUrl
+              trackUrl,
           },
           {
-            timeout: 15000
+            timeout: 15000,
           }
         );
 
@@ -912,12 +949,19 @@ function StreamContent() {
         newSessionId
       );
 
-      // Open Player
+      // ---------------------------------------------------
+      // SHOW PLAYER
+      // ---------------------------------------------------
+
       setShowEmbed(
         true
       );
 
-      // Start onboarding lock at Step 1 (strictly requires user click)
+      // ---------------------------------------------------
+      // IMPORTANT:
+      // DO NOT AUTO ADVANCE OR CLOSE.
+      // ---------------------------------------------------
+
       setStatus(
         'awaiting_play'
       );
@@ -968,7 +1012,7 @@ function StreamContent() {
   }
 
   // =======================================================
-  // STEP 1 CONFIRMATION
+  // STEP 1
   // =======================================================
 
   function handleAcknowledgePlayTap() {
@@ -979,28 +1023,31 @@ function StreamContent() {
       return;
     }
 
+    // Explicit user action.
+    // Nothing automatically closes.
     setOnboardingStep(
       2
     );
   }
 
   // =======================================================
-  // STEP 2 CONFIRMATION
+  // STEP 2
   // =======================================================
 
   function handlePlaybackConfirmation() {
     const currentSession =
       sessionIdRef.current;
 
-    if (
-      !currentSession
-    ) {
+    if (!currentSession) {
       setError(
         'Streaming session is not ready.'
       );
+
       return;
     }
 
+    // Explicitly close onboarding only
+    // after Step 2 is confirmed.
     setShowOnboarding(
       false
     );
@@ -1056,6 +1103,7 @@ function StreamContent() {
         setChallengeVisible(
           false
         );
+
         setError('');
       } else {
         setError(
@@ -1087,7 +1135,7 @@ function StreamContent() {
           '/api/streams/end',
           {
             session_id:
-              currentSession
+              currentSession,
           }
         );
       } catch (err) {
@@ -1145,7 +1193,7 @@ function StreamContent() {
   }
 
   // =======================================================
-  // PAGE VISIBILITY
+  // VISIBILITY
   // =======================================================
 
   useEffect(() => {
@@ -1196,7 +1244,7 @@ function StreamContent() {
   }, []);
 
   // =======================================================
-  // VALUES
+  // DISPLAY VALUES
   // =======================================================
 
   const progress =
@@ -1249,22 +1297,30 @@ function StreamContent() {
         style={{
           minHeight:
             '100vh',
+
           background:
             '#07111F',
+
           display:
             'flex',
+
           flexDirection:
             'column',
+
           alignItems:
             'center',
+
           justifyContent:
             'center',
+
           color:
             '#8A9BB0',
+
           padding:
             24,
+
           textAlign:
-            'center'
+            'center',
         }}
       >
         <p>
@@ -1279,18 +1335,24 @@ function StreamContent() {
           style={{
             padding:
               '12px 20px',
+
             borderRadius:
               10,
+
             border:
               'none',
+
             background:
               '#4a9eff',
+
             color:
               '#fff',
+
             fontWeight:
               700,
+
             cursor:
-              'pointer'
+              'pointer',
           }}
         >
           Go Back
@@ -1308,44 +1370,58 @@ function StreamContent() {
       style={{
         minHeight:
           '100vh',
+
         background:
           'linear-gradient(180deg, #07111F 0%, #0A1628 100%)',
+
         color:
           '#fff',
+
         paddingBottom:
           40,
+
         position:
-          'relative'
+          'relative',
       }}
     >
-      {/* =================================================
-          HEADER (Kept at z-index 200 so Back is clickable)
-      ================================================= */}
+      {/* ===================================================
+          HEADER
+      =================================================== */}
 
       <header
         style={{
           height:
             64,
+
           padding:
             '0 20px',
+
           display:
             'flex',
+
           alignItems:
             'center',
+
           gap:
             14,
+
           background:
-            'rgba(13,31,60,0.95)',
+            'rgba(13,31,60,0.96)',
+
           borderBottom:
             '1px solid rgba(255,255,255,0.06)',
+
           position:
             'sticky',
+
           top:
             0,
+
           zIndex:
-            200,
+            500,
+
           backdropFilter:
-            'blur(12px)'
+            'blur(12px)',
         }}
       >
         <button
@@ -1356,22 +1432,30 @@ function StreamContent() {
           style={{
             width:
               38,
+
             height:
               38,
+
             borderRadius:
               12,
+
             background:
               'rgba(255,255,255,0.06)',
+
             border:
               'none',
+
             display:
               'flex',
+
             alignItems:
               'center',
+
             justifyContent:
               'center',
+
             cursor:
-              'pointer'
+              'pointer',
           }}
         >
           <ArrowLeft
@@ -1385,8 +1469,9 @@ function StreamContent() {
             style={{
               fontSize:
                 15,
+
               fontWeight:
-                700
+                700,
             }}
           >
             Now Streaming
@@ -1396,10 +1481,12 @@ function StreamContent() {
             style={{
               fontSize:
                 11,
+
               color:
                 '#8A9BB0',
+
               marginTop:
-                2
+                2,
             }}
           >
             Listen & earn coins
@@ -1407,22 +1494,26 @@ function StreamContent() {
         </div>
       </header>
 
-      {/* =================================================
-          MAIN CONTENT
-      ================================================= */}
+      {/* ===================================================
+          MAIN
+      =================================================== */}
 
       <main
         style={{
           width:
             '100%',
+
           maxWidth:
             520,
+
           margin:
             '0 auto',
+
           padding:
-            '18px 18px',
+            '16px 16px',
+
           position:
-            'relative'
+            'relative',
         }}
       >
         {/* =================================================
@@ -1433,48 +1524,63 @@ function StreamContent() {
           style={{
             background:
               'linear-gradient(145deg, #102747, #0D1F3C)',
+
             borderRadius:
-              20,
+              18,
+
             padding:
-              16,
+              14,
+
             marginBottom:
-              12,
+              10,
+
             border:
               '1px solid rgba(255,255,255,0.06)',
+
             boxShadow:
-              '0 14px 35px rgba(0,0,0,0.20)'
+              '0 12px 30px rgba(0,0,0,0.18)',
           }}
         >
           <div
             style={{
               display:
                 'flex',
+
               alignItems:
                 'center',
+
               gap:
-                13
+                12,
             }}
           >
             <div
               style={{
                 width:
-                  68,
+                  62,
+
                 height:
-                  68,
+                  62,
+
                 flexShrink:
                   0,
+
                 borderRadius:
-                  15,
+                  14,
+
                 overflow:
                   'hidden',
+
                 background:
                   'linear-gradient(135deg, #193B68, #102440)',
+
                 display:
                   'flex',
+
                 alignItems:
                   'center',
+
                 justifyContent:
-                  'center'
+                  'center',
               }}
             >
               {track.cover_image ? (
@@ -1486,15 +1592,17 @@ function StreamContent() {
                   style={{
                     width:
                       '100%',
+
                     height:
                       '100%',
+
                     objectFit:
-                      'cover'
+                      'cover',
                   }}
                 />
               ) : (
                 <Music2
-                  size={28}
+                  size={27}
                   color="#4a9eff"
                 />
               )}
@@ -1504,24 +1612,30 @@ function StreamContent() {
               style={{
                 minWidth:
                   0,
+
                 flex:
-                  1
+                  1,
               }}
             >
               <p
                 style={{
                   fontSize:
-                    17,
+                    16,
+
                   fontWeight:
                     800,
+
                   margin:
-                    '0 0 4px',
+                    '0 0 3px',
+
                   whiteSpace:
                     'nowrap',
+
                   overflow:
                     'hidden',
+
                   textOverflow:
-                    'ellipsis'
+                    'ellipsis',
                 }}
               >
                 {title}
@@ -1531,10 +1645,12 @@ function StreamContent() {
                 style={{
                   fontSize:
                     12,
+
                   color:
                     '#8A9BB0',
+
                   margin:
-                    0
+                    0,
                 }}
               >
                 {artist}
@@ -1544,55 +1660,76 @@ function StreamContent() {
         </section>
 
         {/* =================================================
-            AUDIO PLAYER SECTION
+            PLAYER
         ================================================= */}
 
         <section
+          className={
+            showOnboarding &&
+            onboardingStep === 1
+              ? 'player-highlight'
+              : ''
+          }
           style={{
             background:
               '#0D1F3C',
+
             borderRadius:
-              20,
+              18,
+
             padding:
-              14,
-            marginBottom:
               12,
+
+            marginBottom:
+              10,
+
             border:
-              showOnboarding && onboardingStep === 1
-                ? '1px solid rgba(74,158,255,0.6)'
+              showOnboarding &&
+              onboardingStep === 1
+                ? '1px solid rgba(74,158,255,0.85)'
                 : '1px solid rgba(255,255,255,0.06)',
+
             boxShadow:
-              showOnboarding && onboardingStep === 1
-                ? '0 0 24px rgba(74,158,255,0.2)'
+              showOnboarding &&
+              onboardingStep === 1
+                ? '0 0 0 2px rgba(74,158,255,0.12), 0 0 30px rgba(74,158,255,0.24)'
                 : 'none',
+
             position:
               'relative',
+
             zIndex:
-              showOnboarding && onboardingStep === 1
-                ? 102
-                : 1
+              showOnboarding &&
+              onboardingStep === 1
+                ? 450
+                : 1,
           }}
         >
           <div
             style={{
               display:
                 'flex',
+
               alignItems:
                 'center',
+
               justifyContent:
                 'space-between',
+
               marginBottom:
-                9
+                8,
             }}
           >
             <div
               style={{
                 display:
                   'flex',
+
                 alignItems:
                   'center',
+
                 gap:
-                  7
+                  7,
               }}
             >
               <Volume2
@@ -1603,11 +1740,16 @@ function StreamContent() {
               <span
                 style={{
                   fontSize:
-                    11,
+                    10,
+
                   color:
                     '#8A9BB0',
+
                   fontWeight:
-                    600
+                    700,
+
+                  letterSpacing:
+                    '0.04em',
                 }}
               >
                 AUDIO PLAYER
@@ -1620,32 +1762,42 @@ function StreamContent() {
                 style={{
                   display:
                     'flex',
+
                   alignItems:
                     'center',
+
                   gap:
                     5,
+
                   fontSize:
                     10,
+
                   color:
                     '#4ADE80',
+
                   fontWeight:
-                    700
+                    700,
                 }}
               >
                 <span
                   style={{
                     width:
                       6,
+
                     height:
                       6,
+
                     borderRadius:
                       '50%',
+
                     background:
                       '#4ADE80',
+
                     boxShadow:
-                      '0 0 8px #4ADE80'
+                      '0 0 8px #4ADE80',
                   }}
                 />
+
                 VERIFIED
               </span>
             )}
@@ -1654,21 +1806,28 @@ function StreamContent() {
           {showEmbed &&
           embedUrl ? (
             <div
+              className="audiomack-player-wrap"
               style={{
                 width:
                   '100%',
+
                 height:
                   252,
+
                 overflow:
                   'hidden',
+
                 borderRadius:
-                  15,
+                  14,
+
                 background:
                   '#081322',
+
                 border:
                   '1px solid rgba(255,255,255,0.05)',
+
                 position:
-                  'relative'
+                  'relative',
               }}
             >
               <iframe
@@ -1685,259 +1844,353 @@ function StreamContent() {
                 style={{
                   position:
                     'absolute',
+
                   top:
                     0,
+
                   left:
                     0,
+
                   width:
                     '100%',
+
                   height:
                     '252px',
+
                   border:
                     'none',
+
                   display:
                     'block',
-                  zIndex: 2
+
+                  zIndex:
+                    2,
                 }}
               />
 
-              {/* =================================================
-                  STEP 1 GUIDE OVERLAY & POINTER
-              ================================================= */}
+              {/* =========================================
+                  STEP 1 GUIDE
+              ========================================= */}
 
               {showOnboarding &&
                 onboardingStep === 1 && (
                 <div
-                  className="stream-guide-step1-layer"
+                  className="step-one-guide"
                   style={{
                     position:
                       'absolute',
+
                     inset:
                       0,
+
                     zIndex:
-                      10,
+                      20,
+
                     pointerEvents:
-                      'none'
+                      'none',
                   }}
                 >
-                  {/* Step 1 Floating Confirmation Banner */}
+                  {/* TOP GUIDE */}
+
                   <div
+                    className="guide-banner"
                     style={{
                       position:
                         'absolute',
+
                       top:
-                        10,
+                        9,
+
                       left:
-                        10,
+                        9,
+
                       right:
-                        10,
-                      zIndex:
-                        30,
+                        9,
+
                       pointerEvents:
-                        'auto'
+                        'none',
                     }}
                   >
                     <div
                       style={{
                         background:
-                          'rgba(4, 11, 23, 0.95)',
+                          'rgba(3,10,22,0.96)',
+
                         border:
-                          '1px solid rgba(74,158,255,0.5)',
+                          '1px solid rgba(74,158,255,0.65)',
+
                         borderRadius:
                           12,
+
                         padding:
-                          '9px 12px',
+                          '8px 10px',
+
                         display:
                           'flex',
+
                         alignItems:
                           'center',
-                        justifyContent:
-                          'space-between',
+
                         gap:
-                          10,
+                          9,
+
                         boxShadow:
-                          '0 10px 25px rgba(0,0,0,0.5)'
+                          '0 8px 22px rgba(0,0,0,0.5)',
                       }}
                     >
                       <div
+                        className="guide-hand"
                         style={{
+                          width:
+                            29,
+
+                          height:
+                            29,
+
+                          flexShrink:
+                            0,
+
+                          borderRadius:
+                            9,
+
+                          background:
+                            'rgba(74,158,255,0.14)',
+
                           display:
                             'flex',
+
                           alignItems:
                             'center',
-                          gap:
-                            8,
+
+                          justifyContent:
+                            'center',
+                        }}
+                      >
+                        <Hand
+                          size={16}
+                          color="#4a9eff"
+                        />
+                      </div>
+
+                      <div
+                        style={{
                           minWidth:
-                            0
+                            0,
+
+                          flex:
+                            1,
                         }}
                       >
                         <div
-                          className="pulse-icon-box"
                           style={{
-                            width:
-                              28,
-                            height:
-                              28,
-                            borderRadius:
-                              8,
-                            background:
-                              'rgba(74,158,255,0.15)',
-                            display:
-                              'flex',
-                            alignItems:
-                              'center',
-                            justifyContent:
-                              'center',
-                            flexShrink:
-                              0
+                            fontSize:
+                              10,
+
+                            fontWeight:
+                              900,
+
+                            lineHeight:
+                              1.2,
+
+                            color:
+                              '#fff',
                           }}
                         >
-                          <Hand
-                            size={15}
-                            color="#4a9eff"
-                          />
+                          STEP 1 · PRESS PLAY
                         </div>
 
-                        <div>
-                          <div
-                            style={{
-                              fontSize:
-                                11,
-                              fontWeight:
-                                800,
-                              color:
-                                '#fff',
-                              lineHeight:
-                                1.2
-                            }}
-                          >
-                            Step 1 — Press Play
-                          </div>
-                          <div
-                            style={{
-                              fontSize:
-                                9,
-                              color:
-                                '#9DB0C7',
-                              lineHeight:
-                                1.2
-                            }}
-                          >
-                            Tap Play below, then confirm
-                          </div>
+                        <div
+                          style={{
+                            fontSize:
+                              8.5,
+
+                            color:
+                              '#91A6BE',
+
+                            marginTop:
+                              2,
+
+                            lineHeight:
+                              1.2,
+                          }}
+                        >
+                          Tap the Play button in the player
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={
-                          handleAcknowledgePlayTap
-                        }
+                      <div
+                        className="tap-badge"
                         style={{
+                          padding:
+                            '5px 8px',
+
+                          borderRadius:
+                            7,
+
                           background:
-                            'linear-gradient(135deg, #4a9eff, #2563eb)',
+                            '#4a9eff',
+
                           color:
                             '#fff',
-                          border:
-                            'none',
-                          borderRadius:
-                            8,
-                          padding:
-                            '7px 11px',
+
                           fontSize:
-                            11,
+                            9,
+
                           fontWeight:
-                            800,
-                          cursor:
-                            'pointer',
+                            900,
+
                           whiteSpace:
                             'nowrap',
-                          boxShadow:
-                            '0 4px 12px rgba(37,99,235,0.4)',
-                          flexShrink:
-                            0
                         }}
                       >
-                        ✓ I've Pressed Play
-                      </button>
+                        TAP PLAY
+                      </div>
                     </div>
                   </div>
 
-                  {/* Play Target Ring indicator */}
+                  {/* SHARP POINTER */}
+
+                  <div
+                    className="sharp-pointer"
+                    style={{
+                      position:
+                        'absolute',
+
+                      left:
+                        '7%',
+
+                      bottom:
+                        '12%',
+
+                      width:
+                        95,
+
+                      height:
+                        100,
+                    }}
+                  >
+                    <svg
+                      viewBox="0 0 100 100"
+                      width="100%"
+                      height="100%"
+                      style={{
+                        overflow:
+                          'visible',
+                      }}
+                    >
+                      {/* Arrow shadow */}
+
+                      <path
+                        d="M82 12 C68 18 42 30 18 67"
+                        fill="none"
+                        stroke="rgba(0,0,0,0.55)"
+                        strokeWidth="7"
+                        strokeLinecap="round"
+                      />
+
+                      {/* Main arrow */}
+
+                      <path
+                        d="M82 12 C68 18 42 30 18 67"
+                        fill="none"
+                        stroke="#4a9eff"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                      />
+
+                      {/* Sharp arrow head */}
+
+                      <path
+                        d="M18 67 L20 48"
+                        fill="none"
+                        stroke="#4a9eff"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                      />
+
+                      <path
+                        d="M18 67 L37 63"
+                        fill="none"
+                        stroke="#4a9eff"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                      />
+
+                      {/* Arrow head highlight */}
+
+                      <circle
+                        cx="18"
+                        cy="67"
+                        r="4"
+                        fill="#4a9eff"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* TARGET RING */}
+
                   <div
                     className="play-target-ring"
                     style={{
                       position:
                         'absolute',
+
                       left:
-                        '3.5%',
+                        '2.8%',
+
                       bottom:
-                        '9%',
+                        '7%',
+
                       width:
-                        70,
+                        66,
+
                       height:
-                        70,
+                        66,
+
                       borderRadius:
                         '50%',
+
                       border:
-                        '2.5px solid rgba(74,158,255,0.95)',
+                        '3px solid #4a9eff',
+
                       boxShadow:
-                        '0 0 0 5px rgba(74,158,255,0.15), 0 0 20px rgba(74,158,255,0.8)',
+                        '0 0 0 5px rgba(74,158,255,0.14), 0 0 22px rgba(74,158,255,0.8)',
+
                       pointerEvents:
-                        'none'
+                        'none',
                     }}
                   />
 
-                  {/* Sharp Guided Arrow pointing toward Audiomack play button */}
+                  {/* CLICK DOT */}
+
                   <div
-                    className="guided-play-arrow"
+                    className="click-dot"
                     style={{
                       position:
                         'absolute',
+
                       left:
-                        '14%',
+                        'calc(2.8% + 28px)',
+
                       bottom:
-                        '30%',
+                        'calc(7% + 28px)',
+
                       width:
-                        60,
+                        10,
+
                       height:
-                        60,
-                      pointerEvents:
-                        'none'
+                        10,
+
+                      borderRadius:
+                        '50%',
+
+                      background:
+                        '#fff',
+
+                      boxShadow:
+                        '0 0 0 5px rgba(74,158,255,0.3), 0 0 15px #4a9eff',
                     }}
-                  >
-                    <svg
-                      width="60"
-                      height="60"
-                      viewBox="0 0 60 60"
-                      style={{
-                        overflow:
-                          'visible'
-                      }}
-                    >
-                      <path
-                        d="M50 8 C 38 12, 18 22, 10 40"
-                        fill="none"
-                        stroke="#4a9eff"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M10 40 L 11 26"
-                        fill="none"
-                        stroke="#4a9eff"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M10 40 L 24 37"
-                        fill="none"
-                        stroke="#4a9eff"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </div>
+                  />
                 </div>
               )}
             </div>
@@ -1946,18 +2199,24 @@ function StreamContent() {
               style={{
                 height:
                   90,
+
                 borderRadius:
-                  15,
+                  14,
+
                 background:
                   'linear-gradient(145deg, rgba(74,158,255,0.08), rgba(255,255,255,0.025))',
+
                 display:
                   'flex',
+
                 flexDirection:
                   'column',
+
                 alignItems:
                   'center',
+
                 justifyContent:
-                  'center'
+                  'center',
               }}
             >
               <Music2
@@ -1969,8 +2228,9 @@ function StreamContent() {
                 style={{
                   margin:
                     '7px 0 0',
+
                   fontSize:
-                    12
+                    12,
                 }}
               >
                 Ready to stream
@@ -1980,201 +2240,367 @@ function StreamContent() {
         </section>
 
         {/* =================================================
-            STEP 2 / ONBOARDING VERIFICATION CARD
+            ONBOARDING CARD
         ================================================= */}
 
         {status ===
           'awaiting_play' && (
           <section
+            className={
+              onboardingStep === 2
+                ? 'step-two-card'
+                : 'step-one-confirm-card'
+            }
             style={{
               background:
                 onboardingStep === 2
-                  ? 'rgba(16,39,71,0.98)'
-                  : 'rgba(74,158,255,0.06)',
+                  ? 'linear-gradient(145deg, #122B4B, #0D2039)'
+                  : 'rgba(255,255,255,0.035)',
+
               border:
                 onboardingStep === 2
-                  ? '1.5px solid rgba(74,158,255,0.7)'
-                  : '1px solid rgba(74,158,255,0.16)',
+                  ? '1px solid rgba(74,158,255,0.55)'
+                  : '1px solid rgba(255,255,255,0.07)',
+
               borderRadius:
-                17,
+                16,
+
               padding:
-                14,
+                13,
+
               marginBottom:
-                12,
+                10,
+
               textAlign:
                 'center',
+
               position:
                 'relative',
+
               zIndex:
                 onboardingStep === 2
-                  ? 102
-                  : 1,
+                  ? 450
+                  : 451,
+
               boxShadow:
                 onboardingStep === 2
-                  ? '0 0 30px rgba(74,158,255,0.25)'
-                  : 'none'
+                  ? '0 12px 30px rgba(0,0,0,0.3), 0 0 25px rgba(74,158,255,0.18)'
+                  : 'none',
             }}
           >
-            {onboardingStep === 2 && (
-              <div
-                style={{
-                  display:
-                    'inline-flex',
-                  alignItems:
-                    'center',
-                  gap:
-                    6,
-                  padding:
-                    '4px 10px',
-                  borderRadius:
-                    999,
-                  background:
-                    'rgba(74,158,255,0.18)',
-                  color:
-                    '#7DBBFF',
-                  fontSize:
-                    10,
-                  fontWeight:
-                    900,
-                  marginBottom:
-                    7
-                }}
-              >
-                <Radio
-                  size={12}
-                  className="pulse-icon"
-                />
-                STEP 2 — START VERIFICATION
-              </div>
-            )}
+            {/* STEP INDICATOR */}
 
             <div
               style={{
                 display:
                   'flex',
+
                 alignItems:
                   'center',
+
                 justifyContent:
                   'center',
+
+                gap:
+                  5,
+
                 marginBottom:
-                  4
+                  8,
               }}
             >
-              <ShieldCheck
-                size={
-                  onboardingStep === 2
-                    ? 28
-                    : 24
+              <span
+                className={
+                  onboardingStep === 1
+                    ? 'active-step-dot'
+                    : 'done-step-dot'
                 }
-                color="#4a9eff"
+              >
+                {onboardingStep === 1
+                  ? '1'
+                  : '✓'}
+              </span>
+
+              <span
+                className="step-line"
               />
+
+              <span
+                className={
+                  onboardingStep === 2
+                    ? 'active-step-dot'
+                    : 'inactive-step-dot'
+                }
+              >
+                2
+              </span>
             </div>
 
-            <p
-              style={{
-                margin:
-                  '4px 0',
-                fontWeight:
-                  800,
-                fontSize:
-                  14
-              }}
-            >
-              {onboardingStep === 2
-                ? 'Ready to Start Verification'
-                : 'Start the music first'}
-            </p>
+            {/* STEP 1 */}
 
-            <p
-              style={{
-                margin:
-                  '0 auto 10px',
-                maxWidth:
-                  340,
-                color:
-                  '#8A9BB0',
-                fontSize:
-                  11,
-                lineHeight:
-                  1.4
-              }}
-            >
-              {onboardingStep === 2
-                ? 'Music should now be playing. Tap the button below to start your verified listening time.'
-                : 'Press Play inside Audiomack above, then confirm Step 1.'}
-            </p>
+            {onboardingStep === 1 ? (
+              <>
+                <div
+                  style={{
+                    display:
+                      'flex',
 
-            {onboardingStep === 2 && (
-              <div
-                className="step2-down-arrow"
-                style={{
-                  marginBottom:
-                    6,
-                  color:
-                    '#4a9eff',
-                  display:
-                    'flex',
-                  justifyContent:
-                    'center'
-                }}
-              >
-                <ArrowDown
-                  size={22}
-                  strokeWidth={3}
-                />
-              </div>
+                    justifyContent:
+                      'center',
+
+                    marginBottom:
+                      5,
+                  }}
+                >
+                  <MousePointer2
+                    size={22}
+                    color="#4a9eff"
+                  />
+                </div>
+
+                <p
+                  style={{
+                    margin:
+                      '2px 0 3px',
+
+                    fontWeight:
+                      900,
+
+                    fontSize:
+                      14,
+                  }}
+                >
+                  Press Play in the player
+                </p>
+
+                <p
+                  style={{
+                    margin:
+                      '0 auto 9px',
+
+                    maxWidth:
+                      330,
+
+                    color:
+                      '#8A9BB0',
+
+                    fontSize:
+                      10.5,
+
+                    lineHeight:
+                      1.4,
+                  }}
+                >
+                  Tap the Play button above.
+                  Once the music starts, come back here.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleAcknowledgePlayTap
+                  }
+                  style={{
+                    width:
+                      '100%',
+
+                    padding:
+                      '12px',
+
+                    borderRadius:
+                      12,
+
+                    border:
+                      'none',
+
+                    background:
+                      'linear-gradient(135deg, #4a9eff, #2d6be4)',
+
+                    color:
+                      '#fff',
+
+                    fontWeight:
+                      900,
+
+                    fontSize:
+                      12,
+
+                    cursor:
+                      'pointer',
+
+                    boxShadow:
+                      '0 7px 18px rgba(45,107,228,0.32)',
+                  }}
+                >
+                  ✓ I've Pressed Play
+                </button>
+              </>
+            ) : (
+              /* STEP 2 */
+
+              <>
+                <div
+                  className="step2-icon"
+                  style={{
+                    display:
+                      'flex',
+
+                    justifyContent:
+                      'center',
+
+                    marginBottom:
+                      4,
+                  }}
+                >
+                  <Radio
+                    size={25}
+                    color="#4a9eff"
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display:
+                      'inline-flex',
+
+                    alignItems:
+                      'center',
+
+                    gap:
+                      5,
+
+                    padding:
+                      '3px 8px',
+
+                    borderRadius:
+                      999,
+
+                    background:
+                      'rgba(74,158,255,0.13)',
+
+                    color:
+                      '#7DBBFF',
+
+                    fontSize:
+                      8.5,
+
+                    fontWeight:
+                      900,
+
+                    marginBottom:
+                      5,
+                  }}
+                >
+                  STEP 2 · START VERIFICATION
+                </div>
+
+                <p
+                  style={{
+                    margin:
+                      '2px 0 3px',
+
+                    fontWeight:
+                      900,
+
+                    fontSize:
+                      14,
+                  }}
+                >
+                  Is the music playing?
+                </p>
+
+                <p
+                  style={{
+                    margin:
+                      '0 auto 7px',
+
+                    maxWidth:
+                      330,
+
+                    color:
+                      '#8A9BB0',
+
+                    fontSize:
+                      10.5,
+
+                    lineHeight:
+                      1.4,
+                  }}
+                >
+                  Confirm below to start your
+                  60-second verified listening session.
+                </p>
+
+                <div
+                  className="step2-arrow"
+                  style={{
+                    height:
+                      20,
+
+                    display:
+                      'flex',
+
+                    justifyContent:
+                      'center',
+
+                    alignItems:
+                      'center',
+
+                    color:
+                      '#4a9eff',
+                  }}
+                >
+                  <ArrowDown
+                    size={20}
+                    strokeWidth={3}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={
+                    handlePlaybackConfirmation
+                  }
+                  style={{
+                    width:
+                      '100%',
+
+                    padding:
+                      '12px',
+
+                    borderRadius:
+                      12,
+
+                    border:
+                      'none',
+
+                    background:
+                      'linear-gradient(135deg, #4a9eff, #2d6be4)',
+
+                    color:
+                      '#fff',
+
+                    fontWeight:
+                      900,
+
+                    fontSize:
+                      12,
+
+                    cursor:
+                      'pointer',
+
+                    boxShadow:
+                      '0 8px 20px rgba(45,107,228,0.35)',
+                  }}
+                >
+                  ✓ I've Started Playing
+                </button>
+              </>
             )}
-
-            <button
-              type="button"
-              onClick={
-                handlePlaybackConfirmation
-              }
-              disabled={
-                onboardingStep !== 2
-              }
-              style={{
-                width:
-                  '100%',
-                padding:
-                  '13px',
-                borderRadius:
-                  13,
-                border:
-                  'none',
-                background:
-                  onboardingStep === 2
-                    ? 'linear-gradient(135deg, #4a9eff, #2d6be4)'
-                    : 'rgba(255,255,255,0.06)',
-                color:
-                  onboardingStep === 2
-                    ? '#fff'
-                    : '#52677F',
-                fontWeight:
-                  800,
-                fontSize:
-                  13,
-                cursor:
-                  onboardingStep === 2
-                    ? 'pointer'
-                    : 'not-allowed',
-                boxShadow:
-                  onboardingStep === 2
-                    ? '0 8px 20px rgba(45,107,228,0.35)'
-                    : 'none',
-                pointerEvents:
-                  onboardingStep === 2
-                    ? 'auto'
-                    : 'none'
-              }}
-            >
-              ✓ I've Started Playing
-            </button>
           </section>
         )}
 
         {/* =================================================
-            VERIFICATION STATUS
+            STREAMING STATUS
         ================================================= */}
 
         {status ===
@@ -2183,24 +2609,31 @@ function StreamContent() {
             style={{
               display:
                 'flex',
+
               alignItems:
                 'center',
+
               gap:
                 8,
+
               padding:
-                '9px 12px',
+                '8px 11px',
+
               marginBottom:
-                12,
+                10,
+
               borderRadius:
-                11,
+                10,
+
               background:
                 'rgba(74,222,128,0.07)',
+
               border:
-                '1px solid rgba(74,222,128,0.13)'
+                '1px solid rgba(74,222,128,0.13)',
             }}
           >
             <Eye
-              size={15}
+              size={14}
               color="#4ADE80"
             />
 
@@ -2208,8 +2641,9 @@ function StreamContent() {
               style={{
                 fontSize:
                   10,
+
                 color:
-                  '#9DB0C7'
+                  '#9DB0C7',
               }}
             >
               Your listening time is being verified by Rewaiq.
@@ -2218,74 +2652,94 @@ function StreamContent() {
         )}
 
         {/* =================================================
-            EARNING TIMER
+            TIMER
         ================================================= */}
 
         <section
           style={{
             background:
               '#0D1F3C',
+
             borderRadius:
-              20,
+              18,
+
             padding:
-              '20px 16px',
+              '18px 15px',
+
             marginBottom:
-              12,
+              10,
+
             border:
               '1px solid rgba(255,255,255,0.06)',
+
             textAlign:
-              'center'
+              'center',
           }}
         >
           <div
             style={{
               width:
-                138,
+                132,
+
               height:
-                138,
+                132,
+
               margin:
-                '0 auto 14px',
+                '0 auto 12px',
+
               borderRadius:
                 '50%',
+
               background:
                 `conic-gradient(
                   #4a9eff ${progress}%,
                   rgba(74,158,255,0.10) ${progress}% 100%
                 )`,
+
               padding:
                 7,
+
               transition:
-                'background 1s linear'
+                'background 1s linear',
             }}
           >
             <div
               style={{
                 width:
                   '100%',
+
                 height:
                   '100%',
+
                 borderRadius:
                   '50%',
+
                 background:
                   '#0A1628',
+
                 display:
                   'flex',
+
                 flexDirection:
                   'column',
+
                 alignItems:
                   'center',
+
                 justifyContent:
-                  'center'
+                  'center',
               }}
             >
               <span
                 style={{
                   fontSize:
-                    32,
+                    31,
+
                   fontWeight:
                     900,
+
                   lineHeight:
-                    1
+                    1,
                 }}
               >
                 {status ===
@@ -2299,11 +2753,13 @@ function StreamContent() {
                 <span
                   style={{
                     fontSize:
-                      10,
+                      9,
+
                     color:
                       '#71849B',
+
                     marginTop:
-                      5
+                      5,
                   }}
                 >
                   verified seconds
@@ -2315,11 +2771,13 @@ function StreamContent() {
           <p
             style={{
               margin:
-                '0 0 5px',
+                '0 0 4px',
+
               fontSize:
-                15,
+                14,
+
               fontWeight:
-                800
+                800,
             }}
           >
             {status ===
@@ -2327,7 +2785,9 @@ function StreamContent() {
               ? 'Preparing stream...'
               : status ===
                 'awaiting_play'
-              ? 'Press Play to begin'
+              ? onboardingStep === 1
+                ? 'Press Play to begin'
+                : 'Confirm playback'
               : status ===
                 'streaming'
               ? 'Keep listening'
@@ -2344,12 +2804,15 @@ function StreamContent() {
             style={{
               margin:
                 0,
+
               color:
                 '#71849B',
+
               fontSize:
-                11,
+                10.5,
+
               lineHeight:
-                1.45
+                1.45,
             }}
           >
             {status ===
@@ -2357,7 +2820,9 @@ function StreamContent() {
               ? 'Keep the music playing and keep this page visible.'
               : status ===
                 'awaiting_play'
-              ? 'Your earning time has not started yet.'
+              ? onboardingStep === 1
+                ? 'Your earning time has not started yet.'
+                : 'Tap the confirmation button to begin verified listening.'
               : status ===
                 'completed'
               ? 'Your wallet has been updated.'
@@ -2368,28 +2833,36 @@ function StreamContent() {
             style={{
               height:
                 5,
+
               background:
                 'rgba(255,255,255,0.06)',
+
               borderRadius:
                 10,
+
               overflow:
                 'hidden',
+
               marginTop:
-                15
+                13,
             }}
           >
             <div
               style={{
                 height:
                   '100%',
+
                 width:
                   `${progress}%`,
+
                 background:
                   '#4a9eff',
+
                 borderRadius:
                   10,
+
                 transition:
-                  'width 1s linear'
+                  'width 1s linear',
               }}
             />
           </div>
@@ -2405,29 +2878,35 @@ function StreamContent() {
           <section
             style={{
               padding:
-                14,
+                12,
+
               borderRadius:
-                15,
+                14,
+
               background:
                 'rgba(255,255,255,0.04)',
+
               border:
                 '1px solid rgba(255,255,255,0.07)',
+
               marginBottom:
-                12
+                10,
             }}
           >
             <div
               style={{
                 display:
                   'flex',
+
                 alignItems:
                   'flex-start',
+
                 gap:
-                  10
+                  9,
               }}
             >
               <Camera
-                size={22}
+                size={21}
                 color="#4a9eff"
               />
 
@@ -2436,10 +2915,12 @@ function StreamContent() {
                   style={{
                     margin:
                       0,
+
                     fontSize:
-                      13,
+                      12,
+
                     fontWeight:
-                      800
+                      800,
                   }}
                 >
                   Quick verification
@@ -2448,13 +2929,16 @@ function StreamContent() {
                 <p
                   style={{
                     margin:
-                      '4px 0 0',
+                      '3px 0 0',
+
                     color:
                       '#8A9BB0',
+
                     fontSize:
-                      10,
+                      9.5,
+
                     lineHeight:
-                      1.45
+                      1.45,
                   }}
                 >
                   If requested during onboarding,
@@ -2476,25 +2960,32 @@ function StreamContent() {
             <div
               style={{
                 padding:
-                  14,
+                  13,
+
                 borderRadius:
-                  15,
+                  14,
+
                 background:
                   'rgba(74,222,128,0.08)',
+
                 border:
                   '1px solid rgba(74,222,128,0.16)',
+
                 display:
                   'flex',
+
                 alignItems:
                   'center',
+
                 gap:
-                  11,
+                  10,
+
                 marginBottom:
-                  12
+                  10,
               }}
             >
               <CheckCircle
-                size={27}
+                size={26}
                 color="#4ADE80"
               />
 
@@ -2503,12 +2994,15 @@ function StreamContent() {
                   style={{
                     margin:
                       0,
+
                     color:
                       '#fff',
+
                     fontWeight:
                       800,
+
                     fontSize:
-                      13
+                      12.5,
                   }}
                 >
                   Coins Earned!
@@ -2518,10 +3012,12 @@ function StreamContent() {
                   style={{
                     margin:
                       '3px 0 0',
+
                     color:
                       '#8A9BB0',
+
                     fontSize:
-                      10
+                      9.5,
                   }}
                 >
                   Your wallet has been updated successfully.
@@ -2538,22 +3034,30 @@ function StreamContent() {
               style={{
                 width:
                   '100%',
+
                 padding:
-                  '14px',
+                  '13px',
+
                 borderRadius:
-                  14,
+                  13,
+
                 border:
                   'none',
+
                 background:
                   'linear-gradient(135deg, #4a9eff, #2d6be4)',
+
                 color:
                   '#fff',
+
                 fontWeight:
                   800,
+
                 fontSize:
-                  14,
+                  13,
+
                 cursor:
-                  'pointer'
+                  'pointer',
               }}
             >
               Back to Feed
@@ -2568,36 +3072,49 @@ function StreamContent() {
             style={{
               width:
                 '100%',
+
               padding:
-                '15px',
+                '14px',
+
               borderRadius:
-                14,
+                13,
+
               background:
                 'rgba(248,113,113,0.10)',
+
               border:
                 '1px solid rgba(248,113,113,0.24)',
+
               color:
                 '#F87171',
+
               fontWeight:
                 800,
+
               fontSize:
-                14,
+                13,
+
               display:
                 'flex',
+
               alignItems:
                 'center',
+
               justifyContent:
                 'center',
+
               gap:
                 8,
+
               cursor:
-                'pointer'
+                'pointer',
             }}
           >
             <Square
-              size={16}
+              size={15}
               fill="#F87171"
             />
+
             Stop Streaming
           </button>
         ) : status ===
@@ -2605,33 +3122,35 @@ function StreamContent() {
           <div
             style={{
               padding:
-                '11px 12px',
+                '10px 11px',
+
               borderRadius:
-                13,
+                12,
+
               background:
-                onboardingStep === 2
-                  ? 'rgba(74,158,255,0.07)'
-                  : 'rgba(255,255,255,0.03)',
+                'rgba(255,255,255,0.03)',
+
               border:
-                onboardingStep === 2
-                  ? '1px solid rgba(74,158,255,0.18)'
-                  : '1px solid rgba(255,255,255,0.05)',
+                '1px solid rgba(255,255,255,0.05)',
+
               display:
                 'flex',
+
               alignItems:
                 'center',
+
               gap:
-                8
+                8,
             }}
           >
             {onboardingStep === 1 ? (
               <Hand
-                size={16}
+                size={15}
                 color="#4a9eff"
               />
             ) : (
               <AlertTriangle
-                size={16}
+                size={15}
                 color="#FBBF24"
               />
             )}
@@ -2639,16 +3158,18 @@ function StreamContent() {
             <span
               style={{
                 fontSize:
-                  10,
+                  9.5,
+
                 color:
                   '#9DB0C7',
+
                 lineHeight:
-                  1.45
+                  1.45,
               }}
             >
               {onboardingStep === 1
-                ? 'Follow Step 1 above. Tap Play in the player and click "I\'ve Pressed Play" to proceed.'
-                : 'Step 2 is ready. Tap "I\'ve Started Playing" above to begin your 60-second verified stream.'}
+                ? 'Tap Play in the player, then press "I\'ve Pressed Play" above.'
+                : 'Confirm "I\'ve Started Playing" above to begin your verified stream.'}
             </span>
           </div>
         ) : (
@@ -2665,49 +3186,62 @@ function StreamContent() {
             style={{
               width:
                 '100%',
+
               padding:
-                '15px',
+                '14px',
+
               borderRadius:
-                14,
+                13,
+
               border:
                 'none',
+
               background:
                 'linear-gradient(135deg, #4a9eff, #2d6be4)',
+
               color:
                 '#fff',
+
               fontWeight:
                 800,
+
               fontSize:
-                14,
+                13,
+
               display:
                 'flex',
+
               alignItems:
                 'center',
+
               justifyContent:
                 'center',
+
               gap:
                 8,
+
               opacity:
                 status ===
                   'starting'
                   ? 0.6
                   : 1,
+
               cursor:
                 status ===
                   'starting'
                   ? 'not-allowed'
-                  : 'pointer'
+                  : 'pointer',
             }}
           >
             {status ===
               'starting' ? (
               <Loader2
-                size={18}
+                size={17}
                 className="spin"
               />
             ) : (
               <Play
-                size={18}
+                size={17}
                 fill="#fff"
               />
             )}
@@ -2727,29 +3261,37 @@ function StreamContent() {
           <div
             style={{
               marginTop:
-                12,
+                10,
+
               padding:
-                11,
+                10,
+
               borderRadius:
-                11,
+                10,
+
               background:
                 'rgba(248,113,113,0.08)',
+
               border:
-                '1px solid rgba(248,113,113,0.15)'
+                '1px solid rgba(248,113,113,0.15)',
             }}
           >
             <p
               style={{
                 color:
                   '#F87171',
+
                 textAlign:
                   'center',
+
                 margin:
                   0,
+
                 fontSize:
-                  11,
+                  10.5,
+
                 lineHeight:
-                  1.45
+                  1.45,
               }}
             >
               {error}
@@ -2765,14 +3307,18 @@ function StreamContent() {
           style={{
             textAlign:
               'center',
+
             color:
               '#52677F',
+
             fontSize:
-              9,
+              8.5,
+
             lineHeight:
               1.5,
+
             margin:
-              '14px 18px 0'
+              '12px 16px 0',
           }}
         >
           Your listening time is being verified by Rewaiq.
@@ -2781,11 +3327,13 @@ function StreamContent() {
       </main>
 
       {/* ===================================================
-          ONBOARDING FULLSCREEN PAGE LOCK
-          
-          Locks background page elements completely (z-index 100).
-          The active onboarding step elevates itself to z-index 102.
-          The top navigation header remains at z-index 200 so Go Back works.
+          ONBOARDING LOCK
+
+          This prevents the rest of the page from being
+          interacted with while onboarding is active.
+
+          The highlighted player/card are deliberately
+          above the lock.
       =================================================== */}
 
       {showOnboarding && (
@@ -2795,24 +3343,407 @@ function StreamContent() {
           style={{
             position:
               'fixed',
+
             inset:
               0,
+
             zIndex:
-              100,
+              400,
+
             pointerEvents:
               'auto',
+
             background:
-              'rgba(3, 9, 20, 0.72)',
+              'rgba(2,7,17,0.70)',
+
             backdropFilter:
-              'blur(3px)',
-            transition:
-              'opacity 0.2s ease-in-out'
+              'blur(2px)',
+
+            WebkitBackdropFilter:
+              'blur(2px)',
           }}
         />
       )}
 
       {/* ===================================================
-          LISTENING CHALLENGE MODAL
+          STEP 1 CONFIRM BUTTON
+          
+          This is rendered above the lock so it remains
+          clickable while the rest of the page stays locked.
+      =================================================== */}
+
+      {showOnboarding &&
+        onboardingStep === 1 && (
+        <div
+          className="floating-step1-confirm"
+          style={{
+            position:
+              'fixed',
+
+            left:
+              '50%',
+
+            bottom:
+              22,
+
+            transform:
+              'translateX(-50%)',
+
+            width:
+              'calc(100% - 32px)',
+
+            maxWidth:
+              488,
+
+            zIndex:
+              550,
+
+            pointerEvents:
+              'auto',
+          }}
+        >
+          <div
+            style={{
+              background:
+                'rgba(5,14,29,0.98)',
+
+              border:
+                '1px solid rgba(74,158,255,0.5)',
+
+              borderRadius:
+                15,
+
+              padding:
+                10,
+
+              boxShadow:
+                '0 18px 45px rgba(0,0,0,0.6)',
+            }}
+          >
+            <div
+              style={{
+                display:
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                gap:
+                  8,
+
+                marginBottom:
+                  7,
+              }}
+            >
+              <div
+                className="floating-hand"
+                style={{
+                  width:
+                    27,
+
+                  height:
+                    27,
+
+                  borderRadius:
+                    8,
+
+                  background:
+                    'rgba(74,158,255,0.14)',
+
+                  display:
+                    'flex',
+
+                  alignItems:
+                    'center',
+
+                  justifyContent:
+                    'center',
+
+                  flexShrink:
+                    0,
+                }}
+              >
+                <Hand
+                  size={15}
+                  color="#4a9eff"
+                />
+              </div>
+
+              <div
+                style={{
+                  flex:
+                    1,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize:
+                      10,
+
+                    fontWeight:
+                      900,
+                  }}
+                >
+                  STEP 1 OF 2
+                </div>
+
+                <div
+                  style={{
+                    fontSize:
+                      9,
+
+                    color:
+                      '#8A9BB0',
+
+                    marginTop:
+                      1,
+                  }}
+                >
+                  After pressing Play, confirm here
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={
+                handleAcknowledgePlayTap
+              }
+              style={{
+                width:
+                  '100%',
+
+                padding:
+                  '11px',
+
+                borderRadius:
+                  11,
+
+                border:
+                  'none',
+
+                background:
+                  'linear-gradient(135deg, #4a9eff, #2563eb)',
+
+                color:
+                  '#fff',
+
+                fontSize:
+                  11,
+
+                fontWeight:
+                  900,
+
+                cursor:
+                  'pointer',
+
+                boxShadow:
+                  '0 6px 18px rgba(37,99,235,0.35)',
+              }}
+            >
+              ✓ I've Pressed Play
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================
+          STEP 2 FLOATING CARD
+          
+          Appears only after explicit Step 1 confirmation.
+      =================================================== */}
+
+      {showOnboarding &&
+        onboardingStep === 2 && (
+        <div
+          className="floating-step2-card"
+          style={{
+            position:
+              'fixed',
+
+            left:
+              '50%',
+
+            bottom:
+              22,
+
+            transform:
+              'translateX(-50%)',
+
+            width:
+              'calc(100% - 32px)',
+
+            maxWidth:
+              488,
+
+            zIndex:
+              550,
+
+            pointerEvents:
+              'auto',
+          }}
+        >
+          <div
+            style={{
+              background:
+                'rgba(7,18,35,0.99)',
+
+              border:
+                '1px solid rgba(74,158,255,0.65)',
+
+              borderRadius:
+                16,
+
+              padding:
+                12,
+
+              boxShadow:
+                '0 20px 55px rgba(0,0,0,0.65), 0 0 30px rgba(74,158,255,0.16)',
+
+              textAlign:
+                'center',
+            }}
+          >
+            <div
+              style={{
+                display:
+                  'inline-flex',
+
+                alignItems:
+                  'center',
+
+                gap:
+                  5,
+
+                padding:
+                  '4px 9px',
+
+                borderRadius:
+                  999,
+
+                background:
+                  'rgba(74,158,255,0.13)',
+
+                color:
+                  '#7DBBFF',
+
+                fontSize:
+                  8.5,
+
+                fontWeight:
+                  900,
+
+                marginBottom:
+                  6,
+              }}
+            >
+              <Radio
+                size={11}
+              />
+
+              STEP 2 · READY
+            </div>
+
+            <p
+              style={{
+                margin:
+                  '0 0 3px',
+
+                fontSize:
+                  13,
+
+                fontWeight:
+                  900,
+              }}
+            >
+              Music playing?
+            </p>
+
+            <p
+              style={{
+                margin:
+                  '0 0 5px',
+
+                fontSize:
+                  9.5,
+
+                color:
+                  '#8A9BB0',
+              }}
+            >
+              Confirm to start your 60-second verified timer.
+            </p>
+
+            <div
+              className="floating-confirm-arrow"
+              style={{
+                height:
+                  18,
+
+                display:
+                  'flex',
+
+                justifyContent:
+                  'center',
+
+                alignItems:
+                  'center',
+
+                color:
+                  '#4a9eff',
+              }}
+            >
+              <ArrowDown
+                size={19}
+                strokeWidth={3}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={
+                handlePlaybackConfirmation
+              }
+              style={{
+                width:
+                  '100%',
+
+                padding:
+                  '11px',
+
+                borderRadius:
+                  11,
+
+                border:
+                  'none',
+
+                background:
+                  'linear-gradient(135deg, #4a9eff, #2563eb)',
+
+                color:
+                  '#fff',
+
+                fontSize:
+                  11,
+
+                fontWeight:
+                  900,
+
+                cursor:
+                  'pointer',
+
+                boxShadow:
+                  '0 7px 20px rgba(37,99,235,0.35)',
+              }}
+            >
+              ✓ I've Started Playing
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================
+          LISTENING CHALLENGE
       =================================================== */}
 
       {challengeVisible &&
@@ -2821,22 +3752,30 @@ function StreamContent() {
           style={{
             position:
               'fixed',
+
             inset:
               0,
+
             background:
-              'rgba(3,8,18,0.85)',
+              'rgba(3,8,18,0.86)',
+
             backdropFilter:
               'blur(4px)',
+
             display:
               'flex',
+
             alignItems:
               'center',
+
             justifyContent:
               'center',
+
             zIndex:
-              300,
+              800,
+
             padding:
-              18
+              18,
           }}
         >
           <div
@@ -2844,35 +3783,44 @@ function StreamContent() {
             style={{
               width:
                 '100%',
+
               maxWidth:
                 350,
+
               padding:
-                23,
+                22,
+
               borderRadius:
                 20,
+
               background:
                 'linear-gradient(145deg, #162E50, #102440)',
+
               border:
                 '1px solid rgba(74,158,255,0.35)',
+
               textAlign:
                 'center',
+
               boxShadow:
-                '0 25px 60px rgba(0,0,0,0.5)'
+                '0 25px 60px rgba(0,0,0,0.5)',
             }}
           >
             <ShieldCheck
-              size={36}
+              size={35}
               color="#4a9eff"
             />
 
             <p
               style={{
                 fontSize:
-                  18,
+                  17,
+
                 fontWeight:
                   900,
+
                 margin:
-                  '12px 0 5px'
+                  '11px 0 5px',
               }}
             >
               Quick listening check
@@ -2882,12 +3830,15 @@ function StreamContent() {
               style={{
                 color:
                   '#9DB0C7',
+
                 fontSize:
-                  12,
+                  11.5,
+
                 margin:
-                  '0 0 14px',
+                  '0 0 12px',
+
                 lineHeight:
-                  1.5
+                  1.5,
               }}
             >
               Are you still listening to the track?
@@ -2897,13 +3848,14 @@ function StreamContent() {
               className="confirm-arrow-bounce"
               style={{
                 marginBottom:
-                  5,
+                  4,
+
                 color:
-                  '#4a9eff'
+                  '#4a9eff',
               }}
             >
               <ArrowDown
-                size={21}
+                size={20}
                 strokeWidth={3}
               />
             </div>
@@ -2918,28 +3870,37 @@ function StreamContent() {
               style={{
                 width:
                   '100%',
+
                 padding:
-                  '14px',
+                  '13px',
+
                 borderRadius:
-                  13,
+                  12,
+
                 border:
                   'none',
+
                 background:
                   '#4a9eff',
+
                 color:
                   '#fff',
+
                 fontWeight:
                   800,
+
                 fontSize:
-                  14,
+                  13,
+
                 cursor:
                   challengeSubmitting
                     ? 'not-allowed'
                     : 'pointer',
+
                 opacity:
                   challengeSubmitting
                     ? 0.6
-                    : 1
+                    : 1,
               }}
             >
               {challengeSubmitting
@@ -2951,7 +3912,7 @@ function StreamContent() {
       )}
 
       {/* ===================================================
-          STYLES
+          GLOBAL ANIMATIONS
       =================================================== */}
 
       <style jsx global>{`
@@ -2959,6 +3920,7 @@ function StreamContent() {
           from {
             transform: rotate(0deg);
           }
+
           to {
             transform: rotate(360deg);
           }
@@ -2968,99 +3930,444 @@ function StreamContent() {
           animation: spin 1s linear infinite;
         }
 
+        /* -----------------------------------------------
+           PLAY TARGET
+        ------------------------------------------------ */
+
         @keyframes playTargetPulse {
-          0%, 100% {
+          0%,
+          100% {
             transform: scale(0.92);
-            opacity: 0.65;
+            opacity: 0.55;
           }
+
           50% {
-            transform: scale(1.06);
+            transform: scale(1.08);
             opacity: 1;
           }
         }
 
         .play-target-ring {
-          animation: playTargetPulse 1.2s ease-in-out infinite;
+          animation:
+            playTargetPulse 1.1s ease-in-out infinite;
         }
 
-        @keyframes sharpGuideMove {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-            opacity: 0.75;
+        /* -----------------------------------------------
+           SHARP ARROW
+        ------------------------------------------------ */
+
+        @keyframes sharpArrowMove {
+          0%,
+          100% {
+            transform:
+              translate(3px, -3px)
+              scale(0.96);
+
+            opacity: 0.72;
           }
+
           50% {
-            transform: translate(-4px, 4px) scale(1.08);
+            transform:
+              translate(-3px, 3px)
+              scale(1.05);
+
             opacity: 1;
           }
         }
 
-        .guided-play-arrow {
-          animation: sharpGuideMove 0.85s ease-in-out infinite;
-          transform-origin: center;
+        .sharp-pointer {
+          animation:
+            sharpArrowMove 0.9s ease-in-out infinite;
+          transform-origin:
+            center;
         }
 
-        @keyframes bounceDownSharp {
-          0%, 100% {
-            transform: translateY(0);
-            opacity: 0.7;
+        /* -----------------------------------------------
+           CLICK DOT
+        ------------------------------------------------ */
+
+        @keyframes clickDotPulse {
+          0%,
+          100% {
+            transform:
+              scale(0.8);
+            opacity:
+              0.5;
           }
+
           50% {
-            transform: translateY(6px);
-            opacity: 1;
+            transform:
+              scale(1.3);
+            opacity:
+              1;
           }
         }
 
-        .step2-down-arrow {
-          animation: bounceDownSharp 0.8s ease-in-out infinite;
+        .click-dot {
+          animation:
+            clickDotPulse 0.9s ease-in-out infinite;
         }
 
-        .confirm-arrow-bounce {
-          display: flex;
-          justify-content: center;
-          animation: bounceDownSharp 0.85s ease-in-out infinite;
-        }
+        /* -----------------------------------------------
+           GUIDE HAND
+        ------------------------------------------------ */
 
-        @keyframes pulseIconAnim {
-          0%, 100% {
-            transform: scale(1);
+        @keyframes handTap {
+          0%,
+          100% {
+            transform:
+              translateY(0)
+              rotate(0deg);
           }
+
           50% {
-            transform: scale(1.12);
+            transform:
+              translateY(-3px)
+              rotate(-5deg);
           }
         }
 
-        .pulse-icon-box, .pulse-icon {
-          animation: pulseIconAnim 1.1s ease-in-out infinite;
+        .guide-hand,
+        .floating-hand {
+          animation:
+            handTap 0.8s ease-in-out infinite;
         }
+
+        /* -----------------------------------------------
+           TAP BADGE
+        ------------------------------------------------ */
+
+        @keyframes tapBadgePulse {
+          0%,
+          100% {
+            transform:
+              scale(1);
+          }
+
+          50% {
+            transform:
+              scale(1.05);
+          }
+        }
+
+        .tap-badge {
+          animation:
+            tapBadgePulse 1s ease-in-out infinite;
+        }
+
+        /* -----------------------------------------------
+           PLAYER HIGHLIGHT
+        ------------------------------------------------ */
+
+        @keyframes playerGlow {
+          0%,
+          100% {
+            box-shadow:
+              0 0 0 2px
+                rgba(74,158,255,0.08),
+              0 0 20px
+                rgba(74,158,255,0.14);
+          }
+
+          50% {
+            box-shadow:
+              0 0 0 3px
+                rgba(74,158,255,0.15),
+              0 0 32px
+                rgba(74,158,255,0.28);
+          }
+        }
+
+        .player-highlight {
+          animation:
+            playerGlow 1.5s ease-in-out infinite;
+        }
+
+        /* -----------------------------------------------
+           STEP DOTS
+        ------------------------------------------------ */
+
+        .active-step-dot,
+        .done-step-dot,
+        .inactive-step-dot {
+          width:
+            22px;
+
+          height:
+            22px;
+
+          border-radius:
+            50%;
+
+          display:
+            inline-flex;
+
+          align-items:
+            center;
+
+          justify-content:
+            center;
+
+          font-size:
+            9px;
+
+          font-weight:
+            900;
+        }
+
+        .active-step-dot {
+          background:
+            #4a9eff;
+
+          color:
+            #fff;
+
+          box-shadow:
+            0 0 0 4px
+              rgba(74,158,255,0.12),
+            0 0 14px
+              rgba(74,158,255,0.5);
+        }
+
+        .done-step-dot {
+          background:
+            #4ADE80;
+
+          color:
+            #07111F;
+        }
+
+        .inactive-step-dot {
+          background:
+            rgba(255,255,255,0.08);
+
+          color:
+            #60758D;
+        }
+
+        .step-line {
+          width:
+            32px;
+
+          height:
+            2px;
+
+          background:
+            rgba(255,255,255,0.10);
+        }
+
+        /* -----------------------------------------------
+           STEP 2
+        ------------------------------------------------ */
+
+        @keyframes step2IconPulse {
+          0%,
+          100% {
+            transform:
+              scale(1);
+            opacity:
+              0.75;
+          }
+
+          50% {
+            transform:
+              scale(1.12);
+            opacity:
+              1;
+          }
+        }
+
+        .step2-icon {
+          animation:
+            step2IconPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes step2Arrow {
+          0%,
+          100% {
+            transform:
+              translateY(0);
+            opacity:
+              0.55;
+          }
+
+          50% {
+            transform:
+              translateY(5px);
+            opacity:
+              1;
+          }
+        }
+
+        .step2-arrow,
+        .floating-confirm-arrow {
+          animation:
+            step2Arrow 0.8s ease-in-out infinite;
+        }
+
+        /* -----------------------------------------------
+           FLOATING CARDS
+        ------------------------------------------------ */
+
+        @keyframes floatingCardIn {
+          from {
+            opacity:
+              0;
+
+            transform:
+              translate(-50%, 18px)
+              scale(0.97);
+          }
+
+          to {
+            opacity:
+              1;
+
+            transform:
+              translate(-50%, 0)
+              scale(1);
+          }
+        }
+
+        .floating-step1-confirm,
+        .floating-step2-card {
+          animation:
+            floatingCardIn 0.22s ease-out;
+        }
+
+        /* -----------------------------------------------
+           CHALLENGE
+        ------------------------------------------------ */
 
         @keyframes challengePop {
           from {
-            transform: scale(0.92);
-            opacity: 0;
+            transform:
+              scale(0.92);
+
+            opacity:
+              0;
           }
+
           to {
-            transform: scale(1);
-            opacity: 1;
+            transform:
+              scale(1);
+
+            opacity:
+              1;
           }
         }
 
         .challenge-pop {
-          animation: challengePop 0.25s ease-out;
+          animation:
+            challengePop 0.25s ease-out;
         }
 
-        .stream-guide-step1-layer,
-        .onboarding-page-lock {
-          user-select: none;
+        @keyframes confirmArrowBounce {
+          0%,
+          100% {
+            transform:
+              translateY(0);
+            opacity:
+              0.7;
+          }
+
+          50% {
+            transform:
+              translateY(5px);
+            opacity:
+              1;
+          }
         }
+
+        .confirm-arrow-bounce {
+          display:
+            flex;
+
+          justify-content:
+            center;
+
+          animation:
+            confirmArrowBounce 0.8s ease-in-out infinite;
+        }
+
+        /* -----------------------------------------------
+           MOBILE
+        ------------------------------------------------ */
 
         @media (max-width: 420px) {
-          .guided-play-arrow {
-            left: 12% !important;
-            bottom: 28% !important;
+          .sharp-pointer {
+            left:
+              4% !important;
+
+            bottom:
+              10% !important;
+
+            width:
+              85px !important;
+
+            height:
+              90px !important;
           }
+
           .play-target-ring {
-            width: 62px !important;
-            height: 62px !important;
+            left:
+              2% !important;
+
+            bottom:
+              6% !important;
+
+            width:
+              58px !important;
+
+            height:
+              58px !important;
+          }
+
+          .click-dot {
+            left:
+              calc(2% + 24px) !important;
+
+            bottom:
+              calc(6% + 24px) !important;
+          }
+
+          .guide-banner {
+            top:
+              7px !important;
+
+            left:
+              7px !important;
+
+            right:
+              7px !important;
+          }
+
+          .floating-step1-confirm,
+          .floating-step2-card {
+            width:
+              calc(100% - 24px) !important;
+
+            bottom:
+              12px !important;
+          }
+        }
+
+        /* -----------------------------------------------
+           REDUCE MOTION
+        ------------------------------------------------ */
+
+        @media (prefers-reduced-motion: reduce) {
+          *,
+          *::before,
+          *::after {
+            animation-duration:
+              0.001ms !important;
+
+            animation-iteration-count:
+              1 !important;
+
+            scroll-behavior:
+              auto !important;
           }
         }
       `}</style>
