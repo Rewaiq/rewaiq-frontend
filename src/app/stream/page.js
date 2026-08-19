@@ -32,7 +32,6 @@ import Spinner from '@/components/Spinner';
 
 
 const REQUIRED_SECONDS = 60;
-
 const HEARTBEAT_INTERVAL = 5000;
 
 const STORAGE_KEY =
@@ -174,7 +173,7 @@ function StreamContent() {
 
 
   // -------------------------------------------------------
-  // Onboarding
+  // Onboarding / verification UI
   // -------------------------------------------------------
 
   const [showOnboarding, setShowOnboarding] =
@@ -191,8 +190,22 @@ function StreamContent() {
 
 
   // -------------------------------------------------------
-  // Refs
+  // IMPORTANT REFS
+  //
+  // These prevent React's asynchronous state updates from
+  // causing the heartbeat loop to use an old session ID or
+  // old playbackStarted value.
   // -------------------------------------------------------
+
+  const sessionIdRef =
+    useRef(null);
+
+  const playbackStartedRef =
+    useRef(false);
+
+  const statusRef =
+    useRef('idle');
+
 
   const heartbeatRef =
     useRef(null);
@@ -205,6 +218,28 @@ function StreamContent() {
 
   const heartbeatBusyRef =
     useRef(false);
+
+
+  // =======================================================
+  // KEEP REFS SYNCHRONIZED
+  // =======================================================
+
+  useEffect(() => {
+    sessionIdRef.current =
+      sessionId;
+  }, [sessionId]);
+
+
+  useEffect(() => {
+    playbackStartedRef.current =
+      playbackStarted;
+  }, [playbackStarted]);
+
+
+  useEffect(() => {
+    statusRef.current =
+      status;
+  }, [status]);
 
 
   // =======================================================
@@ -450,7 +485,7 @@ function StreamContent() {
 
 
   // =======================================================
-  // GET PAGE VISIBILITY
+  // PAGE VISIBILITY
   // =======================================================
 
   function getPageState() {
@@ -486,9 +521,19 @@ function StreamContent() {
     challengeResponse = undefined
   ) {
 
+    // IMPORTANT:
+    // Read the CURRENT values from refs instead of the
+    // values captured by an older React render.
+
+    const currentSessionId =
+      sessionIdRef.current;
+
+    const currentPlaybackStarted =
+      playbackStartedRef.current;
+
     if (
-      !sessionId ||
-      !playbackStarted ||
+      !currentSessionId ||
+      !currentPlaybackStarted ||
       heartbeatBusyRef.current
     ) {
       return null;
@@ -508,7 +553,7 @@ function StreamContent() {
       const payload = {
 
         session_id:
-          sessionId,
+          currentSessionId,
 
         visible,
 
@@ -539,6 +584,10 @@ function StreamContent() {
       const data =
         response?.data || {};
 
+
+      // ---------------------------------------------------
+      // Update verified time
+      // ---------------------------------------------------
 
       if (
         typeof data.valid_seconds ===
@@ -580,7 +629,7 @@ function StreamContent() {
         clearHeartbeat();
 
         await finishStream(
-          sessionId
+          currentSessionId
         );
       }
 
@@ -604,15 +653,20 @@ function StreamContent() {
 
 
   // =======================================================
-  // START HEARTBEATS
+  // START HEARTBEAT LOOP
   // =======================================================
 
   function startHeartbeatLoop() {
 
     clearHeartbeat();
 
-    // Send first heartbeat immediately.
+    // First verification request.
+    //
+    // It will NOT award time because the backend intentionally
+    // treats the first heartbeat as the clock starting point.
+
     sendHeartbeat();
+
 
     heartbeatRef.current =
       setInterval(
@@ -656,7 +710,8 @@ function StreamContent() {
         await API.post(
           '/api/streams/end',
           {
-            session_id: sid
+            session_id:
+              sid
           }
         );
 
@@ -809,6 +864,14 @@ function StreamContent() {
         false
       );
 
+      // Clear active session refs.
+
+      sessionIdRef.current =
+        null;
+
+      playbackStartedRef.current =
+        false;
+
     } catch (err) {
 
       console.error(
@@ -834,9 +897,15 @@ function StreamContent() {
         null
       );
 
+      sessionIdRef.current =
+        null;
+
       setPlaybackStarted(
         false
       );
+
+      playbackStartedRef.current =
+        false;
 
       setVerifiedSeconds(
         0
@@ -920,9 +989,13 @@ function StreamContent() {
         false
       );
 
+      playbackStartedRef.current =
+        false;
+
       setChallengeVisible(
         false
       );
+
 
       saveTrackLocally(
         track
@@ -930,12 +1003,16 @@ function StreamContent() {
 
 
       // ---------------------------------------------------
-      // Create backend session FIRST
+      // Create backend session
       // ---------------------------------------------------
 
       setStatus(
         'starting'
       );
+
+      statusRef.current =
+        'starting';
+
 
       const trackUrl =
         track.original_url ||
@@ -973,13 +1050,24 @@ function StreamContent() {
       }
 
 
+      // ---------------------------------------------------
+      // IMPORTANT:
+      // Set the ref IMMEDIATELY.
+      //
+      // This means the heartbeat loop doesn't have to wait
+      // for React to re-render.
+      // ---------------------------------------------------
+
+      sessionIdRef.current =
+        newSessionId;
+
       setSessionId(
         newSessionId
       );
 
 
       // ---------------------------------------------------
-      // NOW show player
+      // Show player
       // ---------------------------------------------------
 
       setShowEmbed(
@@ -989,6 +1077,10 @@ function StreamContent() {
       setStatus(
         'awaiting_play'
       );
+
+      statusRef.current =
+        'awaiting_play';
+
 
       setShowOnboarding(
         true
@@ -1005,6 +1097,9 @@ function StreamContent() {
         'idle'
       );
 
+      statusRef.current =
+        'idle';
+
       setShowEmbed(
         false
       );
@@ -1012,6 +1107,9 @@ function StreamContent() {
       setSessionId(
         null
       );
+
+      sessionIdRef.current =
+        null;
 
       setError(
         err?.response?.data?.message ||
@@ -1033,8 +1131,11 @@ function StreamContent() {
 
   function handlePlaybackConfirmation() {
 
+    const currentSession =
+      sessionIdRef.current;
+
     if (
-      !sessionId
+      !currentSession
     ) {
 
       setError(
@@ -1044,19 +1145,35 @@ function StreamContent() {
       return;
     }
 
+
     setShowOnboarding(
       false
     );
 
+
+    // IMPORTANT:
+    // Set the ref BEFORE starting heartbeat.
+
+    playbackStartedRef.current =
+      true;
+
     setPlaybackStarted(
       true
     );
+
+
+    statusRef.current =
+      'streaming';
 
     setStatus(
       'streaming'
     );
 
     setError('');
+
+
+    // Now the first heartbeat can actually use the
+    // correct session ID and playback state.
 
     startHeartbeatLoop();
   }
@@ -1070,7 +1187,7 @@ function StreamContent() {
 
     if (
       challengeSubmitting ||
-      !sessionId
+      !sessionIdRef.current
     ) {
       return;
     }
@@ -1094,6 +1211,8 @@ function StreamContent() {
         setChallengeVisible(
           false
         );
+
+        setError('');
 
       } else {
 
@@ -1119,8 +1238,12 @@ function StreamContent() {
 
     clearHeartbeat();
 
+    const currentSession =
+      sessionIdRef.current;
+
+
     if (
-      sessionId
+      currentSession
     ) {
 
       try {
@@ -1129,7 +1252,7 @@ function StreamContent() {
           '/api/streams/end',
           {
             session_id:
-              sessionId
+              currentSession
           }
         );
 
@@ -1142,9 +1265,20 @@ function StreamContent() {
       }
     }
 
+
+    sessionIdRef.current =
+      null;
+
+    playbackStartedRef.current =
+      false;
+
+
     setStatus(
       'idle'
     );
+
+    statusRef.current =
+      'idle';
 
     setShowEmbed(
       false
@@ -1188,13 +1322,13 @@ function StreamContent() {
         document.visibilityState !==
         'visible'
       ) {
-
         return;
       }
 
       if (
-        status === 'streaming' &&
-        playbackStarted
+        statusRef.current ===
+          'streaming' &&
+        playbackStartedRef.current
       ) {
 
         sendHeartbeat();
@@ -1216,11 +1350,7 @@ function StreamContent() {
       );
     };
 
-  }, [
-    status,
-    playbackStarted,
-    sessionId
-  ]);
+  }, []);
 
 
   // =======================================================
@@ -1230,7 +1360,14 @@ function StreamContent() {
   useEffect(() => {
 
     return () => {
+
       clearHeartbeat();
+
+      sessionIdRef.current =
+        null;
+
+      playbackStartedRef.current =
+        false;
     };
 
   }, []);
@@ -1512,7 +1649,6 @@ function StreamContent() {
             '22px 18px'
         }}
       >
-
 
         {/* =================================================
             TRACK INFO
@@ -1862,9 +1998,9 @@ function StreamContent() {
               />
 
 
-              {/* -----------------------------------------
+              {/* =================================================
                   PLAY GUIDE
-              ----------------------------------------- */}
+              ================================================= */}
 
               {showOnboarding && (
 
@@ -1967,8 +2103,6 @@ function StreamContent() {
 
                   </div>
 
-
-                  {/* Animated pointer */}
 
                   <div
                     className="play-pointer"
@@ -2663,7 +2797,7 @@ function StreamContent() {
 
 
         {/* =================================================
-            COMPLETED
+            COMPLETED / ACTION
         ================================================= */}
 
         {status ===
