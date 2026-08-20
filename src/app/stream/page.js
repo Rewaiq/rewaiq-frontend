@@ -22,10 +22,8 @@ import {
   Volume2,
   Loader2,
   Hand,
-  Camera,
   ShieldCheck,
   Eye,
-  AlertTriangle,
   Radio,
   Coins,
 } from 'lucide-react';
@@ -36,14 +34,7 @@ import Spinner from '@/components/Spinner';
 const REQUIRED_SECONDS = 60;
 const HEARTBEAT_INTERVAL = 5000;
 
-// Hold-to-confirm duration for the listening challenge.
-const HOLD_DURATION_MS = 900;
-
 const STORAGE_KEY = 'rewaiq_stream_track';
-
-// =========================================================
-// TRACK HELPERS
-// =========================================================
 
 function getTrackId(track) {
   if (!track) return null;
@@ -91,22 +82,13 @@ function getSavedTrack() {
         STORAGE_KEY
       );
 
-    if (!saved) return null;
-
-    return JSON.parse(saved);
-  } catch (error) {
-    console.warn(
-      'Could not read saved stream track:',
-      error
-    );
-
+    return saved
+      ? JSON.parse(saved)
+      : null;
+  } catch {
     return null;
   }
 }
-
-// =========================================================
-// MAIN STREAM CONTENT
-// =========================================================
 
 function StreamContent() {
   const router = useRouter();
@@ -119,10 +101,6 @@ function StreamContent() {
     searchParams.get('track_id') ||
     searchParams.get('trackId');
 
-  // -------------------------------------------------------
-  // TRACK
-  // -------------------------------------------------------
-
   const [track, setTrack] =
     useState(null);
 
@@ -132,10 +110,6 @@ function StreamContent() {
         ? String(urlTrackId)
         : null
     );
-
-  // -------------------------------------------------------
-  // UI STATE
-  // -------------------------------------------------------
 
   const [loading, setLoading] =
     useState(true);
@@ -149,10 +123,6 @@ function StreamContent() {
   const [showEmbed, setShowEmbed] =
     useState(false);
 
-  // -------------------------------------------------------
-  // VERIFICATION
-  // -------------------------------------------------------
-
   const [playbackStarted, setPlaybackStarted] =
     useState(false);
 
@@ -165,29 +135,11 @@ function StreamContent() {
   const [rewarded, setRewarded] =
     useState(false);
 
-  // -------------------------------------------------------
-  // ONBOARDING
-  //
-  // Step 1: Spotlight on Audio Player ONLY (everything else dark & locked).
-  // User taps Audiomack Play, then clicks "✓ I've Pressed Play".
-  // Step 2: Audio Player dims, Step 2 Verification Card spotlights.
-  // User clicks "✓ I've Started Playing" to start heartbeat & earn timer.
-  //
-  // Neither step auto-advances or auto-closes — the user must tap
-  // the confirm button each time. We cannot detect a real click
-  // inside Audiomack's cross-origin iframe, so the confirm button
-  // is always clickable; what we control is that verification never
-  // starts until BOTH taps happen, in order.
-  // -------------------------------------------------------
-
   const [showOnboarding, setShowOnboarding] =
     useState(false);
 
   const [onboardingStep, setOnboardingStep] =
     useState(1);
-
-  const [showScreenshotPrompt, setShowScreenshotPrompt] =
-    useState(false);
 
   const [challengeVisible, setChallengeVisible] =
     useState(false);
@@ -195,14 +147,8 @@ function StreamContent() {
   const [challengeSubmitting, setChallengeSubmitting] =
     useState(false);
 
-  // -------------------------------------------------------
-  // FUN / FEEDBACK STATE
-  //
-  // Purely cosmetic — none of this drives verification. Every
-  // piece here only reacts to server-confirmed state that's
-  // already trusted elsewhere in this file (verifiedSeconds,
-  // status, challenge responses).
-  // -------------------------------------------------------
+  const [challengeOffsetX, setChallengeOffsetX] =
+    useState(0);
 
   const [coinBursts, setCoinBursts] =
     useState([]);
@@ -210,18 +156,8 @@ function StreamContent() {
   const [milestoneFlash, setMilestoneFlash] =
     useState(false);
 
-  const [challengeOffsetX, setChallengeOffsetX] =
-    useState(0);
-
-  const [holdProgress, setHoldProgress] =
-    useState(0);
-
   const [confetti, setConfetti] =
     useState([]);
-
-  // -------------------------------------------------------
-  // REFS
-  // -------------------------------------------------------
 
   const sessionIdRef =
     useRef(null);
@@ -235,27 +171,20 @@ function StreamContent() {
   const heartbeatRef =
     useRef(null);
 
+  const heartbeatBusyRef =
+    useRef(false);
+
   const startingRef =
     useRef(false);
 
   const endingRef =
     useRef(false);
 
-  const heartbeatBusyRef =
-    useRef(false);
-
   const coinIdRef =
     useRef(0);
 
-  const prevVerifiedRef =
+  const previousVerifiedRef =
     useRef(0);
-
-  const holdIntervalRef =
-    useRef(null);
-
-  // =======================================================
-  // KEEP REFS SYNCHRONIZED
-  // =======================================================
 
   useEffect(() => {
     sessionIdRef.current =
@@ -272,10 +201,6 @@ function StreamContent() {
       status;
   }, [status]);
 
-  // =======================================================
-  // URL TRACK ID
-  // =======================================================
-
   useEffect(() => {
     if (urlTrackId) {
       setTrackId(
@@ -284,9 +209,9 @@ function StreamContent() {
     }
   }, [urlTrackId]);
 
-  // =======================================================
+  // =========================================================
   // LOAD TRACK
-  // =======================================================
+  // =========================================================
 
   useEffect(() => {
     let cancelled = false;
@@ -295,21 +220,18 @@ function StreamContent() {
       const savedTrack =
         getSavedTrack();
 
-      const savedTrackId =
+      const savedId =
         getTrackId(savedTrack);
 
       const resolvedId =
         urlTrackId ||
-        savedTrackId;
+        savedId;
 
       if (!resolvedId) {
-        if (!cancelled) {
-          setLoading(false);
-          setTrack(null);
-          setError(
-            'No track selected'
-          );
-        }
+        setLoading(false);
+        setError(
+          'No track selected.'
+        );
         return;
       }
 
@@ -322,16 +244,13 @@ function StreamContent() {
 
       if (
         savedTrack &&
-        savedTrackId &&
-        String(savedTrackId) ===
+        savedId &&
+        String(savedId) ===
           normalizedId
       ) {
-        if (!cancelled) {
-          setTrack(
-            savedTrack
-          );
-          setLoading(false);
-        }
+        setTrack(
+          savedTrack
+        );
       }
 
       try {
@@ -353,7 +272,7 @@ function StreamContent() {
 
         if (!loadedTrack) {
           throw new Error(
-            'Track not found'
+            'Track not found.'
           );
         }
 
@@ -370,37 +289,30 @@ function StreamContent() {
             loadedTrack
           );
 
-        setTrackId(
-          String(
-            loadedId ||
-            normalizedId
-          )
-        );
+        if (loadedId) {
+          setTrackId(
+            String(loadedId)
+          );
+        }
       } catch (err) {
         console.error(
           'Track loading error:',
           err
         );
 
-        if (!cancelled) {
-          if (
-            savedTrack &&
-            savedTrackId &&
-            String(savedTrackId) ===
-              normalizedId
-          ) {
-            setTrack(
-              savedTrack
-            );
-            setError('');
-          } else {
-            setTrack(null);
-            setError(
-              err?.response?.data?.message ||
-              err?.message ||
-              'Track not found'
-            );
-          }
+        if (
+          !savedTrack ||
+          !savedId ||
+          String(savedId) !==
+            normalizedId
+        ) {
+          setTrack(null);
+
+          setError(
+            err?.response?.data?.message ||
+            err?.message ||
+            'Track not found.'
+          );
         }
       } finally {
         if (!cancelled) {
@@ -416,9 +328,9 @@ function StreamContent() {
     };
   }, [urlTrackId]);
 
-  // =======================================================
+  // =========================================================
   // EMBED URL
-  // =======================================================
+  // =========================================================
 
   function getEmbedUrl() {
     if (!track) {
@@ -441,9 +353,7 @@ function StreamContent() {
         )[1];
 
       if (parts) {
-        return (
-          `https://audiomack.com/embed/${parts}`
-        );
+        return `https://audiomack.com/embed/${parts}`;
       }
     }
 
@@ -453,9 +363,9 @@ function StreamContent() {
   const embedUrl =
     getEmbedUrl();
 
-  // =======================================================
-  // CLEAR HEARTBEAT
-  // =======================================================
+  // =========================================================
+  // HEARTBEAT
+  // =========================================================
 
   function clearHeartbeat() {
     if (
@@ -470,10 +380,6 @@ function StreamContent() {
     }
   }
 
-  // =======================================================
-  // PAGE STATE
-  // =======================================================
-
   function getPageState() {
     if (
       typeof document ===
@@ -481,7 +387,7 @@ function StreamContent() {
     ) {
       return {
         visible: true,
-        focused: true
+        focused: true,
       };
     }
 
@@ -489,27 +395,21 @@ function StreamContent() {
       visible:
         document.visibilityState ===
         'visible',
+
       focused:
-        document.hasFocus()
+        document.hasFocus(),
     };
   }
 
-  // =======================================================
-  // HEARTBEAT
-  // =======================================================
-
   async function sendHeartbeat(
-    challengeResponse = undefined
+    challengeAnswer = undefined
   ) {
-    const currentSessionId =
+    const sid =
       sessionIdRef.current;
 
-    const currentPlaybackStarted =
-      playbackStartedRef.current;
-
     if (
-      !currentSessionId ||
-      !currentPlaybackStarted ||
+      !sid ||
+      !playbackStartedRef.current ||
       heartbeatBusyRef.current
     ) {
       return null;
@@ -521,31 +421,32 @@ function StreamContent() {
     try {
       const {
         visible,
-        focused
+        focused,
       } =
         getPageState();
 
       const payload = {
-        session_id:
-          currentSessionId,
+        session_id: sid,
         visible,
         focused,
-        playback_started:
-          true
+        playback_started: true,
       };
 
       if (
-        challengeResponse !==
+        challengeAnswer !==
         undefined
       ) {
-        payload.challenge_response =
-          challengeResponse;
+        payload.challenge_answer =
+          challengeAnswer;
       }
 
       const response =
         await API.post(
           '/api/streams/heartbeat',
-          payload
+          payload,
+          {
+            timeout: 15000,
+          }
         );
 
       const data =
@@ -573,12 +474,20 @@ function StreamContent() {
       }
 
       if (
+        data.challenge_passed
+      ) {
+        setChallengeVisible(
+          false
+        );
+      }
+
+      if (
         data.complete
       ) {
         clearHeartbeat();
 
         await finishStream(
-          currentSessionId
+          sid
         );
       }
 
@@ -596,27 +505,21 @@ function StreamContent() {
     }
   }
 
-  // =======================================================
-  // HEARTBEAT LOOP
-  // =======================================================
-
   function startHeartbeatLoop() {
     clearHeartbeat();
 
+    // First heartbeat establishes server-side timing.
     sendHeartbeat();
 
     heartbeatRef.current =
-      setInterval(
-        () => {
-          sendHeartbeat();
-        },
-        HEARTBEAT_INTERVAL
-      );
+      setInterval(() => {
+        sendHeartbeat();
+      }, HEARTBEAT_INTERVAL);
   }
 
-  // =======================================================
-  // FINISH STREAM
-  // =======================================================
+  // =========================================================
+  // FINISH
+  // =========================================================
 
   async function finishStream(
     sid
@@ -644,112 +547,20 @@ function StreamContent() {
         await API.post(
           '/api/streams/end',
           {
-            session_id:
-              sid
+            session_id: sid,
+          },
+          {
+            timeout: 15000,
           }
         );
+
+      const data =
+        response?.data || {};
 
       console.log(
         'Stream completed:',
-        response?.data
+        data
       );
-
-      const backendBalance =
-        response?.data
-          ?.coin_balance;
-
-      if (
-        backendBalance !==
-          undefined &&
-        typeof window !==
-          'undefined'
-      ) {
-        const storedUser =
-          localStorage.getItem(
-            'rewaiq_user'
-          );
-
-        if (storedUser) {
-          try {
-            const user =
-              JSON.parse(
-                storedUser
-              );
-
-            user.coin_balance =
-              backendBalance;
-
-            localStorage.setItem(
-              'rewaiq_user',
-              JSON.stringify(user)
-            );
-          } catch (
-            storageError
-          ) {
-            console.warn(
-              'Could not update stored user:',
-              storageError
-            );
-          }
-        }
-      }
-
-      try {
-        const balanceResponse =
-          await API.get(
-            '/api/coins/balance'
-          );
-
-        const newBalance =
-          balanceResponse?.data?.balance ??
-          balanceResponse?.data?.coin_balance ??
-          balanceResponse?.data?.coins ??
-          balanceResponse?.data?.user
-            ?.coin_balance;
-
-        if (
-          newBalance !==
-            undefined &&
-          typeof window !==
-            'undefined'
-        ) {
-          const storedUser =
-            localStorage.getItem(
-              'rewaiq_user'
-            );
-
-          if (storedUser) {
-            try {
-              const user =
-                JSON.parse(
-                  storedUser
-                );
-
-              user.coin_balance =
-                newBalance;
-
-              localStorage.setItem(
-                'rewaiq_user',
-                JSON.stringify(user)
-              );
-            } catch (
-              storageError
-            ) {
-              console.warn(
-                'Could not update stored wallet:',
-                storageError
-              );
-            }
-          }
-        }
-      } catch (
-        balanceError
-      ) {
-        console.warn(
-          'Could not refresh coin balance:',
-          balanceError
-        );
-      }
 
       setVerifiedSeconds(
         REQUIRED_SECONDS
@@ -766,10 +577,6 @@ function StreamContent() {
       statusRef.current =
         'completed';
 
-      setShowScreenshotPrompt(
-        false
-      );
-
       setChallengeVisible(
         false
       );
@@ -778,11 +585,66 @@ function StreamContent() {
         false
       );
 
+      setSessionId(
+        null
+      );
+
       sessionIdRef.current =
         null;
 
+      setPlaybackStarted(
+        false
+      );
+
       playbackStartedRef.current =
         false;
+
+      // Refresh wallet.
+      try {
+        const balanceResponse =
+          await API.get(
+            '/api/coins/balance'
+          );
+
+        const newBalance =
+          balanceResponse?.data?.balance ??
+          balanceResponse?.data?.coin_balance ??
+          balanceResponse?.data?.coins ??
+          balanceResponse?.data?.user
+            ?.coin_balance;
+
+        if (
+          newBalance !==
+          undefined &&
+          typeof window !==
+            'undefined'
+        ) {
+          const stored =
+            localStorage.getItem(
+              'rewaiq_user'
+            );
+
+          if (stored) {
+            try {
+              const user =
+                JSON.parse(stored);
+
+              user.coin_balance =
+                newBalance;
+
+              localStorage.setItem(
+                'rewaiq_user',
+                JSON.stringify(user)
+              );
+            } catch {}
+          }
+        }
+      } catch (balanceError) {
+        console.warn(
+          'Wallet refresh failed:',
+          balanceError
+        );
+      }
     } catch (err) {
       console.error(
         'Finish stream error:',
@@ -792,7 +654,7 @@ function StreamContent() {
       setError(
         err?.response?.data?.message ||
         err?.message ||
-        'Could not complete stream. Please try again.'
+        'Could not complete stream.'
       );
 
       setStatus(
@@ -829,9 +691,9 @@ function StreamContent() {
     }
   }
 
-  // =======================================================
-  // START STREAMING
-  // =======================================================
+  // =========================================================
+  // START
+  // =========================================================
 
   async function handleStartStreaming() {
     if (
@@ -841,15 +703,14 @@ function StreamContent() {
     }
 
     if (
-      status !== 'idle' &&
-      status !== 'completed'
+      status !== 'idle'
     ) {
       return;
     }
 
     if (!track) {
       setError(
-        'No track selected'
+        'No track selected.'
       );
       return;
     }
@@ -860,7 +721,7 @@ function StreamContent() {
 
     if (!resolvedTrackId) {
       setError(
-        'This track does not have a valid ID'
+        'This track does not have a valid ID.'
       );
       return;
     }
@@ -878,40 +739,19 @@ function StreamContent() {
     try {
       setError('');
 
-      setRewarded(
-        false
-      );
+      setVerifiedSeconds(0);
+      setRewarded(false);
+      setChallengeVisible(false);
 
-      setVerifiedSeconds(
-        0
-      );
-
-      setPlaybackStarted(
-        false
-      );
+      setPlaybackStarted(false);
 
       playbackStartedRef.current =
         false;
 
-      setChallengeVisible(
-        false
-      );
-
-      saveTrackLocally(
-        track
-      );
-
-      setStatus(
-        'starting'
-      );
+      setStatus('starting');
 
       statusRef.current =
         'starting';
-
-      const trackUrl =
-        track.original_url ||
-        embedUrl ||
-        '';
 
       const response =
         await API.post(
@@ -919,11 +759,13 @@ function StreamContent() {
           {
             track_id:
               resolvedTrackId,
+
             track_url:
-              trackUrl
+              track.original_url ||
+              embedUrl,
           },
           {
-            timeout: 15000
+            timeout: 15000,
           }
         );
 
@@ -934,7 +776,7 @@ function StreamContent() {
 
       if (!newSessionId) {
         throw new Error(
-          'Stream session was not created'
+          'Stream session was not created.'
         );
       }
 
@@ -980,9 +822,7 @@ function StreamContent() {
         false
       );
 
-      setSessionId(
-        null
-      );
+      setSessionId(null);
 
       sessionIdRef.current =
         null;
@@ -990,7 +830,7 @@ function StreamContent() {
       setError(
         err?.response?.data?.message ||
         err?.message ||
-        'Could not start stream. Please try again.'
+        'Could not start stream.'
       );
     } finally {
       startingRef.current =
@@ -998,14 +838,14 @@ function StreamContent() {
     }
   }
 
-  // =======================================================
-  // STEP 1 CONFIRMATION
-  // =======================================================
+  // =========================================================
+  // STEP 1
+  // =========================================================
 
   function handleAcknowledgePlayTap() {
     if (
-      !showOnboarding ||
-      onboardingStep !== 1
+      onboardingStep !== 1 ||
+      !sessionIdRef.current
     ) {
       return;
     }
@@ -1015,20 +855,18 @@ function StreamContent() {
     );
   }
 
-  // =======================================================
-  // STEP 2 CONFIRMATION
-  // =======================================================
+  // =========================================================
+  // STEP 2
+  // =========================================================
 
   function handlePlaybackConfirmation() {
-    const currentSession =
-      sessionIdRef.current;
-
     if (
-      !currentSession
+      !sessionIdRef.current
     ) {
       setError(
         'Streaming session is not ready.'
       );
+
       return;
     }
 
@@ -1047,21 +885,21 @@ function StreamContent() {
       true
     );
 
-    statusRef.current =
-      'streaming';
-
     setStatus(
       'streaming'
     );
+
+    statusRef.current =
+      'streaming';
 
     setError('');
 
     startHeartbeatLoop();
   }
 
-  // =======================================================
-  // CHALLENGE
-  // =======================================================
+  // =========================================================
+  // LISTENING CHALLENGE
+  // =========================================================
 
   async function handleChallenge() {
     if (
@@ -1076,6 +914,11 @@ function StreamContent() {
     );
 
     try {
+      /*
+       * Normal TAP.
+       *
+       * Server decides whether this is accepted.
+       */
       const result =
         await sendHeartbeat(
           true
@@ -1087,6 +930,7 @@ function StreamContent() {
         setChallengeVisible(
           false
         );
+
         setError('');
       } else {
         setError(
@@ -1097,107 +941,25 @@ function StreamContent() {
       setChallengeSubmitting(
         false
       );
-
-      setHoldProgress(
-        0
-      );
     }
   }
 
-  // =======================================================
-  // CHALLENGE — HOLD TO CONFIRM
-  //
-  // A ~900ms press-and-hold instead of a single tap. Mostly
-  // for feel, but combined with the random button offset
-  // below it's also mildly more script-resistant than a
-  // plain click. The real anti-cheat backstop stays entirely
-  // server-side — this only decides when handleChallenge()
-  // fires, it never decides the outcome.
-  // =======================================================
-
-  function startChallengeHold() {
-    if (
-      challengeSubmitting ||
-      holdIntervalRef.current
-    ) {
-      return;
-    }
-
-    const startedAt =
-      Date.now();
-
-    holdIntervalRef.current =
-      setInterval(() => {
-        const elapsed =
-          Date.now() -
-          startedAt;
-
-        const pct =
-          Math.min(
-            100,
-            (
-              elapsed /
-              HOLD_DURATION_MS
-            ) * 100
-          );
-
-        setHoldProgress(
-          pct
-        );
-
-        if (pct >= 100) {
-          clearInterval(
-            holdIntervalRef.current
-          );
-
-          holdIntervalRef.current =
-            null;
-
-          handleChallenge();
-        }
-      }, 30);
-  }
-
-  function cancelChallengeHold() {
-    if (
-      holdIntervalRef.current
-    ) {
-      clearInterval(
-        holdIntervalRef.current
-      );
-
-      holdIntervalRef.current =
-        null;
-    }
-
-    if (
-      !challengeSubmitting
-    ) {
-      setHoldProgress(0);
-    }
-  }
-
-  // =======================================================
-  // STOP STREAMING
-  // =======================================================
+  // =========================================================
+  // STOP
+  // =========================================================
 
   async function handleStopStreaming() {
     clearHeartbeat();
 
-    cancelChallengeHold();
-
-    const currentSession =
+    const sid =
       sessionIdRef.current;
 
-    if (
-      currentSession
-    ) {
+    if (sid) {
       try {
         await API.post(
           '/api/streams/end',
           {
-            session_id:
-              currentSession
+            session_id: sid,
           }
         );
       } catch (err) {
@@ -1214,64 +976,39 @@ function StreamContent() {
     playbackStartedRef.current =
       false;
 
-    setStatus(
-      'idle'
-    );
+    setSessionId(null);
+
+    setPlaybackStarted(false);
+
+    setStatus('idle');
 
     statusRef.current =
       'idle';
 
-    setShowEmbed(
-      false
-    );
+    setShowEmbed(false);
 
-    setSessionId(
-      null
-    );
+    setShowOnboarding(false);
 
-    setPlaybackStarted(
-      false
-    );
+    setChallengeVisible(false);
 
-    setVerifiedSeconds(
-      0
-    );
+    setVerifiedSeconds(0);
 
-    setRewarded(
-      false
-    );
+    setRewarded(false);
 
-    setChallengeVisible(
-      false
-    );
+    setCoinBursts([]);
 
-    setShowOnboarding(
-      false
-    );
-
-    setOnboardingStep(
-      1
-    );
-
-    setCoinBursts(
-      []
-    );
+    setError('');
   }
 
-  // =======================================================
-  // PAGE VISIBILITY
-  // =======================================================
+  // =========================================================
+  // VISIBILITY
+  // =========================================================
 
   useEffect(() => {
     function handleVisibility() {
       if (
-        document.visibilityState !==
-        'visible'
-      ) {
-        return;
-      }
-
-      if (
+        document.visibilityState ===
+        'visible' &&
         statusRef.current ===
           'streaming' &&
         playbackStartedRef.current
@@ -1293,9 +1030,9 @@ function StreamContent() {
     };
   }, []);
 
-  // =======================================================
+  // =========================================================
   // CLEANUP
-  // =======================================================
+  // =========================================================
 
   useEffect(() => {
     return () => {
@@ -1306,85 +1043,73 @@ function StreamContent() {
 
       playbackStartedRef.current =
         false;
-
-      if (
-        holdIntervalRef.current
-      ) {
-        clearInterval(
-          holdIntervalRef.current
-        );
-
-        holdIntervalRef.current =
-          null;
-      }
     };
   }, []);
 
-  // =======================================================
-  // COIN TRICKLE
-  //
-  // Fires purely off verifiedSeconds increasing — reacts to
-  // what the server already confirmed, never decides anything.
-  // =======================================================
+  // =========================================================
+  // COIN ANIMATION
+  // =========================================================
 
   useEffect(() => {
-    if (status !== 'streaming') {
-      prevVerifiedRef.current =
+    if (
+      status !== 'streaming'
+    ) {
+      previousVerifiedRef.current =
         verifiedSeconds;
+
       return;
     }
 
     if (
       verifiedSeconds >
-      prevVerifiedRef.current
+      previousVerifiedRef.current
     ) {
-      const burstId =
+      const id =
         coinIdRef.current++;
 
       setCoinBursts(
-        (prev) => [
-          ...prev,
+        previous => [
+          ...previous,
           {
-            id: burstId,
+            id,
             offset:
               Math.floor(
                 Math.random() * 46
-              ) - 23
-          }
+              ) - 23,
+          },
         ]
       );
 
-      const cleanupTimer =
+      const timer =
         setTimeout(() => {
           setCoinBursts(
-            (prev) =>
-              prev.filter(
-                (c) => c.id !== burstId
+            previous =>
+              previous.filter(
+                coin =>
+                  coin.id !== id
               )
           );
         }, 900);
 
-      prevVerifiedRef.current =
+      previousVerifiedRef.current =
         verifiedSeconds;
 
-      return () => {
-        clearTimeout(cleanupTimer);
-      };
+      return () =>
+        clearTimeout(timer);
     }
 
-    prevVerifiedRef.current =
+    previousVerifiedRef.current =
       verifiedSeconds;
-  }, [verifiedSeconds, status]);
+  }, [
+    verifiedSeconds,
+    status,
+  ]);
 
-  // =======================================================
-  // MILESTONE GLOW
-  // =======================================================
+  // =========================================================
+  // MILESTONE
+  // =========================================================
 
   useEffect(() => {
-    if (status !== 'streaming') {
-      return;
-    }
-
     if (
       [15, 30, 45].includes(
         verifiedSeconds
@@ -1392,20 +1117,19 @@ function StreamContent() {
     ) {
       setMilestoneFlash(true);
 
-      const flashTimer =
+      const timer =
         setTimeout(() => {
           setMilestoneFlash(false);
         }, 650);
 
-      return () => {
-        clearTimeout(flashTimer);
-      };
+      return () =>
+        clearTimeout(timer);
     }
-  }, [verifiedSeconds, status]);
+  }, [verifiedSeconds]);
 
-  // =======================================================
-  // CHALLENGE — RANDOMIZE POSITION, RESET HOLD PROGRESS
-  // =======================================================
+  // =========================================================
+  // RANDOM CHALLENGE POSITION
+  // =========================================================
 
   useEffect(() => {
     if (challengeVisible) {
@@ -1414,31 +1138,30 @@ function StreamContent() {
           Math.random() * 80
         ) - 40
       );
-
-      setHoldProgress(0);
     }
   }, [challengeVisible]);
 
-  // =======================================================
-  // COMPLETION CONFETTI
-  // =======================================================
+  // =========================================================
+  // CONFETTI
+  // =========================================================
 
   useEffect(() => {
-    if (status === 'completed') {
+    if (
+      status === 'completed'
+    ) {
       setConfetti(
-        Array.from({ length: 18 }).map(
+        Array.from({
+          length: 18,
+        }).map(
           (_, i) => ({
             id: i,
-            left: Math.random() * 100,
-            delay: Math.random() * 0.35,
+            left:
+              Math.random() * 100,
+            delay:
+              Math.random() * 0.35,
             duration:
-              1.1 + Math.random() * 0.6,
-            color: [
-              '#4a9eff',
-              '#4ADE80',
-              '#FBBF24',
-              '#F87171'
-            ][i % 4]
+              1.1 +
+              Math.random() * 0.6,
           })
         )
       );
@@ -1447,16 +1170,15 @@ function StreamContent() {
     }
   }, [status]);
 
-  // =======================================================
+  // =========================================================
   // VALUES
-  // =======================================================
+  // =========================================================
 
   const progress =
     Math.min(
-      (
-        verifiedSeconds /
-        REQUIRED_SECONDS
-      ) * 100,
+      (verifiedSeconds /
+        REQUIRED_SECONDS) *
+        100,
       100
     );
 
@@ -1478,18 +1200,9 @@ function StreamContent() {
     track?.artistName ||
     'Unknown Artist';
 
-  const streamingMessage =
-    verifiedSeconds >= 45
-      ? 'So close! 🔥'
-      : verifiedSeconds >= 30
-      ? 'Halfway there 🎧'
-      : verifiedSeconds >= 15
-      ? "You're on a roll"
-      : 'Keep listening';
-
-  // =======================================================
+  // =========================================================
   // LOADING
-  // =======================================================
+  // =========================================================
 
   if (
     loading &&
@@ -1500,37 +1213,24 @@ function StreamContent() {
     );
   }
 
-  // =======================================================
-  // NO TRACK
-  // =======================================================
-
   if (!track) {
     return (
       <div
         style={{
-          minHeight:
-            '100vh',
-          background:
-            '#07111F',
-          display:
-            'flex',
-          flexDirection:
-            'column',
-          alignItems:
-            'center',
-          justifyContent:
-            'center',
-          color:
-            '#8A9BB0',
-          padding:
-            24,
-          textAlign:
-            'center'
+          minHeight: '100vh',
+          background: '#07111F',
+          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          textAlign: 'center',
         }}
       >
         <p>
           {error ||
-            'No track selected'}
+            'No track selected.'}
         </p>
 
         <button
@@ -1540,18 +1240,12 @@ function StreamContent() {
           style={{
             padding:
               '12px 20px',
-            borderRadius:
-              10,
-            border:
-              'none',
+            border: 'none',
+            borderRadius: 10,
             background:
               '#4a9eff',
-            color:
-              '#fff',
-            fontWeight:
-              700,
-            cursor:
-              'pointer'
+            color: '#fff',
+            fontWeight: 700,
           }}
         >
           Go Back
@@ -1560,79 +1254,53 @@ function StreamContent() {
     );
   }
 
-  // =======================================================
-  // MAIN UI
-  // =======================================================
+  // =========================================================
+  // UI
+  // =========================================================
 
   return (
     <div
       style={{
-        minHeight:
-          '100vh',
+        minHeight: '100vh',
         background:
-          'linear-gradient(180deg, #07111F 0%, #0A1628 100%)',
-        color:
-          '#fff',
-        paddingBottom:
-          40,
-        position:
-          'relative'
+          'linear-gradient(180deg,#07111F 0%,#0A1628 100%)',
+        color: '#fff',
+        paddingBottom: 40,
+        position: 'relative',
       }}
     >
-      {/* =================================================
-          HEADER (Kept at z-index 200 so Back is clickable)
-      ================================================= */}
-
       <header
         style={{
-          height:
-            64,
-          padding:
-            '0 20px',
-          display:
-            'flex',
-          alignItems:
-            'center',
-          gap:
-            14,
+          height: 64,
+          padding: '0 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
           background:
-            'rgba(13,31,60,0.95)',
+            'rgba(13,31,60,.95)',
           borderBottom:
-            '1px solid rgba(255,255,255,0.06)',
-          position:
-            'sticky',
-          top:
-            0,
-          zIndex:
-            200,
+            '1px solid rgba(255,255,255,.06)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 200,
           backdropFilter:
-            'blur(12px)'
+            'blur(12px)',
         }}
       >
         <button
           onClick={() =>
             router.back()
           }
-          aria-label="Go back"
           style={{
-            width:
-              38,
-            height:
-              38,
-            borderRadius:
-              12,
+            width: 38,
+            height: 38,
+            borderRadius: 12,
             background:
-              'rgba(255,255,255,0.06)',
-            border:
-              'none',
-            display:
-              'flex',
-            alignItems:
-              'center',
-            justifyContent:
-              'center',
-            cursor:
-              'pointer'
+              'rgba(255,255,255,.06)',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
           <ArrowLeft
@@ -1644,10 +1312,8 @@ function StreamContent() {
         <div>
           <div
             style={{
-              fontSize:
-                15,
-              fontWeight:
-                700
+              fontSize: 15,
+              fontWeight: 700,
             }}
           >
             Now Streaming
@@ -1655,12 +1321,8 @@ function StreamContent() {
 
           <div
             style={{
-              fontSize:
-                11,
-              color:
-                '#8A9BB0',
-              marginTop:
-                2
+              fontSize: 11,
+              color: '#8A9BB0',
             }}
           >
             Listen & earn coins
@@ -1668,78 +1330,48 @@ function StreamContent() {
         </div>
       </header>
 
-      {/* =================================================
-          MAIN CONTENT
-      ================================================= */}
-
       <main
         style={{
-          width:
-            '100%',
-          maxWidth:
-            520,
-          margin:
-            '0 auto',
-          padding:
-            '18px 18px',
-          position:
-            'relative'
+          width: '100%',
+          maxWidth: 520,
+          margin: '0 auto',
+          padding: '18px',
         }}
       >
-        {/* =================================================
-            TRACK INFO
-        ================================================= */}
+        {/* TRACK */}
 
         <section
           style={{
             background:
-              'linear-gradient(145deg, #102747, #0D1F3C)',
-            borderRadius:
-              20,
-            padding:
-              16,
-            marginBottom:
-              12,
-            border:
-              '1px solid rgba(255,255,255,0.06)',
-            boxShadow:
-              '0 14px 35px rgba(0,0,0,0.20)',
+              'linear-gradient(145deg,#102747,#0D1F3C)',
+            borderRadius: 20,
+            padding: 16,
+            marginBottom: 12,
             opacity:
-              showOnboarding ? 0.35 : 1,
-            transition:
-              'opacity 0.3s ease'
+              showOnboarding
+                ? 0.35
+                : 1,
           }}
         >
           <div
             style={{
-              display:
-                'flex',
-              alignItems:
-                'center',
-              gap:
-                13
+              display: 'flex',
+              alignItems: 'center',
+              gap: 13,
             }}
           >
             <div
               style={{
-                width:
-                  68,
-                height:
-                  68,
-                flexShrink:
-                  0,
-                borderRadius:
-                  15,
-                overflow:
-                  'hidden',
+                width: 68,
+                height: 68,
+                borderRadius: 15,
+                overflow: 'hidden',
                 background:
-                  'linear-gradient(135deg, #193B68, #102440)',
-                display:
-                  'flex',
-                alignItems:
-                  'center',
-                justifyContent:
-                  'center'
+                  '#102440',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
               {track.cover_image ? (
@@ -1749,12 +1381,10 @@ function StreamContent() {
                   }
                   alt=""
                   style={{
-                    width:
-                      '100%',
-                    height:
-                      '100%',
+                    width: '100%',
+                    height: '100%',
                     objectFit:
-                      'cover'
+                      'cover',
                   }}
                 />
               ) : (
@@ -1767,26 +1397,20 @@ function StreamContent() {
 
             <div
               style={{
-                minWidth:
-                  0,
-                flex:
-                  1
+                minWidth: 0,
               }}
             >
               <p
                 style={{
-                  fontSize:
-                    17,
-                  fontWeight:
-                    800,
                   margin:
                     '0 0 4px',
+                  fontSize: 17,
+                  fontWeight: 800,
+                  overflow: 'hidden',
+                  textOverflow:
+                    'ellipsis',
                   whiteSpace:
                     'nowrap',
-                  overflow:
-                    'hidden',
-                  textOverflow:
-                    'ellipsis'
                 }}
               >
                 {title}
@@ -1794,12 +1418,9 @@ function StreamContent() {
 
               <p
                 style={{
-                  fontSize:
-                    12,
-                  color:
-                    '#8A9BB0',
-                  margin:
-                    0
+                  margin: 0,
+                  color: '#8A9BB0',
+                  fontSize: 12,
                 }}
               >
                 {artist}
@@ -1808,62 +1429,52 @@ function StreamContent() {
           </div>
         </section>
 
-        {/* =================================================
-            AUDIO PLAYER SECTION (Spotlight in Step 1)
-        ================================================= */}
+        {/* PLAYER */}
 
         <section
           style={{
             background:
               '#0D1F3C',
-            borderRadius:
-              20,
-            padding:
-              14,
-            marginBottom:
-              12,
+            borderRadius: 20,
+            padding: 14,
+            marginBottom: 12,
             border:
-              showOnboarding && onboardingStep === 1
-                ? '2px solid rgba(74,158,255,0.85)'
-                : '1px solid rgba(255,255,255,0.06)',
+              showOnboarding &&
+              onboardingStep === 1
+                ? '2px solid rgba(74,158,255,.85)'
+                : '1px solid rgba(255,255,255,.06)',
             boxShadow:
-              showOnboarding && onboardingStep === 1
-                ? '0 0 35px rgba(74,158,255,0.35)'
+              showOnboarding &&
+              onboardingStep === 1
+                ? '0 0 35px rgba(74,158,255,.35)'
                 : 'none',
             position:
               'relative',
             zIndex:
-              showOnboarding && onboardingStep === 1
+              showOnboarding
                 ? 102
                 : 1,
             opacity:
-              showOnboarding && onboardingStep === 2
+              showOnboarding &&
+              onboardingStep === 2
                 ? 0.35
                 : 1,
-            transition:
-              'all 0.3s ease'
           }}
         >
           <div
             style={{
-              display:
-                'flex',
-              alignItems:
-                'center',
+              display: 'flex',
               justifyContent:
                 'space-between',
-              marginBottom:
-                9
+              marginBottom: 9,
             }}
           >
             <div
               style={{
-                display:
-                  'flex',
+                display: 'flex',
                 alignItems:
                   'center',
-                gap:
-                  7
+                gap: 7,
               }}
             >
               <Volume2
@@ -1873,12 +1484,8 @@ function StreamContent() {
 
               <span
                 style={{
-                  fontSize:
-                    11,
-                  color:
-                    '#8A9BB0',
-                  fontWeight:
-                    600
+                  fontSize: 11,
+                  color: '#8A9BB0',
                 }}
               >
                 AUDIO PLAYER
@@ -1889,35 +1496,13 @@ function StreamContent() {
               'streaming' && (
               <span
                 style={{
-                  display:
-                    'flex',
-                  alignItems:
-                    'center',
-                  gap:
-                    5,
-                  fontSize:
-                    10,
                   color:
                     '#4ADE80',
-                  fontWeight:
-                    700
+                  fontSize: 10,
+                  fontWeight: 700,
                 }}
               >
-                <span
-                  style={{
-                    width:
-                      6,
-                    height:
-                      6,
-                    borderRadius:
-                      '50%',
-                    background:
-                      '#4ADE80',
-                    boxShadow:
-                      '0 0 8px #4ADE80'
-                  }}
-                />
-                VERIFIED
+                ● VERIFIED
               </span>
             )}
           </div>
@@ -1926,29 +1511,19 @@ function StreamContent() {
           embedUrl ? (
             <div
               style={{
-                width:
-                  '100%',
-                height:
-                  252,
-                overflow:
-                  'hidden',
-                borderRadius:
-                  15,
+                width: '100%',
+                height: 252,
+                overflow: 'hidden',
+                borderRadius: 15,
                 background:
                   '#081322',
-                border:
-                  '1px solid rgba(255,255,255,0.05)',
                 position:
-                  'relative'
+                  'relative',
               }}
             >
               <iframe
-                key={
-                  `${sessionId || 'pending'}-${embedUrl}`
-                }
-                src={
-                  embedUrl
-                }
+                key={`${sessionId}-${embedUrl}`}
+                src={embedUrl}
                 title={`${title} - Audiomack`}
                 scrolling="no"
                 allow="autoplay; encrypted-media"
@@ -1956,663 +1531,301 @@ function StreamContent() {
                 style={{
                   position:
                     'absolute',
-                  top:
-                    0,
-                  left:
-                    0,
-                  width:
-                    '100%',
-                  height:
-                    '252px',
-                  border:
-                    'none',
-                  display:
-                    'block',
-                  zIndex: 2
+                  inset: 0,
+                  width: '100%',
+                  height: 252,
+                  border: 'none',
                 }}
               />
 
-              {/* =================================================
-                  STEP 1 GUIDE OVERLAY & POINTER
-                  Arrow is short + straight, sitting right next to
-                  the play ring instead of sweeping across the
-                  whole card, with a tight "nudge" animation.
-              ================================================= */}
-
               {showOnboarding &&
-                onboardingStep === 1 && (
-                <div
-                  className="stream-guide-step1-layer"
-                  style={{
-                    position:
-                      'absolute',
-                    inset:
-                      0,
-                    zIndex:
-                      10,
-                    pointerEvents:
-                      'none'
-                  }}
-                >
-                  {/* Step 1 Header Prompt */}
+                onboardingStep ===
+                  1 && (
                   <div
                     style={{
                       position:
                         'absolute',
-                      top:
-                        8,
-                      left:
-                        8,
-                      right:
-                        8,
-                      zIndex:
-                        30,
+                      inset: 0,
                       pointerEvents:
-                        'auto'
+                        'none',
                     }}
                   >
                     <div
                       style={{
+                        position:
+                          'absolute',
+                        top: 8,
+                        left: 8,
+                        right: 8,
                         background:
-                          'rgba(4, 11, 23, 0.94)',
+                          'rgba(4,11,23,.94)',
                         border:
-                          '1px solid rgba(74,158,255,0.55)',
-                        borderRadius:
-                          12,
+                          '1px solid rgba(74,158,255,.55)',
+                        borderRadius: 12,
                         padding:
-                          '8px 12px',
+                          '9px 12px',
                         display:
                           'flex',
                         alignItems:
                           'center',
-                        justifyContent:
-                          'space-between',
-                        gap:
-                          8,
-                        boxShadow:
-                          '0 8px 24px rgba(0,0,0,0.6)'
+                        gap: 8,
                       }}
                     >
-                      <div
-                        style={{
-                          display:
-                            'flex',
-                          alignItems:
-                            'center',
-                          gap:
-                            8,
-                          minWidth:
-                            0
-                        }}
-                      >
+                      <Hand
+                        size={16}
+                        color="#4a9eff"
+                      />
+
+                      <div>
                         <div
-                          className="pulse-icon-box"
                           style={{
-                            width:
-                              28,
-                            height:
-                              28,
-                            borderRadius:
-                              8,
-                            background:
-                              'rgba(74,158,255,0.18)',
-                            display:
-                              'flex',
-                            alignItems:
-                              'center',
-                            justifyContent:
-                              'center',
-                            flexShrink:
-                              0
+                            fontSize: 11,
+                            fontWeight: 800,
                           }}
                         >
-                          <Hand
-                            size={14}
-                            color="#4a9eff"
-                          />
+                          STEP 1 · PRESS PLAY
                         </div>
 
-                        <div>
-                          <div
-                            style={{
-                              fontSize:
-                                11,
-                              fontWeight:
-                                800,
-                              color:
-                                '#fff',
-                              lineHeight:
-                                1.2
-                            }}
-                          >
-                            STEP 1 · PRESS PLAY
-                          </div>
-                          <div
-                            style={{
-                              fontSize:
-                                9,
-                              color:
-                                '#9DB0C7',
-                              lineHeight:
-                                1.2
-                            }}
-                          >
-                            Tap Play button below in the player
-                          </div>
+                        <div
+                          style={{
+                            fontSize: 9,
+                            color:
+                              '#9DB0C7',
+                          }}
+                        >
+                          Tap Play inside the player.
                         </div>
-                      </div>
-
-                      <div
-                        style={{
-                          background:
-                            'rgba(74,158,255,0.22)',
-                          color:
-                            '#7DBBFF',
-                          border:
-                            '1px solid rgba(74,158,255,0.4)',
-                          borderRadius:
-                            7,
-                          padding:
-                            '5px 8px',
-                          fontSize:
-                            10,
-                          fontWeight:
-                            800,
-                          flexShrink:
-                            0
-                        }}
-                      >
-                        TAP PLAY
                       </div>
                     </div>
-                  </div>
 
-                  {/* Play Target Ring indicator */}
-                  <div
-                    className="play-target-ring"
-                    style={{
-                      position:
-                        'absolute',
-                      left:
-                        '3.5%',
-                      bottom:
-                        '9%',
-                      width:
-                        72,
-                      height:
-                        72,
-                      borderRadius:
-                        '50%',
-                      border:
-                        '2.5px solid rgba(74,158,255,0.95)',
-                      boxShadow:
-                        '0 0 0 6px rgba(74,158,255,0.18), 0 0 25px rgba(74,158,255,0.85)',
-                      pointerEvents:
-                        'none'
-                    }}
-                  />
-
-                  {/* Short, sharp straight arrow beside the
-                      play ring — single stroke + solid
-                      triangular head, nudging toward the
-                      button instead of a long sweeping curve. */}
-                  <div
-                    className="guided-play-arrow"
-                    style={{
-                      position:
-                        'absolute',
-                      left:
-                        '20%',
-                      bottom:
-                        '13%',
-                      width:
-                        46,
-                      height:
-                        46,
-                      pointerEvents:
-                        'none'
-                    }}
-                  >
-                    <svg
-                      width="46"
-                      height="46"
-                      viewBox="0 0 46 46"
+                    <div
+                      className="play-ring"
                       style={{
-                        overflow:
-                          'visible'
+                        position:
+                          'absolute',
+                        left: '3.5%',
+                        bottom: '9%',
+                        width: 72,
+                        height: 72,
+                        borderRadius:
+                          '50%',
+                        border:
+                          '2.5px solid #4a9eff',
+                        boxShadow:
+                          '0 0 0 6px rgba(74,158,255,.18),0 0 25px rgba(74,158,255,.85)',
+                      }}
+                    />
+
+                    <div
+                      className="play-arrow"
+                      style={{
+                        position:
+                          'absolute',
+                        left: '20%',
+                        bottom: '13%',
                       }}
                     >
-                      <line
-                        x1="40"
-                        y1="6"
-                        x2="14"
-                        y2="32"
-                        stroke="#4a9eff"
-                        strokeWidth="4"
-                        strokeLinecap="round"
+                      <ArrowDown
+                        size={34}
+                        color="#4a9eff"
+                        strokeWidth={4}
                       />
-                      <polygon
-                        points="6,40 10,22 24,26"
-                        fill="#4a9eff"
-                      />
-                    </svg>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           ) : (
             <div
               style={{
-                height:
-                  90,
-                borderRadius:
-                  15,
-                background:
-                  'linear-gradient(145deg, rgba(74,158,255,0.08), rgba(255,255,255,0.025))',
-                display:
-                  'flex',
-                flexDirection:
-                  'column',
+                height: 90,
+                display: 'flex',
                 alignItems:
                   'center',
                 justifyContent:
-                  'center'
+                  'center',
               }}
             >
               <Music2
                 size={28}
                 color="#4a9eff"
               />
-
-              <p
-                style={{
-                  margin:
-                    '7px 0 0',
-                  fontSize:
-                    12
-                }}
-              >
-                Ready to stream
-              </p>
             </div>
           )}
         </section>
 
-        {/* =================================================
-            STEP 1 & STEP 2 ONBOARDING GUIDANCE CARD
-            Content crossfades + slides slightly on step change
-            via key={onboardingStep}, so switching feels like a
-            deliberate transition rather than an abrupt swap.
-        ================================================= */}
+        {/* ONBOARDING */}
 
         {status ===
           'awaiting_play' && (
           <section
             style={{
               background:
-                'rgba(16,39,71,0.98)',
+                '#102747',
               border:
-                onboardingStep === 1
-                  ? '1.5px solid rgba(74,158,255,0.65)'
-                  : '1.5px solid rgba(74,158,255,0.85)',
-              borderRadius:
-                17,
-              padding:
-                16,
-              marginBottom:
-                12,
-              textAlign:
-                'center',
+                '1px solid rgba(74,158,255,.6)',
+              borderRadius: 17,
+              padding: 16,
+              marginBottom: 12,
+              textAlign: 'center',
               position:
                 'relative',
-              zIndex:
-                102,
-              boxShadow:
-                '0 0 35px rgba(74,158,255,0.3)',
-              overflow:
-                'hidden'
+              zIndex: 102,
             }}
           >
-            {/* Step 1 vs Step 2 Navigation Dots */}
             <div
               style={{
-                display:
-                  'flex',
-                alignItems:
-                  'center',
-                justifyContent:
-                  'center',
-                gap:
-                  10,
-                marginBottom:
-                  12
+                marginBottom: 12,
+                fontSize: 11,
+                color: '#7DBBFF',
+                fontWeight: 800,
               }}
             >
-              <div
-                style={{
-                  width:
-                    26,
-                  height:
-                    26,
-                  borderRadius:
-                    '50%',
-                  background:
-                    onboardingStep === 1
-                      ? '#4a9eff'
-                      : 'rgba(74,158,255,0.25)',
-                  color:
-                    onboardingStep === 1
-                      ? '#fff'
-                      : '#7DBBFF',
-                  fontSize:
-                    12,
-                  fontWeight:
-                    900,
-                  display:
-                    'flex',
-                  alignItems:
-                    'center',
-                  justifyContent:
-                    'center',
-                  boxShadow:
-                    onboardingStep === 1
-                      ? '0 0 12px rgba(74,158,255,0.8)'
-                      : 'none',
-                  transition:
-                    'all 0.3s ease'
-                }}
-              >
-                1
-              </div>
-
-              <div
-                style={{
-                  width:
-                    32,
-                  height:
-                    2,
-                  background:
-                    onboardingStep === 2
-                      ? '#4a9eff'
-                      : 'rgba(255,255,255,0.15)',
-                  transition:
-                    'background 0.3s ease'
-                }}
-              />
-
-              <div
-                style={{
-                  width:
-                    26,
-                  height:
-                    26,
-                  borderRadius:
-                    '50%',
-                  background:
-                    onboardingStep === 2
-                      ? '#4a9eff'
-                      : 'rgba(255,255,255,0.08)',
-                  color:
-                    onboardingStep === 2
-                      ? '#fff'
-                      : '#52677F',
-                  fontSize:
-                    12,
-                  fontWeight:
-                    900,
-                  display:
-                    'flex',
-                  alignItems:
-                    'center',
-                  justifyContent:
-                    'center',
-                  boxShadow:
-                    onboardingStep === 2
-                      ? '0 0 12px rgba(74,158,255,0.8)'
-                      : 'none',
-                  transition:
-                    'all 0.3s ease'
-                }}
-              >
-                2
-              </div>
+              STEP {onboardingStep} OF 2
             </div>
 
-            {/* STEP CONTENT — key forces a remount on step
-                change, which triggers the step-fade-in
-                animation for a smooth crossfade + slide. */}
+            {onboardingStep ===
+            1 ? (
+              <>
+                <p
+                  style={{
+                    fontWeight: 900,
+                    fontSize: 15,
+                    margin:
+                      '0 0 6px',
+                  }}
+                >
+                  Press Play in the player
+                </p>
 
-            <div
-              key={onboardingStep}
-              className="step-fade-in"
-            >
+                <p
+                  style={{
+                    color:
+                      '#8A9BB0',
+                    fontSize: 11,
+                    lineHeight: 1.5,
+                    margin:
+                      '0 0 14px',
+                  }}
+                >
+                  Tap the Play button
+                  inside the Audiomack
+                  player, then confirm
+                  below.
+                </p>
 
-              {onboardingStep === 1 ? (
-                <div>
-                  <p
-                    style={{
-                      margin:
-                        '0 0 4px',
-                      fontWeight:
-                        900,
-                      fontSize:
-                        15,
-                      color:
-                        '#fff'
-                    }}
-                  >
-                    Press Play in the player
-                  </p>
-
-                  <p
-                    style={{
-                      margin:
-                        '0 auto 14px',
-                      maxWidth:
-                        340,
-                      color:
-                        '#8A9BB0',
-                      fontSize:
-                        11,
-                      lineHeight:
-                        1.45
-                    }}
-                  >
-                    Tap the Play button above inside the Audiomack player. Once the music starts playing, click below.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleAcknowledgePlayTap
-                    }
-                    style={{
-                      width:
-                        '100%',
-                      padding:
-                        '14px',
-                      borderRadius:
-                        13,
-                      border:
-                        'none',
-                      background:
-                        'linear-gradient(135deg, #4a9eff, #2d6be4)',
-                      color:
-                        '#fff',
-                      fontWeight:
-                        800,
-                      fontSize:
-                        14,
-                      cursor:
-                        'pointer',
-                      boxShadow:
-                        '0 8px 22px rgba(45,107,228,0.4)',
-                      display:
-                        'flex',
-                      alignItems:
-                        'center',
-                      justifyContent:
-                        'center',
-                      gap:
-                        6
-                    }}
-                  >
-                    ✓ I've Pressed Play
-                  </button>
+                <button
+                  onClick={
+                    handleAcknowledgePlayTap
+                  }
+                  style={{
+                    width: '100%',
+                    padding: 14,
+                    border: 'none',
+                    borderRadius: 13,
+                    background:
+                      'linear-gradient(135deg,#4a9eff,#2d6be4)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: 14,
+                  }}
+                >
+                  ✓ I've Pressed Play
+                </button>
+              </>
+            ) : (
+              <>
+                <div
+                  style={{
+                    display:
+                      'inline-flex',
+                    alignItems:
+                      'center',
+                    gap: 6,
+                    padding:
+                      '5px 10px',
+                    borderRadius: 999,
+                    background:
+                      'rgba(74,158,255,.15)',
+                    color:
+                      '#7DBBFF',
+                    fontSize: 10,
+                    fontWeight: 800,
+                  }}
+                >
+                  <Radio size={12} />
+                  START VERIFICATION
                 </div>
-              ) : (
-                <div>
-                  <div
-                    style={{
-                      display:
-                        'inline-flex',
-                      alignItems:
-                        'center',
-                      gap:
-                        6,
-                      padding:
-                        '4px 10px',
-                      borderRadius:
-                        999,
-                      background:
-                        'rgba(74,158,255,0.18)',
-                      color:
-                        '#7DBBFF',
-                      fontSize:
-                        10,
-                      fontWeight:
-                        900,
-                      marginBottom:
-                        8
-                    }}
-                  >
-                    <Radio
-                      size={12}
-                      className="pulse-icon"
-                    />
-                    STEP 2 — START VERIFICATION
-                  </div>
 
-                  <p
-                    style={{
-                      margin:
-                        '0 0 4px',
-                      fontWeight:
-                        900,
-                      fontSize:
-                        15,
-                      color:
-                        '#fff'
-                    }}
-                  >
-                    Ready to start verified listening
-                  </p>
+                <p
+                  style={{
+                    fontWeight: 900,
+                    fontSize: 15,
+                    margin:
+                      '10px 0 6px',
+                  }}
+                >
+                  Ready to verify your listening
+                </p>
 
-                  <p
-                    style={{
-                      margin:
-                        '0 auto 10px',
-                      maxWidth:
-                        340,
-                      color:
-                        '#8A9BB0',
-                      fontSize:
-                        11,
-                      lineHeight:
-                        1.45
-                    }}
-                  >
-                    Music should now be playing. Tap the button below to start your verified listening time.
-                  </p>
+                <p
+                  style={{
+                    color:
+                      '#8A9BB0',
+                    fontSize: 11,
+                    lineHeight: 1.5,
+                    margin:
+                      '0 0 10px',
+                  }}
+                >
+                  Keep the music playing
+                  and tap the button below.
+                </p>
 
-                  <div
-                    className="step2-down-arrow"
-                    style={{
-                      marginBottom:
-                        8,
-                      color:
-                        '#4a9eff',
-                      display:
-                        'flex',
-                      justifyContent:
-                        'center'
-                    }}
-                  >
-                    <ArrowDown
-                      size={22}
-                      strokeWidth={3}
-                    />
-                  </div>
+                <ArrowDown
+                  className="down-arrow"
+                  size={22}
+                  color="#4a9eff"
+                />
 
-                  <button
-                    type="button"
-                    onClick={
-                      handlePlaybackConfirmation
-                    }
-                    style={{
-                      width:
-                        '100%',
-                      padding:
-                        '14px',
-                      borderRadius:
-                        13,
-                      border:
-                        'none',
-                      background:
-                        'linear-gradient(135deg, #4a9eff, #2d6be4)',
-                      color:
-                        '#fff',
-                      fontWeight:
-                        800,
-                      fontSize:
-                        14,
-                      cursor:
-                        'pointer',
-                      boxShadow:
-                        '0 8px 22px rgba(45,107,228,0.4)',
-                      display:
-                        'flex',
-                      alignItems:
-                        'center',
-                      justifyContent:
-                        'center',
-                      gap:
-                        6
-                    }}
-                  >
-                    ✓ I've Started Playing
-                  </button>
-                </div>
-              )}
-
-            </div>
+                <button
+                  onClick={
+                    handlePlaybackConfirmation
+                  }
+                  style={{
+                    width: '100%',
+                    padding: 14,
+                    marginTop: 8,
+                    border: 'none',
+                    borderRadius: 13,
+                    background:
+                      'linear-gradient(135deg,#4a9eff,#2d6be4)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: 14,
+                  }}
+                >
+                  ✓ I've Started Playing
+                </button>
+              </>
+            )}
           </section>
         )}
 
-        {/* =================================================
-            VERIFICATION STATUS
-        ================================================= */}
+        {/* VERIFIED STATUS */}
 
         {status ===
           'streaming' && (
           <div
             style={{
-              display:
-                'flex',
+              display: 'flex',
               alignItems:
                 'center',
-              gap:
-                8,
-              padding:
-                '9px 12px',
-              marginBottom:
-                12,
-              borderRadius:
-                11,
+              gap: 8,
+              padding: 10,
+              marginBottom: 12,
+              borderRadius: 11,
               background:
-                'rgba(74,222,128,0.07)',
-              border:
-                '1px solid rgba(74,222,128,0.13)'
+                'rgba(74,222,128,.07)',
             }}
           >
             <Eye
@@ -2622,39 +1835,32 @@ function StreamContent() {
 
             <span
               style={{
-                fontSize:
-                  10,
+                fontSize: 10,
                 color:
-                  '#9DB0C7'
+                  '#9DB0C7',
               }}
             >
-              Your listening time is being verified by Rewaiq.
+              Your listening time is
+              being verified by Rewaiq.
             </span>
           </div>
         )}
 
-        {/* =================================================
-            EARNING TIMER
-        ================================================= */}
+        {/* TIMER */}
 
         <section
           style={{
             background:
               '#0D1F3C',
-            borderRadius:
-              20,
+            borderRadius: 20,
             padding:
               '20px 16px',
-            marginBottom:
-              12,
-            border:
-              '1px solid rgba(255,255,255,0.06)',
-            textAlign:
-              'center',
+            marginBottom: 12,
+            textAlign: 'center',
             opacity:
-              showOnboarding ? 0.35 : 1,
-            transition:
-              'opacity 0.3s ease'
+              showOnboarding
+                ? 0.35
+                : 1,
           }}
         >
           <div
@@ -2664,55 +1870,40 @@ function StreamContent() {
                 : ''
             }
             style={{
-              width:
-                138,
-              height:
-                138,
+              width: 138,
+              height: 138,
               margin:
                 '0 auto 14px',
               borderRadius:
                 '50%',
               background:
-                `conic-gradient(
-                  #4a9eff ${progress}%,
-                  rgba(74,158,255,0.10) ${progress}% 100%
-                )`,
-              padding:
-                7,
-              transition:
-                'background 1s linear',
+                `conic-gradient(#4a9eff ${progress}%,rgba(74,158,255,.1) ${progress}% 100%)`,
+              padding: 7,
               position:
-                'relative'
+                'relative',
             }}
           >
             <div
               style={{
-                width:
-                  '100%',
-                height:
-                  '100%',
+                width: '100%',
+                height: '100%',
                 borderRadius:
                   '50%',
                 background:
                   '#0A1628',
-                display:
-                  'flex',
+                display: 'flex',
                 flexDirection:
                   'column',
                 alignItems:
                   'center',
                 justifyContent:
-                  'center'
+                  'center',
               }}
             >
               <span
                 style={{
-                  fontSize:
-                    32,
-                  fontWeight:
-                    900,
-                  lineHeight:
-                    1
+                  fontSize: 32,
+                  fontWeight: 900,
                 }}
               >
                 {status ===
@@ -2725,24 +1916,18 @@ function StreamContent() {
                 'completed' && (
                 <span
                   style={{
-                    fontSize:
-                      10,
+                    fontSize: 10,
                     color:
                       '#71849B',
-                    marginTop:
-                      5
                   }}
                 >
-                  verified seconds
+                  seconds left
                 </span>
               )}
             </div>
 
-            {/* Flying coin icons — one spawned per newly
-                verified second, purely decorative. */}
-
             {coinBursts.map(
-              (coin) => (
+              coin => (
                 <div
                   key={coin.id}
                   className="coin-fly"
@@ -2751,10 +1936,7 @@ function StreamContent() {
                       'absolute',
                     left:
                       `calc(50% + ${coin.offset}px)`,
-                    bottom:
-                      '38%',
-                    pointerEvents:
-                      'none'
+                    bottom: '38%',
                   }}
                 >
                   <Coins
@@ -2770,10 +1952,8 @@ function StreamContent() {
             style={{
               margin:
                 '0 0 5px',
-              fontSize:
-                15,
-              fontWeight:
-                800
+              fontSize: 15,
+              fontWeight: 800,
             }}
           >
             {status ===
@@ -2784,7 +1964,7 @@ function StreamContent() {
               ? 'Press Play to begin'
               : status ===
                 'streaming'
-              ? streamingMessage
+              ? 'Keep listening 🎧'
               : status ===
                 'completing'
               ? 'Adding your coins...'
@@ -2796,187 +1976,83 @@ function StreamContent() {
 
           <p
             style={{
-              margin:
-                0,
+              margin: 0,
               color:
                 '#71849B',
-              fontSize:
-                11,
-              lineHeight:
-                1.45
+              fontSize: 11,
             }}
           >
             {status ===
-              'streaming'
-              ? 'Keep the music playing and keep this page visible.'
-              : status ===
-                'awaiting_play'
-              ? 'Your earning time has not started yet.'
+            'streaming'
+              ? 'Keep this page visible and keep the music playing.'
               : status ===
                 'completed'
               ? 'Your wallet has been updated.'
-              : 'Start the stream and listen for 60 verified seconds to earn your reward.'}
+              : 'Listen for 60 verified seconds to earn.'}
           </p>
 
           <div
             style={{
-              height:
-                5,
+              height: 5,
               background:
-                'rgba(255,255,255,0.06)',
-              borderRadius:
-                10,
+                'rgba(255,255,255,.06)',
+              borderRadius: 10,
               overflow:
                 'hidden',
-              marginTop:
-                15
+              marginTop: 15,
             }}
           >
             <div
               style={{
-                height:
-                  '100%',
+                height: '100%',
                 width:
                   `${progress}%`,
                 background:
                   '#4a9eff',
-                borderRadius:
-                  10,
                 transition:
-                  'width 1s linear'
+                  'width 1s linear',
               }}
             />
           </div>
         </section>
 
-        {/* =================================================
-            SCREENSHOT PROMPT
-        ================================================= */}
-
-        {showScreenshotPrompt &&
-          status ===
-            'streaming' && (
-          <section
-            style={{
-              padding:
-                14,
-              borderRadius:
-                15,
-              background:
-                'rgba(255,255,255,0.04)',
-              border:
-                '1px solid rgba(255,255,255,0.07)',
-              marginBottom:
-                12
-            }}
-          >
-            <div
-              style={{
-                display:
-                  'flex',
-                alignItems:
-                  'flex-start',
-                gap:
-                  10
-              }}
-            >
-              <Camera
-                size={22}
-                color="#4a9eff"
-              />
-
-              <div>
-                <p
-                  style={{
-                    margin:
-                      0,
-                    fontSize:
-                      13,
-                    fontWeight:
-                      800
-                  }}
-                >
-                  Quick verification
-                </p>
-
-                <p
-                  style={{
-                    margin:
-                      '4px 0 0',
-                    color:
-                      '#8A9BB0',
-                    fontSize:
-                      10,
-                    lineHeight:
-                      1.45
-                  }}
-                >
-                  If requested during onboarding,
-                  take a screenshot showing the
-                  Audiomack player.
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* =================================================
-            ACTION BUTTONS
-        ================================================= */}
+        {/* ACTION */}
 
         {status ===
-          'completed' ? (
+        'completed' ? (
           <div>
             <div
               style={{
-                padding:
-                  14,
-                borderRadius:
-                  15,
+                padding: 14,
+                borderRadius: 15,
                 background:
-                  'rgba(74,222,128,0.08)',
-                border:
-                  '1px solid rgba(74,222,128,0.16)',
-                display:
-                  'flex',
+                  'rgba(74,222,128,.08)',
+                display: 'flex',
                 alignItems:
                   'center',
-                gap:
-                  11,
-                marginBottom:
-                  12,
+                gap: 11,
+                marginBottom: 12,
                 position:
                   'relative',
-                overflow:
-                  'hidden'
               }}
             >
               {confetti.map(
-                (piece) => (
+                piece => (
                   <div
                     key={piece.id}
-                    className="confetti-piece"
+                    className="confetti"
                     style={{
                       position:
                         'absolute',
                       left:
                         `${piece.left}%`,
-                      top:
-                        '-10px',
-                      width:
-                        6,
-                      height:
-                        6,
-                      background:
-                        piece.color,
-                      borderRadius:
-                        2,
+                      top: -10,
+                      width: 6,
+                      height: 6,
                       animationDelay:
                         `${piece.delay}s`,
                       animationDuration:
                         `${piece.duration}s`,
-                      pointerEvents:
-                        'none'
                     }}
                   />
                 )
@@ -2990,14 +2066,9 @@ function StreamContent() {
               <div>
                 <p
                   style={{
-                    margin:
-                      0,
-                    color:
-                      '#fff',
-                    fontWeight:
-                      800,
-                    fontSize:
-                      13
+                    margin: 0,
+                    fontWeight: 800,
+                    fontSize: 13,
                   }}
                 >
                   Coins Earned!
@@ -3009,11 +2080,11 @@ function StreamContent() {
                       '3px 0 0',
                     color:
                       '#8A9BB0',
-                    fontSize:
-                      10
+                    fontSize: 10,
                   }}
                 >
-                  Your wallet has been updated successfully.
+                  Your wallet has
+                  been updated.
                 </p>
               </div>
             </div>
@@ -3025,24 +2096,14 @@ function StreamContent() {
                 )
               }
               style={{
-                width:
-                  '100%',
-                padding:
-                  '14px',
-                borderRadius:
-                  14,
-                border:
-                  'none',
+                width: '100%',
+                padding: 14,
+                border: 'none',
+                borderRadius: 14,
                 background:
-                  'linear-gradient(135deg, #4a9eff, #2d6be4)',
-                color:
-                  '#fff',
-                fontWeight:
-                  800,
-                fontSize:
-                  14,
-                cursor:
-                  'pointer'
+                  'linear-gradient(135deg,#4a9eff,#2d6be4)',
+                color: '#fff',
+                fontWeight: 800,
               }}
             >
               Back to Feed
@@ -3055,32 +2116,21 @@ function StreamContent() {
               handleStopStreaming
             }
             style={{
-              width:
-                '100%',
-              padding:
-                '15px',
-              borderRadius:
-                14,
+              width: '100%',
+              padding: 15,
+              borderRadius: 14,
               background:
-                'rgba(248,113,113,0.10)',
+                'rgba(248,113,113,.1)',
               border:
-                '1px solid rgba(248,113,113,0.24)',
-              color:
-                '#F87171',
-              fontWeight:
-                800,
-              fontSize:
-                14,
-              display:
-                'flex',
+                '1px solid rgba(248,113,113,.24)',
+              color: '#F87171',
+              fontWeight: 800,
+              display: 'flex',
               alignItems:
                 'center',
               justifyContent:
                 'center',
-              gap:
-                8,
-              cursor:
-                'pointer'
+              gap: 8,
             }}
           >
             <Square
@@ -3097,49 +2147,27 @@ function StreamContent() {
             }
             disabled={
               status ===
-                'starting' ||
-              status ===
-                'completing'
+              'starting'
             }
             style={{
-              width:
-                '100%',
-              padding:
-                '15px',
-              borderRadius:
-                14,
-              border:
-                'none',
+              width: '100%',
+              padding: 15,
+              border: 'none',
+              borderRadius: 14,
               background:
-                'linear-gradient(135deg, #4a9eff, #2d6be4)',
-              color:
-                '#fff',
-              fontWeight:
-                800,
-              fontSize:
-                14,
-              display:
-                'flex',
+                'linear-gradient(135deg,#4a9eff,#2d6be4)',
+              color: '#fff',
+              fontWeight: 800,
+              display: 'flex',
               alignItems:
                 'center',
               justifyContent:
                 'center',
-              gap:
-                8,
-              opacity:
-                status ===
-                  'starting'
-                  ? 0.6
-                  : 1,
-              cursor:
-                status ===
-                  'starting'
-                  ? 'not-allowed'
-                  : 'pointer'
+              gap: 8,
             }}
           >
             {status ===
-              'starting' ? (
+            'starting' ? (
               <Loader2
                 size={18}
                 className="spin"
@@ -3152,29 +2180,20 @@ function StreamContent() {
             )}
 
             {status ===
-              'starting'
+            'starting'
               ? 'Preparing...'
               : 'Start Streaming'}
           </button>
         )}
 
-        {/* =================================================
-            ERROR
-        ================================================= */}
-
         {error && (
           <div
             style={{
-              marginTop:
-                12,
-              padding:
-                11,
-              borderRadius:
-                11,
+              marginTop: 12,
+              padding: 11,
+              borderRadius: 11,
               background:
-                'rgba(248,113,113,0.08)',
-              border:
-                '1px solid rgba(248,113,113,0.15)'
+                'rgba(248,113,113,.08)',
             }}
           >
             <p
@@ -3183,123 +2202,62 @@ function StreamContent() {
                   '#F87171',
                 textAlign:
                   'center',
-                margin:
-                  0,
-                fontSize:
-                  11,
-                lineHeight:
-                  1.45
+                margin: 0,
+                fontSize: 11,
               }}
             >
               {error}
             </p>
           </div>
         )}
-
-        {/* =================================================
-            INFO
-        ================================================= */}
-
-        <p
-          style={{
-            textAlign:
-              'center',
-            color:
-              '#52677F',
-            fontSize:
-              9,
-            lineHeight:
-              1.5,
-            margin:
-              '14px 18px 0'
-          }}
-        >
-          Your listening time is being verified by Rewaiq.
-          Keep this page visible and keep the music playing.
-        </p>
       </main>
 
-      {/* ===================================================
-          FULLSCREEN LOCK & BACKDROP OVERLAY
-
-          Locks all inactive background controls (z-index 100).
-          Active Step 1 player and Step 1/2 modal sit at z-index 102.
-          Top Header Back Button sits at z-index 200.
-      =================================================== */}
+      {/* PAGE LOCK */}
 
       {showOnboarding && (
         <div
-          className="onboarding-page-lock"
-          aria-hidden="true"
           style={{
-            position:
-              'fixed',
-            inset:
-              0,
-            zIndex:
-              100,
-            pointerEvents:
-              'auto',
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
             background:
-              'rgba(3, 9, 20, 0.82)',
+              'rgba(3,9,20,.82)',
             backdropFilter:
               'blur(4px)',
-            transition:
-              'opacity 0.25s ease-in-out'
           }}
         />
       )}
 
-      {/* ===================================================
-          LISTENING CHALLENGE MODAL
-          Button position randomizes each time it appears, and
-          confirming now requires a short press-and-hold (with
-          a visible fill) rather than a single tap.
-      =================================================== */}
+      {/* CHALLENGE */}
 
       {challengeVisible &&
-        status === 'streaming' && (
+        status ===
+          'streaming' && (
         <div
           style={{
-            position:
-              'fixed',
-            inset:
-              0,
+            position: 'fixed',
+            inset: 0,
+            zIndex: 300,
             background:
-              'rgba(3,8,18,0.85)',
-            backdropFilter:
-              'blur(4px)',
-            display:
-              'flex',
+              'rgba(3,8,18,.85)',
+            display: 'flex',
             alignItems:
               'center',
             justifyContent:
               'center',
-            zIndex:
-              300,
-            padding:
-              18
+            padding: 18,
           }}
         >
           <div
             className="challenge-pop"
             style={{
-              width:
-                '100%',
-              maxWidth:
-                350,
-              padding:
-                23,
-              borderRadius:
-                20,
+              width: '100%',
+              maxWidth: 350,
+              padding: 23,
+              borderRadius: 20,
               background:
-                'linear-gradient(145deg, #162E50, #102440)',
-              border:
-                '1px solid rgba(74,158,255,0.35)',
-              textAlign:
-                'center',
-              boxShadow:
-                '0 25px 60px rgba(0,0,0,0.5)'
+                'linear-gradient(145deg,#162E50,#102440)',
+              textAlign: 'center',
             }}
           >
             <ShieldCheck
@@ -3309,12 +2267,10 @@ function StreamContent() {
 
             <p
               style={{
-                fontSize:
-                  18,
-                fontWeight:
-                  900,
+                fontSize: 18,
+                fontWeight: 900,
                 margin:
-                  '12px 0 5px'
+                  '12px 0 5px',
               }}
             >
               Quick listening check
@@ -3324,98 +2280,59 @@ function StreamContent() {
               style={{
                 color:
                   '#9DB0C7',
-                fontSize:
-                  12,
+                fontSize: 12,
                 margin:
                   '0 0 14px',
-                lineHeight:
-                  1.5
               }}
             >
-              Are you still listening to the track?
+              Are you still listening
+              to the track?
             </p>
 
-            <div
-              className="confirm-arrow-bounce"
-              style={{
-                marginBottom:
-                  5,
-                color:
-                  '#4a9eff'
-              }}
-            >
-              <ArrowDown
-                size={21}
-                strokeWidth={3}
-              />
-            </div>
+            <ArrowDown
+              className="down-arrow"
+              size={21}
+              color="#4a9eff"
+            />
 
             <div
               style={{
                 transform:
                   `translateX(${challengeOffsetX}px)`,
-                transition:
-                  'transform 0.2s ease'
+                marginTop: 8,
               }}
             >
               <button
-                onPointerDown={
-                  startChallengeHold
-                }
-                onPointerUp={
-                  cancelChallengeHold
-                }
-                onPointerLeave={
-                  cancelChallengeHold
+                onClick={
+                  handleChallenge
                 }
                 disabled={
                   challengeSubmitting
                 }
                 style={{
-                  width:
-                    '100%',
-                  padding:
-                    '14px',
-                  borderRadius:
-                    13,
-                  border:
-                    'none',
+                  width: '100%',
+                  padding: 14,
+                  border: 'none',
+                  borderRadius: 13,
                   background:
-                    `linear-gradient(90deg, #2d6be4 ${holdProgress}%, #4a9eff ${holdProgress}%)`,
-                  color:
-                    '#fff',
-                  fontWeight:
-                    800,
-                  fontSize:
-                    14,
-                  cursor:
-                    challengeSubmitting
-                      ? 'not-allowed'
-                      : 'pointer',
+                    'linear-gradient(135deg,#4a9eff,#2d6be4)',
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: 14,
                   opacity:
                     challengeSubmitting
                       ? 0.6
                       : 1,
-                  userSelect:
-                    'none',
-                  touchAction:
-                    'none'
                 }}
               >
                 {challengeSubmitting
                   ? 'Checking...'
-                  : holdProgress > 0
-                  ? 'Hold to confirm...'
-                  : "Hold — I'm Still Listening"}
+                  : "✓ I'm Still Listening"}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* ===================================================
-          STYLES
-      =================================================== */}
 
       <style jsx global>{`
         @keyframes spin {
@@ -3431,10 +2348,10 @@ function StreamContent() {
           animation: spin 1s linear infinite;
         }
 
-        @keyframes playTargetPulse {
-          0%, 100% {
-            transform: scale(0.92);
-            opacity: 0.65;
+        @keyframes pulse {
+          0%,100% {
+            transform: scale(.92);
+            opacity: .65;
           }
           50% {
             transform: scale(1.06);
@@ -3442,165 +2359,101 @@ function StreamContent() {
           }
         }
 
-        .play-target-ring {
-          animation: playTargetPulse 1.2s ease-in-out infinite;
+        .play-ring {
+          animation: pulse 1.2s infinite;
         }
 
-        @keyframes arrowNudge {
-          0%, 100% {
-            transform: translate(0, 0);
-            opacity: 0.8;
-          }
-          50% {
-            transform: translate(-5px, 5px);
-            opacity: 1;
-          }
+        .play-arrow {
+          animation: pulse .8s infinite;
         }
 
-        .guided-play-arrow {
-          animation: arrowNudge 0.7s ease-in-out infinite;
-          transform-origin: center;
+        .down-arrow {
+          animation: bounce 0.8s infinite;
         }
 
-        @keyframes bounceDownSharp {
-          0%, 100% {
+        @keyframes bounce {
+          0%,100% {
             transform: translateY(0);
-            opacity: 0.7;
           }
           50% {
             transform: translateY(6px);
-            opacity: 1;
-          }
-        }
-
-        .step2-down-arrow {
-          animation: bounceDownSharp 0.8s ease-in-out infinite;
-        }
-
-        .confirm-arrow-bounce {
-          display: flex;
-          justify-content: center;
-          animation: bounceDownSharp 0.85s ease-in-out infinite;
-        }
-
-        @keyframes pulseIconAnim {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.12);
-          }
-        }
-
-        .pulse-icon-box, .pulse-icon {
-          animation: pulseIconAnim 1.1s ease-in-out infinite;
-        }
-
-        @keyframes challengePop {
-          from {
-            transform: scale(0.92);
-            opacity: 0;
-          }
-          to {
-            transform: scale(1);
-            opacity: 1;
           }
         }
 
         .challenge-pop {
-          animation: challengePop 0.25s ease-out;
+          animation: challengePop .25s ease-out;
         }
 
-        @keyframes stepFadeIn {
+        @keyframes challengePop {
           from {
+            transform: scale(.92);
             opacity: 0;
-            transform: translateY(8px);
           }
           to {
+            transform: scale(1);
             opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .step-fade-in {
-          animation: stepFadeIn 0.3s ease-out;
-        }
-
-        @keyframes ringGlowPulse {
-          0% {
-            box-shadow: 0 0 0 rgba(74,158,255,0);
-          }
-          50% {
-            box-shadow: 0 0 26px rgba(74,158,255,0.75);
-          }
-          100% {
-            box-shadow: 0 0 0 rgba(74,158,255,0);
           }
         }
 
         .ring-glow {
-          animation: ringGlowPulse 0.65s ease-out;
-          border-radius: 50%;
+          animation: glow .65s ease-out;
         }
 
-        @keyframes coinFly {
+        @keyframes glow {
           0% {
-            transform: translateY(0) scale(0.8);
-            opacity: 0;
+            box-shadow: 0 0 0 rgba(74,158,255,0);
           }
-          15% {
-            opacity: 1;
+          50% {
+            box-shadow: 0 0 26px rgba(74,158,255,.75);
           }
           100% {
-            transform: translateY(-58px) scale(1);
-            opacity: 0;
+            box-shadow: 0 0 0 rgba(74,158,255,0);
           }
         }
 
         .coin-fly {
-          animation: coinFly 0.9s ease-out forwards;
+          animation: coinFly .9s ease-out forwards;
         }
 
-        @keyframes confettiFall {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
+        @keyframes coinFly {
+          from {
+            transform:
+              translateY(0)
+              scale(.8);
+            opacity: 0;
           }
-          100% {
-            transform: translateY(90px) rotate(360deg);
+          to {
+            transform:
+              translateY(-58px)
+              scale(1);
             opacity: 0;
           }
         }
 
-        .confetti-piece {
-          animation-name: confettiFall;
-          animation-timing-function: ease-in;
-          animation-fill-mode: forwards;
+        .confetti {
+          background: #4a9eff;
+          animation:
+            confettiFall 1.4s ease-out forwards;
         }
 
-        .stream-guide-step1-layer,
-        .onboarding-page-lock {
-          user-select: none;
-        }
-
-        @media (max-width: 420px) {
-          .guided-play-arrow {
-            left: 17% !important;
-            bottom: 12% !important;
+        @keyframes confettiFall {
+          from {
+            transform:
+              translateY(0)
+              rotate(0);
+            opacity: 1;
           }
-          .play-target-ring {
-            width: 64px !important;
-            height: 64px !important;
+          to {
+            transform:
+              translateY(90px)
+              rotate(360deg);
+            opacity: 0;
           }
         }
       `}</style>
     </div>
   );
 }
-
-// =========================================================
-// PAGE EXPORT
-// =========================================================
 
 export default function StreamPage() {
   return (
@@ -3612,4 +2465,4 @@ export default function StreamPage() {
       <StreamContent />
     </Suspense>
   );
-}
+    }
