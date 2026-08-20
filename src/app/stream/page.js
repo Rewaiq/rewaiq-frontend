@@ -27,6 +27,7 @@ import {
   Eye,
   AlertTriangle,
   Radio,
+  Coins,
 } from 'lucide-react';
 
 import API from '@/lib/api';
@@ -34,6 +35,9 @@ import Spinner from '@/components/Spinner';
 
 const REQUIRED_SECONDS = 60;
 const HEARTBEAT_INTERVAL = 5000;
+
+// Hold-to-confirm duration for the listening challenge.
+const HOLD_DURATION_MS = 900;
 
 const STORAGE_KEY = 'rewaiq_stream_track';
 
@@ -168,6 +172,12 @@ function StreamContent() {
   // User taps Audiomack Play, then clicks "✓ I've Pressed Play".
   // Step 2: Audio Player dims, Step 2 Verification Card spotlights.
   // User clicks "✓ I've Started Playing" to start heartbeat & earn timer.
+  //
+  // Neither step auto-advances or auto-closes — the user must tap
+  // the confirm button each time. We cannot detect a real click
+  // inside Audiomack's cross-origin iframe, so the confirm button
+  // is always clickable; what we control is that verification never
+  // starts until BOTH taps happen, in order.
   // -------------------------------------------------------
 
   const [showOnboarding, setShowOnboarding] =
@@ -184,6 +194,30 @@ function StreamContent() {
 
   const [challengeSubmitting, setChallengeSubmitting] =
     useState(false);
+
+  // -------------------------------------------------------
+  // FUN / FEEDBACK STATE
+  //
+  // Purely cosmetic — none of this drives verification. Every
+  // piece here only reacts to server-confirmed state that's
+  // already trusted elsewhere in this file (verifiedSeconds,
+  // status, challenge responses).
+  // -------------------------------------------------------
+
+  const [coinBursts, setCoinBursts] =
+    useState([]);
+
+  const [milestoneFlash, setMilestoneFlash] =
+    useState(false);
+
+  const [challengeOffsetX, setChallengeOffsetX] =
+    useState(0);
+
+  const [holdProgress, setHoldProgress] =
+    useState(0);
+
+  const [confetti, setConfetti] =
+    useState([]);
 
   // -------------------------------------------------------
   // REFS
@@ -209,6 +243,15 @@ function StreamContent() {
 
   const heartbeatBusyRef =
     useRef(false);
+
+  const coinIdRef =
+    useRef(0);
+
+  const prevVerifiedRef =
+    useRef(0);
+
+  const holdIntervalRef =
+    useRef(null);
 
   // =======================================================
   // KEEP REFS SYNCHRONIZED
@@ -1054,6 +1097,83 @@ function StreamContent() {
       setChallengeSubmitting(
         false
       );
+
+      setHoldProgress(
+        0
+      );
+    }
+  }
+
+  // =======================================================
+  // CHALLENGE — HOLD TO CONFIRM
+  //
+  // A ~900ms press-and-hold instead of a single tap. Mostly
+  // for feel, but combined with the random button offset
+  // below it's also mildly more script-resistant than a
+  // plain click. The real anti-cheat backstop stays entirely
+  // server-side — this only decides when handleChallenge()
+  // fires, it never decides the outcome.
+  // =======================================================
+
+  function startChallengeHold() {
+    if (
+      challengeSubmitting ||
+      holdIntervalRef.current
+    ) {
+      return;
+    }
+
+    const startedAt =
+      Date.now();
+
+    holdIntervalRef.current =
+      setInterval(() => {
+        const elapsed =
+          Date.now() -
+          startedAt;
+
+        const pct =
+          Math.min(
+            100,
+            (
+              elapsed /
+              HOLD_DURATION_MS
+            ) * 100
+          );
+
+        setHoldProgress(
+          pct
+        );
+
+        if (pct >= 100) {
+          clearInterval(
+            holdIntervalRef.current
+          );
+
+          holdIntervalRef.current =
+            null;
+
+          handleChallenge();
+        }
+      }, 30);
+  }
+
+  function cancelChallengeHold() {
+    if (
+      holdIntervalRef.current
+    ) {
+      clearInterval(
+        holdIntervalRef.current
+      );
+
+      holdIntervalRef.current =
+        null;
+    }
+
+    if (
+      !challengeSubmitting
+    ) {
+      setHoldProgress(0);
     }
   }
 
@@ -1063,6 +1183,8 @@ function StreamContent() {
 
   async function handleStopStreaming() {
     clearHeartbeat();
+
+    cancelChallengeHold();
 
     const currentSession =
       sessionIdRef.current;
@@ -1130,6 +1252,10 @@ function StreamContent() {
     setOnboardingStep(
       1
     );
+
+    setCoinBursts(
+      []
+    );
   }
 
   // =======================================================
@@ -1180,8 +1306,146 @@ function StreamContent() {
 
       playbackStartedRef.current =
         false;
+
+      if (
+        holdIntervalRef.current
+      ) {
+        clearInterval(
+          holdIntervalRef.current
+        );
+
+        holdIntervalRef.current =
+          null;
+      }
     };
   }, []);
+
+  // =======================================================
+  // COIN TRICKLE
+  //
+  // Fires purely off verifiedSeconds increasing — reacts to
+  // what the server already confirmed, never decides anything.
+  // =======================================================
+
+  useEffect(() => {
+    if (status !== 'streaming') {
+      prevVerifiedRef.current =
+        verifiedSeconds;
+      return;
+    }
+
+    if (
+      verifiedSeconds >
+      prevVerifiedRef.current
+    ) {
+      const burstId =
+        coinIdRef.current++;
+
+      setCoinBursts(
+        (prev) => [
+          ...prev,
+          {
+            id: burstId,
+            offset:
+              Math.floor(
+                Math.random() * 46
+              ) - 23
+          }
+        ]
+      );
+
+      const cleanupTimer =
+        setTimeout(() => {
+          setCoinBursts(
+            (prev) =>
+              prev.filter(
+                (c) => c.id !== burstId
+              )
+          );
+        }, 900);
+
+      prevVerifiedRef.current =
+        verifiedSeconds;
+
+      return () => {
+        clearTimeout(cleanupTimer);
+      };
+    }
+
+    prevVerifiedRef.current =
+      verifiedSeconds;
+  }, [verifiedSeconds, status]);
+
+  // =======================================================
+  // MILESTONE GLOW
+  // =======================================================
+
+  useEffect(() => {
+    if (status !== 'streaming') {
+      return;
+    }
+
+    if (
+      [15, 30, 45].includes(
+        verifiedSeconds
+      )
+    ) {
+      setMilestoneFlash(true);
+
+      const flashTimer =
+        setTimeout(() => {
+          setMilestoneFlash(false);
+        }, 650);
+
+      return () => {
+        clearTimeout(flashTimer);
+      };
+    }
+  }, [verifiedSeconds, status]);
+
+  // =======================================================
+  // CHALLENGE — RANDOMIZE POSITION, RESET HOLD PROGRESS
+  // =======================================================
+
+  useEffect(() => {
+    if (challengeVisible) {
+      setChallengeOffsetX(
+        Math.floor(
+          Math.random() * 80
+        ) - 40
+      );
+
+      setHoldProgress(0);
+    }
+  }, [challengeVisible]);
+
+  // =======================================================
+  // COMPLETION CONFETTI
+  // =======================================================
+
+  useEffect(() => {
+    if (status === 'completed') {
+      setConfetti(
+        Array.from({ length: 18 }).map(
+          (_, i) => ({
+            id: i,
+            left: Math.random() * 100,
+            delay: Math.random() * 0.35,
+            duration:
+              1.1 + Math.random() * 0.6,
+            color: [
+              '#4a9eff',
+              '#4ADE80',
+              '#FBBF24',
+              '#F87171'
+            ][i % 4]
+          })
+        )
+      );
+    } else {
+      setConfetti([]);
+    }
+  }, [status]);
 
   // =======================================================
   // VALUES
@@ -1213,6 +1477,15 @@ function StreamContent() {
     track?.artist ||
     track?.artistName ||
     'Unknown Artist';
+
+  const streamingMessage =
+    verifiedSeconds >= 45
+      ? 'So close! 🔥'
+      : verifiedSeconds >= 30
+      ? 'Halfway there 🎧'
+      : verifiedSeconds >= 15
+      ? "You're on a roll"
+      : 'Keep listening';
 
   // =======================================================
   // LOADING
@@ -1701,6 +1974,9 @@ function StreamContent() {
 
               {/* =================================================
                   STEP 1 GUIDE OVERLAY & POINTER
+                  Arrow is short + straight, sitting right next to
+                  the play ring instead of sweeping across the
+                  whole card, with a tight "nudge" animation.
               ================================================= */}
 
               {showOnboarding &&
@@ -1876,53 +2152,48 @@ function StreamContent() {
                     }}
                   />
 
-                  {/* Sharp Curved Arrow pointing directly to Audiomack Play Button */}
+                  {/* Short, sharp straight arrow beside the
+                      play ring — single stroke + solid
+                      triangular head, nudging toward the
+                      button instead of a long sweeping curve. */}
                   <div
                     className="guided-play-arrow"
                     style={{
                       position:
                         'absolute',
                       left:
-                        '15%',
+                        '20%',
                       bottom:
-                        '31%',
+                        '13%',
                       width:
-                        65,
+                        46,
                       height:
-                        65,
+                        46,
                       pointerEvents:
                         'none'
                     }}
                   >
                     <svg
-                      width="65"
-                      height="65"
-                      viewBox="0 0 65 65"
+                      width="46"
+                      height="46"
+                      viewBox="0 0 46 46"
                       style={{
                         overflow:
                           'visible'
                       }}
                     >
-                      <path
-                        d="M52 6 C 40 10, 18 20, 10 42"
-                        fill="none"
+                      <line
+                        x1="40"
+                        y1="6"
+                        x2="14"
+                        y2="32"
                         stroke="#4a9eff"
-                        strokeWidth="3.5"
+                        strokeWidth="4"
                         strokeLinecap="round"
                       />
-                      <path
-                        d="M10 42 L 11 27"
-                        fill="none"
-                        stroke="#4a9eff"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M10 42 L 25 39"
-                        fill="none"
-                        stroke="#4a9eff"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
+                      <polygon
+                        points="6,40 10,22 24,26"
+                        fill="#4a9eff"
                       />
                     </svg>
                   </div>
@@ -1969,6 +2240,9 @@ function StreamContent() {
 
         {/* =================================================
             STEP 1 & STEP 2 ONBOARDING GUIDANCE CARD
+            Content crossfades + slides slightly on step change
+            via key={onboardingStep}, so switching feels like a
+            deliberate transition rather than an abrupt swap.
         ================================================= */}
 
         {status ===
@@ -1994,7 +2268,9 @@ function StreamContent() {
               zIndex:
                 102,
               boxShadow:
-                '0 0 35px rgba(74,158,255,0.3)'
+                '0 0 35px rgba(74,158,255,0.3)',
+              overflow:
+                'hidden'
             }}
           >
             {/* Step 1 vs Step 2 Navigation Dots */}
@@ -2041,7 +2317,9 @@ function StreamContent() {
                   boxShadow:
                     onboardingStep === 1
                       ? '0 0 12px rgba(74,158,255,0.8)'
-                      : 'none'
+                      : 'none',
+                  transition:
+                    'all 0.3s ease'
                 }}
               >
                 1
@@ -2056,7 +2334,9 @@ function StreamContent() {
                   background:
                     onboardingStep === 2
                       ? '#4a9eff'
-                      : 'rgba(255,255,255,0.15)'
+                      : 'rgba(255,255,255,0.15)',
+                  transition:
+                    'background 0.3s ease'
                 }}
               />
 
@@ -2089,212 +2369,223 @@ function StreamContent() {
                   boxShadow:
                     onboardingStep === 2
                       ? '0 0 12px rgba(74,158,255,0.8)'
-                      : 'none'
+                      : 'none',
+                  transition:
+                    'all 0.3s ease'
                 }}
               >
                 2
               </div>
             </div>
 
-            {/* STEP 1 INSTRUCTIONS */}
-            {onboardingStep === 1 ? (
-              <div>
-                <p
-                  style={{
-                    margin:
-                      '0 0 4px',
-                    fontWeight:
-                      900,
-                    fontSize:
-                      15,
-                    color:
-                      '#fff'
-                  }}
-                >
-                  Press Play in the player
-                </p>
+            {/* STEP CONTENT — key forces a remount on step
+                change, which triggers the step-fade-in
+                animation for a smooth crossfade + slide. */}
 
-                <p
-                  style={{
-                    margin:
-                      '0 auto 14px',
-                    maxWidth:
-                      340,
-                    color:
-                      '#8A9BB0',
-                    fontSize:
-                      11,
-                    lineHeight:
-                      1.45
-                  }}
-                >
-                  Tap the Play button above inside the Audiomack player. Once the music starts playing, click below.
-                </p>
+            <div
+              key={onboardingStep}
+              className="step-fade-in"
+            >
 
-                <button
-                  type="button"
-                  onClick={
-                    handleAcknowledgePlayTap
-                  }
-                  style={{
-                    width:
-                      '100%',
-                    padding:
-                      '14px',
-                    borderRadius:
-                      13,
-                    border:
-                      'none',
-                    background:
-                      'linear-gradient(135deg, #4a9eff, #2d6be4)',
-                    color:
-                      '#fff',
-                    fontWeight:
-                      800,
-                    fontSize:
-                      14,
-                    cursor:
-                      'pointer',
-                    boxShadow:
-                      '0 8px 22px rgba(45,107,228,0.4)',
-                    display:
-                      'flex',
-                    alignItems:
-                      'center',
-                    justifyContent:
-                      'center',
-                    gap:
-                      6
-                  }}
-                >
-                  ✓ I've Pressed Play
-                </button>
-              </div>
-            ) : (
-              /* STEP 2 INSTRUCTIONS */
-              <div>
-                <div
-                  style={{
-                    display:
-                      'inline-flex',
-                    alignItems:
-                      'center',
-                    gap:
-                      6,
-                    padding:
-                      '4px 10px',
-                    borderRadius:
-                      999,
-                    background:
-                      'rgba(74,158,255,0.18)',
-                    color:
-                      '#7DBBFF',
-                    fontSize:
-                      10,
-                    fontWeight:
-                      900,
-                    marginBottom:
-                      8
-                  }}
-                >
-                  <Radio
-                    size={12}
-                    className="pulse-icon"
-                  />
-                  STEP 2 — START VERIFICATION
+              {onboardingStep === 1 ? (
+                <div>
+                  <p
+                    style={{
+                      margin:
+                        '0 0 4px',
+                      fontWeight:
+                        900,
+                      fontSize:
+                        15,
+                      color:
+                        '#fff'
+                    }}
+                  >
+                    Press Play in the player
+                  </p>
+
+                  <p
+                    style={{
+                      margin:
+                        '0 auto 14px',
+                      maxWidth:
+                        340,
+                      color:
+                        '#8A9BB0',
+                      fontSize:
+                        11,
+                      lineHeight:
+                        1.45
+                    }}
+                  >
+                    Tap the Play button above inside the Audiomack player. Once the music starts playing, click below.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleAcknowledgePlayTap
+                    }
+                    style={{
+                      width:
+                        '100%',
+                      padding:
+                        '14px',
+                      borderRadius:
+                        13,
+                      border:
+                        'none',
+                      background:
+                        'linear-gradient(135deg, #4a9eff, #2d6be4)',
+                      color:
+                        '#fff',
+                      fontWeight:
+                        800,
+                      fontSize:
+                        14,
+                      cursor:
+                        'pointer',
+                      boxShadow:
+                        '0 8px 22px rgba(45,107,228,0.4)',
+                      display:
+                        'flex',
+                      alignItems:
+                        'center',
+                      justifyContent:
+                        'center',
+                      gap:
+                        6
+                    }}
+                  >
+                    ✓ I've Pressed Play
+                  </button>
                 </div>
+              ) : (
+                <div>
+                  <div
+                    style={{
+                      display:
+                        'inline-flex',
+                      alignItems:
+                        'center',
+                      gap:
+                        6,
+                      padding:
+                        '4px 10px',
+                      borderRadius:
+                        999,
+                      background:
+                        'rgba(74,158,255,0.18)',
+                      color:
+                        '#7DBBFF',
+                      fontSize:
+                        10,
+                      fontWeight:
+                        900,
+                      marginBottom:
+                        8
+                    }}
+                  >
+                    <Radio
+                      size={12}
+                      className="pulse-icon"
+                    />
+                    STEP 2 — START VERIFICATION
+                  </div>
 
-                <p
-                  style={{
-                    margin:
-                      '0 0 4px',
-                    fontWeight:
-                      900,
-                    fontSize:
-                      15,
-                    color:
-                      '#fff'
-                  }}
-                >
-                  Ready to start verified listening
-                </p>
+                  <p
+                    style={{
+                      margin:
+                        '0 0 4px',
+                      fontWeight:
+                        900,
+                      fontSize:
+                        15,
+                      color:
+                        '#fff'
+                    }}
+                  >
+                    Ready to start verified listening
+                  </p>
 
-                <p
-                  style={{
-                    margin:
-                      '0 auto 10px',
-                    maxWidth:
-                      340,
-                    color:
-                      '#8A9BB0',
-                    fontSize:
-                      11,
-                    lineHeight:
-                      1.45
-                  }}
-                >
-                  Music should now be playing. Tap the button below to start your verified listening time.
-                </p>
+                  <p
+                    style={{
+                      margin:
+                        '0 auto 10px',
+                      maxWidth:
+                        340,
+                      color:
+                        '#8A9BB0',
+                      fontSize:
+                        11,
+                      lineHeight:
+                        1.45
+                    }}
+                  >
+                    Music should now be playing. Tap the button below to start your verified listening time.
+                  </p>
 
-                <div
-                  className="step2-down-arrow"
-                  style={{
-                    marginBottom:
-                      8,
-                    color:
-                      '#4a9eff',
-                    display:
-                      'flex',
-                    justifyContent:
-                      'center'
-                  }}
-                >
-                  <ArrowDown
-                    size={22}
-                    strokeWidth={3}
-                  />
+                  <div
+                    className="step2-down-arrow"
+                    style={{
+                      marginBottom:
+                        8,
+                      color:
+                        '#4a9eff',
+                      display:
+                        'flex',
+                      justifyContent:
+                        'center'
+                    }}
+                  >
+                    <ArrowDown
+                      size={22}
+                      strokeWidth={3}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={
+                      handlePlaybackConfirmation
+                    }
+                    style={{
+                      width:
+                        '100%',
+                      padding:
+                        '14px',
+                      borderRadius:
+                        13,
+                      border:
+                        'none',
+                      background:
+                        'linear-gradient(135deg, #4a9eff, #2d6be4)',
+                      color:
+                        '#fff',
+                      fontWeight:
+                        800,
+                      fontSize:
+                        14,
+                      cursor:
+                        'pointer',
+                      boxShadow:
+                        '0 8px 22px rgba(45,107,228,0.4)',
+                      display:
+                        'flex',
+                      alignItems:
+                        'center',
+                      justifyContent:
+                        'center',
+                      gap:
+                        6
+                    }}
+                  >
+                    ✓ I've Started Playing
+                  </button>
                 </div>
+              )}
 
-                <button
-                  type="button"
-                  onClick={
-                    handlePlaybackConfirmation
-                  }
-                  style={{
-                    width:
-                      '100%',
-                    padding:
-                      '14px',
-                    borderRadius:
-                      13,
-                    border:
-                      'none',
-                    background:
-                      'linear-gradient(135deg, #4a9eff, #2d6be4)',
-                    color:
-                      '#fff',
-                    fontWeight:
-                      800,
-                    fontSize:
-                      14,
-                    cursor:
-                      'pointer',
-                    boxShadow:
-                      '0 8px 22px rgba(45,107,228,0.4)',
-                    display:
-                      'flex',
-                    alignItems:
-                      'center',
-                    justifyContent:
-                      'center',
-                    gap:
-                      6
-                  }}
-                >
-                  ✓ I've Started Playing
-                </button>
-              </div>
-            )}
+            </div>
           </section>
         )}
 
@@ -2367,6 +2658,11 @@ function StreamContent() {
           }}
         >
           <div
+            className={
+              milestoneFlash
+                ? 'ring-glow'
+                : ''
+            }
             style={{
               width:
                 138,
@@ -2384,7 +2680,9 @@ function StreamContent() {
               padding:
                 7,
               transition:
-                'background 1s linear'
+                'background 1s linear',
+              position:
+                'relative'
             }}
           >
             <div
@@ -2439,6 +2737,33 @@ function StreamContent() {
                 </span>
               )}
             </div>
+
+            {/* Flying coin icons — one spawned per newly
+                verified second, purely decorative. */}
+
+            {coinBursts.map(
+              (coin) => (
+                <div
+                  key={coin.id}
+                  className="coin-fly"
+                  style={{
+                    position:
+                      'absolute',
+                    left:
+                      `calc(50% + ${coin.offset}px)`,
+                    bottom:
+                      '38%',
+                    pointerEvents:
+                      'none'
+                  }}
+                >
+                  <Coins
+                    size={16}
+                    color="#FBBF24"
+                  />
+                </div>
+              )
+            )}
           </div>
 
           <p
@@ -2459,7 +2784,7 @@ function StreamContent() {
               ? 'Press Play to begin'
               : status ===
                 'streaming'
-              ? 'Keep listening'
+              ? streamingMessage
               : status ===
                 'completing'
               ? 'Adding your coins...'
@@ -2619,9 +2944,44 @@ function StreamContent() {
                 gap:
                   11,
                 marginBottom:
-                  12
+                  12,
+                position:
+                  'relative',
+                overflow:
+                  'hidden'
               }}
             >
+              {confetti.map(
+                (piece) => (
+                  <div
+                    key={piece.id}
+                    className="confetti-piece"
+                    style={{
+                      position:
+                        'absolute',
+                      left:
+                        `${piece.left}%`,
+                      top:
+                        '-10px',
+                      width:
+                        6,
+                      height:
+                        6,
+                      background:
+                        piece.color,
+                      borderRadius:
+                        2,
+                      animationDelay:
+                        `${piece.delay}s`,
+                      animationDuration:
+                        `${piece.duration}s`,
+                      pointerEvents:
+                        'none'
+                    }}
+                  />
+                )
+              )}
+
               <CheckCircle
                 size={27}
                 color="#4ADE80"
@@ -2861,7 +3221,7 @@ function StreamContent() {
 
       {/* ===================================================
           FULLSCREEN LOCK & BACKDROP OVERLAY
-          
+
           Locks all inactive background controls (z-index 100).
           Active Step 1 player and Step 1/2 modal sit at z-index 102.
           Top Header Back Button sits at z-index 200.
@@ -2892,6 +3252,9 @@ function StreamContent() {
 
       {/* ===================================================
           LISTENING CHALLENGE MODAL
+          Button position randomizes each time it appears, and
+          confirming now requires a short press-and-hold (with
+          a visible fill) rather than a single tap.
       =================================================== */}
 
       {challengeVisible &&
@@ -2987,44 +3350,65 @@ function StreamContent() {
               />
             </div>
 
-            <button
-              onClick={
-                handleChallenge
-              }
-              disabled={
-                challengeSubmitting
-              }
+            <div
               style={{
-                width:
-                  '100%',
-                padding:
-                  '14px',
-                borderRadius:
-                  13,
-                border:
-                  'none',
-                background:
-                  '#4a9eff',
-                color:
-                  '#fff',
-                fontWeight:
-                  800,
-                fontSize:
-                  14,
-                cursor:
-                  challengeSubmitting
-                    ? 'not-allowed'
-                    : 'pointer',
-                opacity:
-                  challengeSubmitting
-                    ? 0.6
-                    : 1
+                transform:
+                  `translateX(${challengeOffsetX}px)`,
+                transition:
+                  'transform 0.2s ease'
               }}
             >
-              {challengeSubmitting
-                ? 'Checking...'
-                : "Yes, I'm Still Listening"}
-            </button>
+              <button
+                onPointerDown={
+                  startChallengeHold
+                }
+                onPointerUp={
+                  cancelChallengeHold
+                }
+                onPointerLeave={
+                  cancelChallengeHold
+                }
+                disabled={
+                  challengeSubmitting
+                }
+                style={{
+                  width:
+                    '100%',
+                  padding:
+                    '14px',
+                  borderRadius:
+                    13,
+                  border:
+                    'none',
+                  background:
+                    `linear-gradient(90deg, #2d6be4 ${holdProgress}%, #4a9eff ${holdProgress}%)`,
+                  color:
+                    '#fff',
+                  fontWeight:
+                    800,
+                  fontSize:
+                    14,
+                  cursor:
+                    challengeSubmitting
+                      ? 'not-allowed'
+                      : 'pointer',
+                  opacity:
+                    challengeSubmitting
+                      ? 0.6
+                      : 1,
+                  userSelect:
+                    'none',
+                  touchAction:
+                    'none'
+                }}
+              >
+                {challengeSubmitting
+                  ? 'Checking...'
+                  : holdProgress > 0
+                  ? 'Hold to confirm...'
+                  : "Hold — I'm Still Listening"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -3062,19 +3446,19 @@ function StreamContent() {
           animation: playTargetPulse 1.2s ease-in-out infinite;
         }
 
-        @keyframes sharpGuideMove {
+        @keyframes arrowNudge {
           0%, 100% {
-            transform: translate(0, 0) scale(1);
-            opacity: 0.75;
+            transform: translate(0, 0);
+            opacity: 0.8;
           }
           50% {
-            transform: translate(-4px, 4px) scale(1.08);
+            transform: translate(-5px, 5px);
             opacity: 1;
           }
         }
 
         .guided-play-arrow {
-          animation: sharpGuideMove 0.85s ease-in-out infinite;
+          animation: arrowNudge 0.7s ease-in-out infinite;
           transform-origin: center;
         }
 
@@ -3127,6 +3511,73 @@ function StreamContent() {
           animation: challengePop 0.25s ease-out;
         }
 
+        @keyframes stepFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .step-fade-in {
+          animation: stepFadeIn 0.3s ease-out;
+        }
+
+        @keyframes ringGlowPulse {
+          0% {
+            box-shadow: 0 0 0 rgba(74,158,255,0);
+          }
+          50% {
+            box-shadow: 0 0 26px rgba(74,158,255,0.75);
+          }
+          100% {
+            box-shadow: 0 0 0 rgba(74,158,255,0);
+          }
+        }
+
+        .ring-glow {
+          animation: ringGlowPulse 0.65s ease-out;
+          border-radius: 50%;
+        }
+
+        @keyframes coinFly {
+          0% {
+            transform: translateY(0) scale(0.8);
+            opacity: 0;
+          }
+          15% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-58px) scale(1);
+            opacity: 0;
+          }
+        }
+
+        .coin-fly {
+          animation: coinFly 0.9s ease-out forwards;
+        }
+
+        @keyframes confettiFall {
+          0% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(90px) rotate(360deg);
+            opacity: 0;
+          }
+        }
+
+        .confetti-piece {
+          animation-name: confettiFall;
+          animation-timing-function: ease-in;
+          animation-fill-mode: forwards;
+        }
+
         .stream-guide-step1-layer,
         .onboarding-page-lock {
           user-select: none;
@@ -3134,8 +3585,8 @@ function StreamContent() {
 
         @media (max-width: 420px) {
           .guided-play-arrow {
-            left: 13% !important;
-            bottom: 29% !important;
+            left: 17% !important;
+            bottom: 12% !important;
           }
           .play-target-ring {
             width: 64px !important;
