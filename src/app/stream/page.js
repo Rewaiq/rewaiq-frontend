@@ -436,7 +436,6 @@ function StreamContent() {
         challengeResponse !==
         undefined
       ) {
-        // Contract compliance with backend:
         payload.challenge_response = challengeResponse;
         payload.challenge_answer = challengeResponse;
       }
@@ -1336,7 +1335,7 @@ function StreamContent() {
           padding: '18px',
         }}
       >
-        {/* TRACK */}
+        {/* TRACK INFO */}
 
         <section
           style={{
@@ -1427,7 +1426,7 @@ function StreamContent() {
           </div>
         </section>
 
-        {/* PLAYER */}
+        {/* PLAYER SECTION */}
 
         <section
           style={{
@@ -1449,7 +1448,8 @@ function StreamContent() {
             position:
               'relative',
             zIndex:
-              showOnboarding
+              showOnboarding &&
+              onboardingStep === 1
                 ? 102
                 : 1,
             opacity:
@@ -1533,10 +1533,11 @@ function StreamContent() {
                   width: '100%',
                   height: 252,
                   border: 'none',
+                  zIndex: 2,
                 }}
               />
 
-              {/* RESTORED 0a49830 INSTRUCTIONAL OVERLAY */}
+              {/* RESTORED & ALIGNED STEP 1 INSTRUCTIONAL OVERLAY */}
               {showOnboarding &&
                 onboardingStep === 1 && (
                   <div
@@ -1545,7 +1546,7 @@ function StreamContent() {
                       position: 'absolute',
                       inset: 0,
                       zIndex: 10,
-                      pointerEvents: 'none',
+                      pointerEvents: 'none', // Lets user click the Audiomack player Play button
                     }}
                   >
                     {/* Step 1 Header Prompt Banner */}
@@ -1636,15 +1637,15 @@ function StreamContent() {
                       </div>
                     </div>
 
-                    {/* Play Target Ring indicator */}
+                    {/* Ring precisely on Audiomack circular play button */}
                     <div
                       className="play-target-ring"
                       style={{
                         position: 'absolute',
-                        left: '3.5%',
-                        bottom: '9%',
-                        width: 72,
-                        height: 72,
+                        left: '18px',
+                        bottom: '22px',
+                        width: '68px',
+                        height: '68px',
                         borderRadius: '50%',
                         border: '2.5px solid rgba(74,158,255,0.95)',
                         boxShadow:
@@ -1653,35 +1654,35 @@ function StreamContent() {
                       }}
                     />
 
-                    {/* Straight diagonal arrow from 0a49830 */}
+                    {/* Directional arrow directly targeting the Audiomack play ring */}
                     <div
                       className="guided-play-arrow"
                       style={{
                         position: 'absolute',
-                        left: '20%',
-                        bottom: '13%',
-                        width: 46,
-                        height: 46,
+                        left: '84px',
+                        bottom: '54px',
+                        width: '42px',
+                        height: '42px',
                         pointerEvents: 'none',
                       }}
                     >
                       <svg
-                        width="46"
-                        height="46"
-                        viewBox="0 0 46 46"
+                        width="42"
+                        height="42"
+                        viewBox="0 0 42 42"
                         style={{ overflow: 'visible' }}
                       >
                         <line
-                          x1="40"
+                          x1="36"
                           y1="6"
-                          x2="14"
-                          y2="32"
+                          x2="10"
+                          y2="28"
                           stroke="#4a9eff"
                           strokeWidth="4"
                           strokeLinecap="round"
                         />
                         <polygon
-                          points="6,40 10,22 24,26"
+                          points="2,36 8,18 22,22"
                           fill="#4a9eff"
                         />
                       </svg>
@@ -1708,7 +1709,7 @@ function StreamContent() {
           )}
         </section>
 
-        {/* ONBOARDING */}
+        {/* STEP 1 & 2 ONBOARDING GUIDANCE CARD */}
 
         {status ===
           'awaiting_play' && (
@@ -2075,7 +2076,7 @@ function StreamContent() {
           </div>
         </section>
 
-        {/* ACTION */}
+        {/* ACTION BUTTONS */}
 
         {status ===
         'completed' ? (
@@ -2274,7 +2275,7 @@ function StreamContent() {
         )}
       </main>
 
-      {/* PAGE LOCK */}
+      {/* FULLSCREEN LOCK OVERLAY (Keeps entire page locked until steps complete) */}
 
       {showOnboarding && (
         <div
@@ -2287,11 +2288,12 @@ function StreamContent() {
               'rgba(3,9,20,.82)',
             backdropFilter:
               'blur(4px)',
+            pointerEvents: 'auto',
           }}
         />
       )}
 
-      {/* CHALLENGE */}
+      {/* CHALLENGE MODAL */}
 
       {challengeVisible &&
         status ===
@@ -2397,6 +2399,8 @@ function StreamContent() {
           </div>
         </div>
       )}
+
+      {/* STYLES */}
 
       <style jsx global>{`
         @keyframes spin {
@@ -2560,14 +2564,18 @@ function StreamContent() {
           user-select: none;
         }
 
-        @media (max-width: 420px) {
-          .guided-play-arrow {
-            left: 17% !important;
-            bottom: 12% !important;
-          }
+        @media (max-width: 600px) {
           .play-target-ring {
-            width: 64px !important;
-            height: 64px !important;
+            left: 14px !important;
+            bottom: 18px !important;
+            width: 60px !important;
+            height: 60px !important;
+          }
+          .guided-play-arrow {
+            left: 72px !important;
+            bottom: 46px !important;
+            width: 36px !important;
+            height: 36px !important;
           }
         }
       `}</style>
