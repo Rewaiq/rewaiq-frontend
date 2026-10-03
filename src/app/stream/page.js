@@ -402,7 +402,7 @@ function StreamContent() {
   }
 
   async function sendHeartbeat(
-    challengeAnswer = undefined
+    challengeResponse = undefined
   ) {
     const sid =
       sessionIdRef.current;
@@ -433,11 +433,12 @@ function StreamContent() {
       };
 
       if (
-        challengeAnswer !==
+        challengeResponse !==
         undefined
       ) {
-        payload.challenge_answer =
-          challengeAnswer;
+        // Contract compliance with backend:
+        payload.challenge_response = challengeResponse;
+        payload.challenge_answer = challengeResponse;
       }
 
       const response =
@@ -508,7 +509,6 @@ function StreamContent() {
   function startHeartbeatLoop() {
     clearHeartbeat();
 
-    // First heartbeat establishes server-side timing.
     sendHeartbeat();
 
     heartbeatRef.current =
@@ -599,7 +599,6 @@ function StreamContent() {
       playbackStartedRef.current =
         false;
 
-      // Refresh wallet.
       try {
         const balanceResponse =
           await API.get(
@@ -914,11 +913,6 @@ function StreamContent() {
     );
 
     try {
-      /*
-       * Normal TAP.
-       *
-       * Server decides whether this is accepted.
-       */
       const result =
         await sendHeartbeat(
           true
@@ -937,6 +931,10 @@ function StreamContent() {
           'Please confirm that you are still listening.'
         );
       }
+    } catch {
+      setError(
+        'Connection error verifying challenge. Please try again.'
+      );
     } finally {
       setChallengeSubmitting(
         false
@@ -1538,98 +1536,155 @@ function StreamContent() {
                 }}
               />
 
+              {/* RESTORED 0a49830 INSTRUCTIONAL OVERLAY */}
               {showOnboarding &&
-                onboardingStep ===
-                  1 && (
+                onboardingStep === 1 && (
                   <div
+                    className="stream-guide-step1-layer"
                     style={{
-                      position:
-                        'absolute',
+                      position: 'absolute',
                       inset: 0,
-                      pointerEvents:
-                        'none',
+                      zIndex: 10,
+                      pointerEvents: 'none',
                     }}
                   >
+                    {/* Step 1 Header Prompt Banner */}
                     <div
                       style={{
-                        position:
-                          'absolute',
+                        position: 'absolute',
                         top: 8,
                         left: 8,
                         right: 8,
-                        background:
-                          'rgba(4,11,23,.94)',
-                        border:
-                          '1px solid rgba(74,158,255,.55)',
-                        borderRadius: 12,
-                        padding:
-                          '9px 12px',
-                        display:
-                          'flex',
-                        alignItems:
-                          'center',
-                        gap: 8,
+                        zIndex: 30,
+                        pointerEvents: 'auto',
                       }}
                     >
-                      <Hand
-                        size={16}
-                        color="#4a9eff"
-                      />
-
-                      <div>
+                      <div
+                        style={{
+                          background: 'rgba(4, 11, 23, 0.94)',
+                          border: '1px solid rgba(74,158,255,0.55)',
+                          borderRadius: 12,
+                          padding: '8px 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                        }}
+                      >
                         <div
                           style={{
-                            fontSize: 11,
-                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            minWidth: 0,
                           }}
                         >
-                          STEP 1 · PRESS PLAY
+                          <div
+                            className="pulse-icon-box"
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 8,
+                              background: 'rgba(74,158,255,0.18)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Hand size={14} color="#4a9eff" />
+                          </div>
+
+                          <div>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: '#fff',
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              STEP 1 · PRESS PLAY
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 9,
+                                color: '#9DB0C7',
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              Tap Play button below in the player
+                            </div>
+                          </div>
                         </div>
 
                         <div
                           style={{
-                            fontSize: 9,
-                            color:
-                              '#9DB0C7',
+                            background: 'rgba(74,158,255,0.22)',
+                            color: '#7DBBFF',
+                            border: '1px solid rgba(74,158,255,0.4)',
+                            borderRadius: 7,
+                            padding: '5px 8px',
+                            fontSize: 10,
+                            fontWeight: 800,
+                            flexShrink: 0,
                           }}
                         >
-                          Tap Play inside the player.
+                          TAP PLAY
                         </div>
                       </div>
                     </div>
 
+                    {/* Play Target Ring indicator */}
                     <div
-                      className="play-ring"
+                      className="play-target-ring"
                       style={{
-                        position:
-                          'absolute',
+                        position: 'absolute',
                         left: '3.5%',
                         bottom: '9%',
                         width: 72,
                         height: 72,
-                        borderRadius:
-                          '50%',
-                        border:
-                          '2.5px solid #4a9eff',
+                        borderRadius: '50%',
+                        border: '2.5px solid rgba(74,158,255,0.95)',
                         boxShadow:
-                          '0 0 0 6px rgba(74,158,255,.18),0 0 25px rgba(74,158,255,.85)',
+                          '0 0 0 6px rgba(74,158,255,0.18), 0 0 25px rgba(74,158,255,0.85)',
+                        pointerEvents: 'none',
                       }}
                     />
 
+                    {/* Straight diagonal arrow from 0a49830 */}
                     <div
-                      className="play-arrow"
+                      className="guided-play-arrow"
                       style={{
-                        position:
-                          'absolute',
+                        position: 'absolute',
                         left: '20%',
                         bottom: '13%',
+                        width: 46,
+                        height: 46,
+                        pointerEvents: 'none',
                       }}
                     >
-                      <ArrowDown
-                        size={34}
-                        color="#4a9eff"
-                        strokeWidth={4}
-                      />
+                      <svg
+                        width="46"
+                        height="46"
+                        viewBox="0 0 46 46"
+                        style={{ overflow: 'visible' }}
+                      >
+                        <line
+                          x1="40"
+                          y1="6"
+                          x2="14"
+                          y2="32"
+                          stroke="#4a9eff"
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                        />
+                        <polygon
+                          points="6,40 10,22 24,26"
+                          fill="#4a9eff"
+                        />
+                      </svg>
                     </div>
                   </div>
                 )}
@@ -1670,6 +1725,7 @@ function StreamContent() {
               position:
                 'relative',
               zIndex: 102,
+              overflow: 'hidden',
             }}
           >
             <div
@@ -1683,131 +1739,134 @@ function StreamContent() {
               STEP {onboardingStep} OF 2
             </div>
 
-            {onboardingStep ===
-            1 ? (
-              <>
-                <p
-                  style={{
-                    fontWeight: 900,
-                    fontSize: 15,
-                    margin:
-                      '0 0 6px',
-                  }}
-                >
-                  Press Play in the player
-                </p>
+            <div key={onboardingStep} className="step-fade-in">
+              {onboardingStep === 1 ? (
+                <>
+                  <p
+                    style={{
+                      fontWeight: 900,
+                      fontSize: 15,
+                      margin:
+                        '0 0 6px',
+                    }}
+                  >
+                    Press Play in the player
+                  </p>
 
-                <p
-                  style={{
-                    color:
-                      '#8A9BB0',
-                    fontSize: 11,
-                    lineHeight: 1.5,
-                    margin:
-                      '0 0 14px',
-                  }}
-                >
-                  Tap the Play button
-                  inside the Audiomack
-                  player, then confirm
-                  below.
-                </p>
+                  <p
+                    style={{
+                      color:
+                        '#8A9BB0',
+                      fontSize: 11,
+                      lineHeight: 1.5,
+                      margin:
+                        '0 0 14px',
+                    }}
+                  >
+                    Tap the Play button
+                    inside the Audiomack
+                    player, then confirm
+                    below.
+                  </p>
 
-                <button
-                  onClick={
-                    handleAcknowledgePlayTap
-                  }
-                  style={{
-                    width: '100%',
-                    padding: 14,
-                    border: 'none',
-                    borderRadius: 13,
-                    background:
-                      'linear-gradient(135deg,#4a9eff,#2d6be4)',
-                    color: '#fff',
-                    fontWeight: 800,
-                    fontSize: 14,
-                  }}
-                >
-                  ✓ I've Pressed Play
-                </button>
-              </>
-            ) : (
-              <>
-                <div
-                  style={{
-                    display:
-                      'inline-flex',
-                    alignItems:
-                      'center',
-                    gap: 6,
-                    padding:
-                      '5px 10px',
-                    borderRadius: 999,
-                    background:
-                      'rgba(74,158,255,.15)',
-                    color:
-                      '#7DBBFF',
-                    fontSize: 10,
-                    fontWeight: 800,
-                  }}
-                >
-                  <Radio size={12} />
-                  START VERIFICATION
-                </div>
+                  <button
+                    onClick={
+                      handleAcknowledgePlayTap
+                    }
+                    style={{
+                      width: '100%',
+                      padding: 14,
+                      border: 'none',
+                      borderRadius: 13,
+                      background:
+                        'linear-gradient(135deg,#4a9eff,#2d6be4)',
+                      color: '#fff',
+                      fontWeight: 800,
+                      fontSize: 14,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✓ I've Pressed Play
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      display:
+                        'inline-flex',
+                      alignItems:
+                        'center',
+                      gap: 6,
+                      padding:
+                        '5px 10px',
+                      borderRadius: 999,
+                      background:
+                        'rgba(74,158,255,.15)',
+                      color:
+                        '#7DBBFF',
+                      fontSize: 10,
+                      fontWeight: 800,
+                    }}
+                  >
+                    <Radio size={12} />
+                    START VERIFICATION
+                  </div>
 
-                <p
-                  style={{
-                    fontWeight: 900,
-                    fontSize: 15,
-                    margin:
-                      '10px 0 6px',
-                  }}
-                >
-                  Ready to verify your listening
-                </p>
+                  <p
+                    style={{
+                      fontWeight: 900,
+                      fontSize: 15,
+                      margin:
+                        '10px 0 6px',
+                    }}
+                  >
+                    Ready to verify your listening
+                  </p>
 
-                <p
-                  style={{
-                    color:
-                      '#8A9BB0',
-                    fontSize: 11,
-                    lineHeight: 1.5,
-                    margin:
-                      '0 0 10px',
-                  }}
-                >
-                  Keep the music playing
-                  and tap the button below.
-                </p>
+                  <p
+                    style={{
+                      color:
+                        '#8A9BB0',
+                      fontSize: 11,
+                      lineHeight: 1.5,
+                      margin:
+                        '0 0 10px',
+                    }}
+                  >
+                    Keep the music playing
+                    and tap the button below.
+                  </p>
 
-                <ArrowDown
-                  className="down-arrow"
-                  size={22}
-                  color="#4a9eff"
-                />
+                  <ArrowDown
+                    className="down-arrow"
+                    size={22}
+                    color="#4a9eff"
+                  />
 
-                <button
-                  onClick={
-                    handlePlaybackConfirmation
-                  }
-                  style={{
-                    width: '100%',
-                    padding: 14,
-                    marginTop: 8,
-                    border: 'none',
-                    borderRadius: 13,
-                    background:
-                      'linear-gradient(135deg,#4a9eff,#2d6be4)',
-                    color: '#fff',
-                    fontWeight: 800,
-                    fontSize: 14,
-                  }}
-                >
-                  ✓ I've Started Playing
-                </button>
-              </>
-            )}
+                  <button
+                    onClick={
+                      handlePlaybackConfirmation
+                    }
+                    style={{
+                      width: '100%',
+                      padding: 14,
+                      marginTop: 8,
+                      border: 'none',
+                      borderRadius: 13,
+                      background:
+                        'linear-gradient(135deg,#4a9eff,#2d6be4)',
+                      color: '#fff',
+                      fontWeight: 800,
+                      fontSize: 14,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✓ I've Started Playing
+                  </button>
+                </>
+              )}
+            </div>
           </section>
         )}
 
@@ -2104,6 +2163,7 @@ function StreamContent() {
                   'linear-gradient(135deg,#4a9eff,#2d6be4)',
                 color: '#fff',
                 fontWeight: 800,
+                cursor: 'pointer',
               }}
             >
               Back to Feed
@@ -2131,6 +2191,7 @@ function StreamContent() {
               justifyContent:
                 'center',
               gap: 8,
+              cursor: 'pointer',
             }}
           >
             <Square
@@ -2164,6 +2225,7 @@ function StreamContent() {
               justifyContent:
                 'center',
               gap: 8,
+              cursor: status === 'starting' ? 'not-allowed' : 'pointer',
             }}
           >
             {status ===
@@ -2216,6 +2278,7 @@ function StreamContent() {
 
       {showOnboarding && (
         <div
+          className="onboarding-page-lock"
           style={{
             position: 'fixed',
             inset: 0,
@@ -2319,6 +2382,7 @@ function StreamContent() {
                   color: '#fff',
                   fontWeight: 800,
                   fontSize: 14,
+                  cursor: challengeSubmitting ? 'not-allowed' : 'pointer',
                   opacity:
                     challengeSubmitting
                       ? 0.6
@@ -2348,10 +2412,10 @@ function StreamContent() {
           animation: spin 1s linear infinite;
         }
 
-        @keyframes pulse {
-          0%,100% {
-            transform: scale(.92);
-            opacity: .65;
+        @keyframes playTargetPulse {
+          0%, 100% {
+            transform: scale(0.92);
+            opacity: 0.65;
           }
           50% {
             transform: scale(1.06);
@@ -2359,12 +2423,52 @@ function StreamContent() {
           }
         }
 
-        .play-ring {
-          animation: pulse 1.2s infinite;
+        .play-target-ring {
+          animation: playTargetPulse 1.2s ease-in-out infinite;
         }
 
-        .play-arrow {
-          animation: pulse .8s infinite;
+        @keyframes arrowNudge {
+          0%, 100% {
+            transform: translate(0, 0);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translate(-5px, 5px);
+            opacity: 1;
+          }
+        }
+
+        .guided-play-arrow {
+          animation: arrowNudge 0.7s ease-in-out infinite;
+          transform-origin: center;
+        }
+
+        @keyframes pulseIconAnim {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.12);
+          }
+        }
+
+        .pulse-icon-box {
+          animation: pulseIconAnim 1.1s ease-in-out infinite;
+        }
+
+        @keyframes stepFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .step-fade-in {
+          animation: stepFadeIn 0.3s ease-out;
         }
 
         .down-arrow {
@@ -2372,7 +2476,7 @@ function StreamContent() {
         }
 
         @keyframes bounce {
-          0%,100% {
+          0%, 100% {
             transform: translateY(0);
           }
           50% {
@@ -2450,6 +2554,22 @@ function StreamContent() {
             opacity: 0;
           }
         }
+
+        .stream-guide-step1-layer,
+        .onboarding-page-lock {
+          user-select: none;
+        }
+
+        @media (max-width: 420px) {
+          .guided-play-arrow {
+            left: 17% !important;
+            bottom: 12% !important;
+          }
+          .play-target-ring {
+            width: 64px !important;
+            height: 64px !important;
+          }
+        }
       `}</style>
     </div>
   );
@@ -2465,4 +2585,4 @@ export default function StreamPage() {
       <StreamContent />
     </Suspense>
   );
-    }
+}
