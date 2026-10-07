@@ -54,6 +54,7 @@ export default function ProfilePage() {
         return;
       }
 
+      // Query both endpoints with fallbacks
       const [profileRes, referralRes] = await Promise.all([
         API.get('/api/users/profile').catch(() => API.get('/api/profile')),
         API.get('/api/users/referrals').catch(() => API.get('/api/referrals')),
@@ -65,13 +66,13 @@ export default function ProfilePage() {
         setUser(freshUser);
       }
 
-      const totalRefs =
+      const totalCount =
         referralRes?.data?.total_referrals ??
-        freshUser?.referral_count ??
         referralRes?.data?.referrals?.length ??
+        freshUser?.referral_count ??
         0;
 
-      setReferrals(totalRefs);
+      setReferrals(totalCount);
     } catch {
       const u = localStorage.getItem('rewaiq_user');
       if (u) setUser(JSON.parse(u));
@@ -89,9 +90,7 @@ export default function ProfilePage() {
       );
       const list = res.data?.referrals || [];
       setReferralsList(list);
-      if (list.length > 0) {
-        setReferrals(list.length);
-      }
+      setReferrals(list.length);
     } catch (err) {
       console.error('Failed to load invited friends:', err);
     } finally {
@@ -269,7 +268,7 @@ export default function ProfilePage() {
           <p style={{ fontSize: 11, color: '#8A9BB0', margin: 0 }}>Coins</p>
         </div>
 
-        {/* Referrals Stat Card - Tapping opens invited friends */}
+        {/* Referrals Stat Card */}
         <div
           onClick={handleOpenReferrals}
           style={{
@@ -308,7 +307,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Referral code */}
+      {/* Referral Code Box */}
       <div
         style={{
           margin: '0 20px 16px',
@@ -396,7 +395,7 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* Menu */}
+      {/* Menu List */}
       <div style={{ padding: '0 20px' }}>
         {menuItems.map(({ icon: Icon, label, action, danger }) => (
           <button
@@ -541,7 +540,7 @@ export default function ProfilePage() {
 
                   return (
                     <div
-                      key={ref.referral_id || ref.id}
+                      key={ref.user_id || ref.referral_id || ref.id}
                       style={{
                         background: '#07111F',
                         borderRadius: 14,
@@ -585,7 +584,7 @@ export default function ProfilePage() {
                             {ref.full_name || 'Friend'}
                           </div>
                           <div style={{ fontSize: 10, color: '#8A9BB0', marginTop: 1 }}>
-                            Joined {new Date(ref.created_at).toLocaleDateString()}
+                            {ref.masked_email ? `${ref.masked_email} · ` : ''}Joined {new Date(ref.created_at).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
