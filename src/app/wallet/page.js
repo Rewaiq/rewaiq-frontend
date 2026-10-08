@@ -138,13 +138,11 @@ export default function WalletPage() {
         account_name,
       });
 
-      // Optimistic balance update
       const deducted = parseInt(coins);
       setBalance((prev) => Math.max(0, prev - deducted));
 
-      // Prepend pending cashout to local list
       const newTx = {
-        id: res.data.transaction_id || Date.now(),
+        id: res.data?.data?.transaction_id || Date.now(),
         type: 'cashout',
         amount: deducted,
         status: 'pending',
@@ -176,7 +174,7 @@ export default function WalletPage() {
   if (loading) return <Spinner fullscreen />;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 90 }}>
       {/* Top Header */}
       <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <button onClick={() => router.back()} style={{ background: 'none', display: 'flex', border: 'none', cursor: 'pointer' }}>
@@ -205,4 +203,411 @@ export default function WalletPage() {
               setStep(1);
               setCashoutSuccess(false);
               setCashoutError('');
-              setCashoutForm((f) => ({ ...f, coins: '500'
+              setCashoutForm((f) => ({ ...f, coins: '500' }));
+            }}
+            style={{ flex: 1, padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+            Cashout
+          </button>
+          <button onClick={() => router.push('/home')}
+            style={{ flex: 1, padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+            Earn More
+          </button>
+        </div>
+      </div>
+
+      {/* Info Pills */}
+      <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 20 }}>
+        {[
+          { label: 'Daily Cap', value: '1500 coins' },
+          { label: 'Min Cashout', value: `${MIN_CASHOUT_COINS} coins` },
+          { label: 'Rate', value: '2 coins = ₦1' },
+        ].map(s => (
+          <div key={s.label} style={{ flex: 1, background: '#0D1F3C', borderRadius: 12, padding: '12px', textAlign: 'center' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0 }}>{s.value}</p>
+            <p style={{ fontSize: 10, color: '#8A9BB0', margin: '4px 0 0' }}>{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Artist Campaign Section */}
+      {user?.role === 'artist' && (
+        <div style={{ margin: '0 20px 20px', background: 'rgba(212,160,23,0.06)', border: '1px solid rgba(212,160,23,0.15)', borderRadius: 16, padding: '18px 20px' }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#D4A017', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Artist Campaign Payment</p>
+          <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 12, lineHeight: 1.6 }}>
+            To activate your campaign after approval, complete payment below.
+          </p>
+          {[
+            { name: 'Starter', price: '₦15,000', streams: '500 streams' },
+            { name: 'Growth', price: '₦35,000', streams: '1,500 streams' },
+            { name: 'Viral', price: '₦80,000', streams: '5,000 streams' },
+          ].map(pkg => (
+            <div key={pkg.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{pkg.name}</span>
+              <span style={{ fontSize: 13, color: '#D4A017', fontWeight: 700 }}>{pkg.price}</span>
+              <span style={{ fontSize: 12, color: '#8A9BB0' }}>{pkg.streams}</span>
+            </div>
+          ))}
+          <a href="mailto:info@rewaiq.com.ng?subject=Campaign Payment"
+            style={{ display: 'block', marginTop: 14, padding: '12px', borderRadius: 10, background: 'rgba(212,160,23,0.1)', border: '1px solid rgba(212,160,23,0.2)', color: '#D4A017', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none' }}>
+            Contact us to pay — info@rewaiq.com.ng
+          </a>
+        </div>
+      )}
+
+      {/* Transaction History */}
+      <div style={{ padding: '0 20px' }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 14 }}>Transaction History</p>
+        {transactions.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A9BB0' }}>
+            <Coins size={36} color="#8A9BB0" style={{ marginBottom: 8 }} />
+            <p>No transactions yet</p>
+            <p style={{ fontSize: 12, marginTop: 4 }}>Start streaming to earn coins</p>
+          </div>
+        ) : transactions.map(tx => (
+          <div key={tx.id} style={{ background: '#0D1F3C', borderRadius: 12, padding: '14px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: tx.type === 'cashout' ? 'rgba(248,113,113,0.1)' : 'rgba(74,158,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {txIcon(tx.type)}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#fff', textTransform: 'capitalize', margin: 0 }}>
+                  {tx.type.replace(/_/g, ' ')}
+                </p>
+                {tx.status === 'pending' && (
+                  <span style={{ fontSize: 10, background: 'rgba(245,158,11,0.15)', color: '#F59E0B', padding: '2px 6px', borderRadius: 4, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    <Clock size={10} /> Processing
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: 11, color: '#8A9BB0', marginTop: 3 }}>
+                {new Date(tx.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+            </div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: tx.type === 'cashout' ? '#F87171' : '#4a9eff', margin: 0 }}>
+              {tx.type === 'cashout' ? '-' : '+'}{tx.amount}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Cashout Bottom Drawer Overlay */}
+      {showCashout && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', zIndex: 9999 }}>
+          <div style={{
+            width: '100%',
+            background: '#0D1F3C',
+            borderRadius: '24px 24px 0 0',
+            padding: '24px 20px calc(90px + env(safe-area-inset-bottom, 24px))',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 -10px 40px rgba(0,0,0,0.5)',
+          }}>
+
+            {/* Modal Top Bar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>
+                {cashoutSuccess ? 'Request Submitted' : step === 1 ? 'Enter Amount' : step === 2 ? 'Bank Details' : 'Confirm'}
+              </h3>
+              <button onClick={() => setShowCashout(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                <X size={22} color="#8A9BB0" />
+              </button>
+            </div>
+
+            {cashoutSuccess ? (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <CheckCircle2 size={36} color="#4ADE80" />
+                </div>
+                <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Request Submitted!</p>
+                <p style={{ fontSize: 14, color: '#8A9BB0', marginBottom: 8, lineHeight: 1.6 }}>
+                  Your cashout request of ₦{coinsToNaira(cashoutForm.coins).toLocaleString()} NGN has been submitted.
+                </p>
+                <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 24 }}>
+                  Processing within 24–48 hours. You will receive a notification once complete.
+                </p>
+                <button
+                  onClick={() => setShowCashout(false)}
+                  style={{ width: '100%', padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                {step === 1 && (
+                  <>
+                    <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '16px', marginBottom: 18, textAlign: 'center' }}>
+                      <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 4 }}>Available balance</p>
+                      <p style={{ fontSize: 28, fontWeight: 900, color: '#4a9eff', fontFamily: 'Montserrat, sans-serif', margin: 0 }}>
+                        {balance.toLocaleString()} coins
+                      </p>
+                      <p style={{ fontSize: 14, color: '#8A9BB0', marginTop: 4 }}>= ₦{naira.toLocaleString()} NGN</p>
+                    </div>
+
+                    {balanceTooLowToCashout && (
+                      <div style={{ background: 'rgba(212,160,23,0.08)', border: '1px solid rgba(212,160,23,0.2)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+                        <p style={{ fontSize: 13, color: '#D4A017', margin: 0, lineHeight: 1.6 }}>
+                          You need at least {MIN_CASHOUT_COINS} coins to cash out. Keep streaming and completing tasks to earn more.
+                        </p>
+                      </div>
+                    )}
+
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>
+                      Coins to cashout (min {MIN_CASHOUT_COINS})
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="500"
+                      value={cashoutForm.coins}
+                      disabled={balanceTooLowToCashout}
+                      onChange={e => setCashoutForm(f => ({ ...f, coins: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '14px',
+                        borderRadius: 10,
+                        border: `1.5px solid ${isValidAmount ? '#4ADE80' : 'rgba(255,255,255,0.1)'}`,
+                        fontSize: 20,
+                        color: '#fff',
+                        background: 'rgba(255,255,255,0.05)',
+                        marginBottom: 6,
+                        fontWeight: 700,
+                        textAlign: 'center',
+                        fontFamily: 'Montserrat, sans-serif',
+                        outline: 'none',
+                      }}
+                    />
+
+                    {cashoutForm.coins && (
+                      <p style={{ fontSize: 15, color: '#4a9eff', textAlign: 'center', marginBottom: 12, fontWeight: 700 }}>
+                        = ₦{coinsToNaira(cashoutForm.coins).toLocaleString()} NGN
+                      </p>
+                    )}
+
+                    {isBelowMinimum && (
+                      <p style={{ fontSize: 13, color: '#F87171', textAlign: 'center', marginBottom: 8 }}>
+                        Minimum cashout is {MIN_CASHOUT_COINS} coins
+                      </p>
+                    )}
+                    {exceedsBalance && (
+                      <p style={{ fontSize: 13, color: '#F87171', textAlign: 'center', marginBottom: 8 }}>
+                        Insufficient balance
+                      </p>
+                    )}
+
+                    {/* Presets */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                      {[500, 1000, 2000].map(amt => (
+                        <button
+                          key={amt}
+                          disabled={balanceTooLowToCashout}
+                          onClick={() => setCashoutForm(f => ({ ...f, coins: amt.toString() }))}
+                          style={{
+                            flex: 1,
+                            padding: '10px 4px',
+                            borderRadius: 8,
+                            background: cashoutForm.coins == amt ? '#4a9eff' : 'rgba(255,255,255,0.06)',
+                            color: cashoutForm.coins == amt ? '#fff' : '#8A9BB0',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            border: 'none',
+                            cursor: balanceTooLowToCashout ? 'not-allowed' : 'pointer',
+                            opacity: balanceTooLowToCashout ? 0.4 : 1,
+                          }}>
+                          {amt.toLocaleString()}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Breakdown Box */}
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px', marginBottom: 18 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8A9BB0', marginBottom: 6 }}>
+                        <span>Conversion Rate</span>
+                        <span style={{ color: '#fff', fontWeight: 600 }}>2 coins = ₦1 NGN</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8A9BB0', marginBottom: 6 }}>
+                        <span>Processing Fee</span>
+                        <span style={{ color: '#4ADE80', fontWeight: 600 }}>Free (₦0)</span>
+                      </div>
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                        <span style={{ color: '#8A9BB0' }}>Estimated Arrival</span>
+                        <span style={{ color: '#4a9eff', fontWeight: 600 }}>Within 24–48 hrs</span>
+                      </div>
+                    </div>
+
+                    {cashoutError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{cashoutError}</p>}
+
+                    {/* Fully Elevated Next Button */}
+                    <button
+                      onClick={() => { setCashoutError(''); setStep(2); }}
+                      disabled={!isValidAmount}
+                      style={{
+                        width: '100%',
+                        padding: '15px',
+                        borderRadius: 12,
+                        background: isValidAmount ? '#4a9eff' : 'rgba(255,255,255,0.08)',
+                        color: isValidAmount ? '#fff' : '#8A9BB0',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: isValidAmount ? 'pointer' : 'not-allowed',
+                      }}>
+                      Next — Enter Bank Details
+                    </button>
+                  </>
+                )}
+
+                {step === 2 && (
+                  <>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Select Bank</label>
+                      <div style={{ position: 'relative' }}>
+                        <select
+                          value={cashoutForm.bank_name}
+                          onChange={e => {
+                            const bank = NIGERIAN_BANKS.find(b => b.name === e.target.value);
+                            if (bank) handleBankSelect(bank);
+                          }}
+                          style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 15, color: cashoutForm.bank_name ? '#fff' : '#8A9BB0', background: '#0A1628', appearance: 'none', cursor: 'pointer' }}
+                        >
+                          <option value="">Select your bank</option>
+                          {NIGERIAN_BANKS.map(b => (
+                            <option key={b.code} value={b.name}>{b.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} color="#8A9BB0" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Account Number</label>
+                      <input
+                        type="tel"
+                        placeholder="10-digit account number"
+                        maxLength={10}
+                        value={cashoutForm.account_number}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          setCashoutForm((f) => ({ ...f, account_number: value, account_name: '' }));
+                          if (value.length === 10) {
+                            verifyAccount(value, cashoutForm.bank_code);
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '13px 14px',
+                          borderRadius: 10,
+                          border: `1.5px solid ${verifiedName ? '#4ADE80' : 'rgba(255,255,255,0.1)'}`,
+                          fontSize: 16,
+                          color: '#fff',
+                          background: 'rgba(255,255,255,0.05)',
+                          letterSpacing: 3,
+                          fontWeight: 700,
+                          outline: 'none',
+                        }}
+                      />
+                      {verifying && (
+                        <p style={{ fontSize: 12, color: '#4a9eff', marginTop: 6 }}>
+                          Verifying account...
+                        </p>
+                      )}
+                      {verifiedName && (
+                        <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 8, padding: '10px 14px', marginTop: 8 }}>
+                          <p style={{ fontSize: 13, color: '#4ADE80', fontWeight: 600, margin: 0 }}>
+                            Account verified: {verifiedName}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ marginBottom: 24 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#fff', display: 'block', marginBottom: 8 }}>Account Name</label>
+                      <input
+                        type="text"
+                        placeholder="As it appears on your bank account"
+                        value={cashoutForm.account_name}
+                        onChange={e => setCashoutForm(f => ({ ...f, account_name: e.target.value }))}
+                        style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.1)', fontSize: 15, color: '#fff', background: 'rgba(255,255,255,0.05)', outline: 'none' }}
+                      />
+                    </div>
+
+                    {cashoutError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{cashoutError}</p>}
+
+                    <button
+                      onClick={() => {
+                        if (!cashoutForm.bank_name || !cashoutForm.account_number || !cashoutForm.account_name) {
+                          setCashoutError('Please fill all bank details');
+                          return;
+                        }
+                        setCashoutError('');
+                        setStep(3);
+                      }}
+                      style={{ width: '100%', padding: '15px', borderRadius: 12, background: '#4a9eff', color: '#fff', fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer', marginBottom: 10 }}>
+                      Next — Review
+                    </button>
+                    <button
+                      onClick={() => setStep(1)}
+                      style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'none', color: '#8A9BB0', fontSize: 14, border: 'none', cursor: 'pointer' }}>
+                      Back
+                    </button>
+                  </>
+                )}
+
+                {step === 3 && (
+                  <>
+                    <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '18px', marginBottom: 20 }}>
+                      {[
+                        { label: 'Amount', value: `${parseInt(cashoutForm.coins).toLocaleString()} coins` },
+                        { label: 'You receive', value: `₦${coinsToNaira(cashoutForm.coins).toLocaleString()} NGN` },
+                        { label: 'Bank', value: cashoutForm.bank_name },
+                        { label: 'Account', value: cashoutForm.account_number },
+                        { label: 'Name', value: cashoutForm.account_name },
+                      ].map(item => (
+                        <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <span style={{ fontSize: 13, color: '#8A9BB0' }}>{item.label}</span>
+                          <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ background: 'rgba(74,158,255,0.06)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 10, padding: '12px 14px', marginBottom: 20 }}>
+                      <p style={{ fontSize: 12, color: '#8A9BB0', margin: 0, lineHeight: 1.6 }}>
+                        Processing takes 24–48 hours. You will receive a notification once your payment is sent. Make sure your bank details are correct.
+                      </p>
+                    </div>
+
+                    {cashoutError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{cashoutError}</p>}
+
+                    <button
+                      onClick={handleCashoutSubmit}
+                      disabled={submitting}
+                      style={{
+                        width: '100%',
+                        padding: '15px',
+                        borderRadius: 12,
+                        background: submitting ? 'rgba(255,255,255,0.08)' : '#4a9eff',
+                        color: submitting ? '#8A9BB0' : '#fff',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: submitting ? 'not-allowed' : 'pointer',
+                        marginBottom: 10,
+                      }}>
+                      {submitting ? 'Submitting...' : 'Confirm Cashout Request'}
+                    </button>
+                    <button
+                      onClick={() => setStep(2)}
+                      style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'none', color: '#8A9BB0', fontSize: 14, border: 'none', cursor: 'pointer' }}>
+                      Back
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <BottomNav active="wallet" />
+    </div>
+  );
+}
