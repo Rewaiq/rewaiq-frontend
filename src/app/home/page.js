@@ -30,7 +30,7 @@ const CAROUSEL_SLIDES = [
     type: 'promo',
     title: 'Promote Your Brand',
     sub: 'Reach 500+ engaged Nigerian youth',
-    cta: 'From N15,000 →',
+    cta: 'From ₦15,000 →',
     action: '/promote',
     bg: 'linear-gradient(135deg, #D4A017, #F0C040)',
     textColor: '#0A1628',
@@ -67,15 +67,9 @@ function HomeContent() {
 
   const [tab, setTab] = useState(() => {
     const urlTab = searchParams.get('tab');
-
-    if (
-      urlTab === 'tasks' ||
-      urlTab === 'trending' ||
-      urlTab === 'for-you'
-    ) {
+    if (urlTab === 'tasks' || urlTab === 'trending' || urlTab === 'for-you') {
       return urlTab;
     }
-
     return 'for-you';
   });
 
@@ -87,12 +81,7 @@ function HomeContent() {
 
   useEffect(() => {
     const urlTab = searchParams.get('tab');
-
-    if (
-      urlTab === 'tasks' ||
-      urlTab === 'trending' ||
-      urlTab === 'for-you'
-    ) {
+    if (urlTab === 'tasks' || urlTab === 'trending' || urlTab === 'for-you') {
       setTab(urlTab);
     } else {
       setTab('for-you');
@@ -101,7 +90,6 @@ function HomeContent() {
 
   useEffect(() => {
     const u = localStorage.getItem('rewaiq_user');
-
     if (!u) {
       router.push('/welcome');
       return;
@@ -116,34 +104,39 @@ function HomeContent() {
     }
 
     fetchFeed();
+    fetchUserBalance();
   }, []);
+
+  const fetchUserBalance = async () => {
+    try {
+      const res = await API.get('/api/coins/balance');
+      if (res.data?.coin_balance !== undefined) {
+        setUser((prev) => ({
+          ...prev,
+          coin_balance: res.data.coin_balance,
+        }));
+      }
+    } catch {}
+  };
 
   useEffect(() => {
     const pollNotifications = async () => {
       try {
         const res = await API.get('/api/notifications');
-
-        const unread = (res.data.notifications || []).filter(
-          (n) => !n.is_read
-        ).length;
-
+        const unread = (res.data.notifications || []).filter((n) => !n.is_read).length;
         setUnreadCount(unread);
       } catch {}
     };
 
     pollNotifications();
-
     const interval = setInterval(pollNotifications, 30000);
-
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCarouselIndex(
-        (i) => (i + 1) % CAROUSEL_SLIDES.length
-      );
-    }, 4000);
+      setCarouselIndex((i) => (i + 1) % CAROUSEL_SLIDES.length);
+    }, 4500);
 
     return () => clearInterval(timer);
   }, []);
@@ -177,20 +170,10 @@ function HomeContent() {
   };
 
   const filteredTasks =
-    taskFilter === 'all'
-      ? tasks
-      : tasks.filter(
-          (t) => t.task_type === taskFilter
-        );
+    taskFilter === 'all' ? tasks : tasks.filter((t) => t.task_type === taskFilter);
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#0A1628',
-        paddingBottom: 80,
-      }}
-    >
+    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 85 }}>
       {/* HEADER */}
       <div
         style={{
@@ -201,23 +184,12 @@ function HomeContent() {
           background: '#0A1628',
           position: 'sticky',
           top: 0,
-          zIndex: 10,
-          borderBottom:
-            '1px solid rgba(255,255,255,0.05)',
+          zIndex: 20,
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <svg
-            width="24"
-            height="20"
-            viewBox="0 0 100 80"
-          >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <svg width="24" height="20" viewBox="0 0 100 80">
             <path
               d="M11.0669 64.9132V27.8448C11.0669 27.3337 11.665 27.0567 12.0548 27.3871L62.735 70.3446C63.0191 70.5854 62.8488 71.0497 62.4764 71.0497H49.5669C39.3371 70.5626 30.0565 65.3295 22.1875 58.5871C21.8251 58.2766 21.2945 58.2594 20.9163 58.5505L12.0329 65.3886C11.6383 65.6923 11.0669 65.4111 11.0669 64.9132Z"
               fill="#1a3a8f"
@@ -236,7 +208,7 @@ function HomeContent() {
             style={{
               fontFamily: 'Montserrat, sans-serif',
               fontWeight: 800,
-              fontSize: 18,
+              fontSize: 19,
               color: '#fff',
               letterSpacing: '-0.5px',
             }}
@@ -245,58 +217,44 @@ function HomeContent() {
           </span>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Real-time sync Coin Pill */}
           <div
             onClick={() => router.push('/wallet')}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
+              gap: 6,
               background: 'rgba(74,158,255,0.12)',
-              border: '1px solid rgba(74,158,255,0.2)',
+              border: '1px solid rgba(74,158,255,0.25)',
               padding: '6px 12px',
               borderRadius: 20,
               cursor: 'pointer',
+              transition: 'transform 0.15s ease',
             }}
           >
             <Coins size={14} color="#4a9eff" />
-
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: '#4a9eff',
-              }}
-            >
-              {user?.coin_balance || 0}
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#4a9eff' }}>
+              {(user?.coin_balance || 0).toLocaleString()}
             </span>
           </div>
 
+          {/* Notifications */}
           <div
-            onClick={() =>
-              router.push('/notifications')
-            }
+            onClick={() => router.push('/notifications')}
             style={{
               position: 'relative',
               cursor: 'pointer',
               width: 36,
               height: 36,
               borderRadius: '50%',
-              background:
-                'rgba(255,255,255,0.06)',
+              background: 'rgba(255,255,255,0.06)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
             <Bell size={18} color="#8A9BB0" />
-
             {unreadCount > 0 && (
               <div
                 style={{
@@ -315,21 +273,19 @@ function HomeContent() {
                   color: '#fff',
                 }}
               >
-                {unreadCount > 9
-                  ? '9+'
-                  : unreadCount}
+                {unreadCount > 9 ? '9+' : unreadCount}
               </div>
             )}
           </div>
 
+          {/* Profile Circle */}
           <div
             onClick={() => router.push('/profile')}
             style={{
               width: 36,
               height: 36,
               borderRadius: '50%',
-              background:
-                'linear-gradient(135deg, #4a9eff, #1a3a8f)',
+              background: 'linear-gradient(135deg, #4a9eff, #1a3a8f)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -344,11 +300,7 @@ function HomeContent() {
               <img
                 src={user.profile_picture}
                 alt=""
-                style={{
-                  width: 36,
-                  height: 36,
-                  objectFit: 'cover',
-                }}
+                style={{ width: 36, height: 36, objectFit: 'cover' }}
               />
             ) : (
               user?.full_name?.[0] || 'U'
@@ -358,14 +310,7 @@ function HomeContent() {
       </div>
 
       {/* TABS */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '12px 20px 0',
-          gap: 8,
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', padding: '12px 20px 0', gap: 8 }}>
         {['for-you', 'tasks', 'trending'].map((t) => (
           <button
             key={t}
@@ -373,84 +318,51 @@ function HomeContent() {
             style={{
               padding: '8px 18px',
               borderRadius: 20,
-              background:
-                tab === t ? '#fff' : 'transparent',
-              color:
-                tab === t ? '#0A1628' : '#8A9BB0',
+              background: tab === t ? '#fff' : 'transparent',
+              color: tab === t ? '#0A1628' : '#8A9BB0',
               fontSize: 13,
               fontWeight: 600,
               border: 'none',
               cursor: 'pointer',
+              transition: 'background 0.2s',
             }}
           >
-            {t === 'for-you'
-              ? 'For You'
-              : t === 'tasks'
-              ? 'Tasks'
-              : 'Trending'}
+            {t === 'for-you' ? 'For You' : t === 'tasks' ? 'Tasks' : 'Trending'}
           </button>
         ))}
 
         {tab === 'tasks' && (
           <div
-            onClick={() =>
-              setShowFilter(!showFilter)
-            }
+            onClick={() => setShowFilter(!showFilter)}
             style={{
               marginLeft: 'auto',
               cursor: 'pointer',
               width: 34,
               height: 34,
               borderRadius: '50%',
-              background:
-                'rgba(255,255,255,0.04)',
+              background: 'rgba(255,255,255,0.04)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <SlidersHorizontal
-              size={18}
-              color={
-                showFilter ? '#4a9eff' : '#8A9BB0'
-              }
-            />
+            <SlidersHorizontal size={18} color={showFilter ? '#4a9eff' : '#8A9BB0'} />
           </div>
         )}
       </div>
 
-      {/* TASK FILTER */}
+      {/* TASK FILTER CHIPS */}
       {showFilter && tab === 'tasks' && (
-        <div
-          style={{
-            padding: '10px 20px 0',
-            display: 'flex',
-            gap: 8,
-            flexWrap: 'wrap',
-          }}
-        >
-          {[
-            'all',
-            'follow',
-            'watch',
-            'share',
-            'review',
-            'campaign',
-          ].map((f) => (
+        <div style={{ padding: '10px 20px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {['all', 'follow', 'watch', 'share', 'review', 'campaign'].map((f) => (
             <button
               key={f}
               onClick={() => setTaskFilter(f)}
               style={{
                 padding: '6px 14px',
                 borderRadius: 20,
-                background:
-                  taskFilter === f
-                    ? '#4a9eff'
-                    : 'rgba(255,255,255,0.06)',
-                color:
-                  taskFilter === f
-                    ? '#fff'
-                    : '#8A9BB0',
+                background: taskFilter === f ? '#4a9eff' : 'rgba(255,255,255,0.06)',
+                color: taskFilter === f ? '#fff' : '#8A9BB0',
                 fontSize: 12,
                 fontWeight: 600,
                 border: 'none',
@@ -464,151 +376,86 @@ function HomeContent() {
         </div>
       )}
 
-      {/* MAIN */}
+      {/* MAIN CONTENT AREA */}
       <div style={{ padding: '16px 20px 0' }}>
         {/* CAROUSEL */}
         <div style={{ marginBottom: 20 }}>
-          <div
-            style={{
-              borderRadius: 16,
-              overflow: 'hidden',
-            }}
-          >
+          <div style={{ borderRadius: 16, overflow: 'hidden' }}>
             {CAROUSEL_SLIDES.map((slide, i) => (
-              <div
-                key={slide.id}
-                style={{
-                  display:
-                    i === carouselIndex
-                      ? 'block'
-                      : 'none',
-                }}
-              >
+              <div key={slide.id} style={{ display: i === carouselIndex ? 'block' : 'none' }}>
                 {slide.type === 'workflow' ? (
-                  <div
-                    style={{
-                      background: slide.bg,
-                      borderRadius: 16,
-                      padding: '20px 20px 24px',
-                    }}
-                  >
+                  <div style={{ background: slide.bg, borderRadius: 16, padding: '20px 20px 24px' }}>
                     <p
                       style={{
                         fontSize: 11,
-                        color:
-                          'rgba(255,255,255,0.6)',
+                        color: 'rgba(255,255,255,0.7)',
                         marginBottom: 4,
                         letterSpacing: 1,
                         textTransform: 'uppercase',
+                        fontWeight: 600,
                       }}
                     >
                       Get started
                     </p>
-
-                    <p
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 800,
-                        color: '#fff',
-                        marginBottom: 20,
-                      }}
-                    >
+                    <p style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 20 }}>
                       {slide.title}
                     </p>
 
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent:
-                          'space-between',
-                      }}
-                    >
-                      {slide.steps.map(
-                        (step, idx) => (
-                          <div
-                            key={step}
-                            style={{
-                              display: 'flex',
-                              alignItems:
-                                'center',
-                              gap: 6,
-                            }}
-                          >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      {slide.steps.map((step, idx) => (
+                        <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ textAlign: 'center' }}>
                             <div
                               style={{
-                                textAlign:
-                                  'center',
+                                width: 36,
+                                height: 36,
+                                borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.2)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 14,
+                                fontWeight: 700,
+                                color: '#fff',
+                                margin: '0 auto 6px',
                               }}
                             >
-                              <div
-                                style={{
-                                  width: 36,
-                                  height: 36,
-                                  borderRadius:
-                                    '50%',
-                                  background:
-                                    'rgba(255,255,255,0.2)',
-                                  display: 'flex',
-                                  alignItems:
-                                    'center',
-                                  justifyContent:
-                                    'center',
-                                  fontSize: 14,
-                                  fontWeight: 700,
-                                  color: '#fff',
-                                  margin:
-                                    '0 auto 6px',
-                                }}
-                              >
-                                {idx + 1}
-                              </div>
-
-                              <p
-                                style={{
-                                  fontSize: 10,
-                                  color:
-                                    'rgba(255,255,255,0.85)',
-                                  margin: 0,
-                                  whiteSpace:
-                                    'nowrap',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {step}
-                              </p>
+                              {idx + 1}
                             </div>
-
-                            {idx <
-                              slide.steps.length -
-                                1 && (
-                              <div
-                                style={{
-                                  width: 16,
-                                  height: 1,
-                                  background:
-                                    'rgba(255,255,255,0.3)',
-                                  marginBottom: 16,
-                                }}
-                              />
-                            )}
+                            <p
+                              style={{
+                                fontSize: 10,
+                                color: 'rgba(255,255,255,0.9)',
+                                margin: 0,
+                                whiteSpace: 'nowrap',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {step}
+                            </p>
                           </div>
-                        )
-                      )}
+
+                          {idx < slide.steps.length - 1 && (
+                            <div
+                              style={{
+                                width: 16,
+                                height: 1,
+                                background: 'rgba(255,255,255,0.3)',
+                                marginBottom: 16,
+                              }}
+                            />
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ) : (
                   <div
                     onClick={() => {
-                      if (
-                        slide.action.startsWith('/')
-                      ) {
+                      if (slide.action.startsWith('/')) {
                         router.push(slide.action);
                       } else {
-                        window.open(
-                          slide.action,
-                          '_blank'
-                        );
+                        window.open(slide.action, '_blank');
                       }
                     }}
                     style={{
@@ -619,39 +466,26 @@ function HomeContent() {
                       minHeight: 110,
                     }}
                   >
-                    <p
-                      style={{
-                        fontSize: 17,
-                        fontWeight: 900,
-                        color:
-                          slide.textColor,
-                        marginBottom: 6,
-                      }}
-                    >
+                    <p style={{ fontSize: 17, fontWeight: 900, color: slide.textColor, marginBottom: 6 }}>
                       {slide.title}
                     </p>
-
                     <p
                       style={{
                         fontSize: 13,
-                        color:
-                          slide.textColor,
-                        opacity: 0.8,
+                        color: slide.textColor,
+                        opacity: 0.85,
                         marginBottom: 16,
                         lineHeight: 1.4,
                       }}
                     >
                       {slide.sub}
                     </p>
-
                     <span
                       style={{
                         fontSize: 13,
                         fontWeight: 700,
-                        color:
-                          slide.textColor,
-                        background:
-                          'rgba(0,0,0,0.12)',
+                        color: slide.textColor,
+                        background: 'rgba(0,0,0,0.12)',
                         padding: '8px 16px',
                         borderRadius: 20,
                       }}
@@ -664,78 +498,45 @@ function HomeContent() {
             ))}
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 6,
-              marginTop: 10,
-            }}
-          >
+          {/* Dots Indicator */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
             {CAROUSEL_SLIDES.map((_, i) => (
               <div
                 key={i}
-                onClick={() =>
-                  setCarouselIndex(i)
-                }
+                onClick={() => setCarouselIndex(i)}
                 style={{
-                  width:
-                    i === carouselIndex ? 20 : 6,
+                  width: i === carouselIndex ? 20 : 6,
                   height: 6,
                   borderRadius: 3,
-                  background:
-                    i === carouselIndex
-                      ? '#4a9eff'
-                      : 'rgba(255,255,255,0.2)',
+                  background: i === carouselIndex ? '#4a9eff' : 'rgba(255,255,255,0.2)',
                   cursor: 'pointer',
+                  transition: 'all 0.2s',
                 }}
               />
             ))}
           </div>
         </div>
 
-        {/* CONTENT */}
+        {/* FEED SECTIONS */}
         {loading ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '60px 0',
-              color: '#8A9BB0',
-            }}
-          >
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>
             Loading feed...
           </div>
         ) : tab === 'tasks' ? (
           filteredTasks.length === 0 ? (
-            <Empty
-              icon="📋"
-              title="No tasks yet"
-              sub="Tasks will appear here soon"
-            />
+            <Empty icon="📋" title="No tasks yet" sub="Tasks will appear here soon" />
           ) : (
             filteredTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                router={router}
-              />
+              <TaskCard key={task.id} task={task} router={router} />
             ))
           )
         ) : tab === 'trending' ? (
           tracks.length === 0 ? (
-            <Empty
-              icon="🔥"
-              title="Nothing trending yet"
-              sub="Check back soon"
-            />
+            <Empty icon="🔥" title="Nothing trending yet" sub="Check back soon" />
           ) : (
             tracks.map((track) => (
               <TrackCard
-                key={
-                  track.id ||
-                  track._id ||
-                  track.track_id
-                }
+                key={track.id || track._id || track.track_id}
                 track={track}
                 router={router}
               />
@@ -743,18 +544,12 @@ function HomeContent() {
           )
         ) : (
           <>
-            {/* FOLLOW REWAIQ TASK */}
+            {/* PINNED FEATURE TASK */}
             <div
-              onClick={() =>
-                router.push(
-                  '/task?id=follow-rewaiq'
-                )
-              }
+              onClick={() => router.push('/task?id=follow-rewaiq')}
               style={{
-                background:
-                  'linear-gradient(135deg, rgba(74,158,255,0.15), rgba(45,107,228,0.1))',
-                border:
-                  '1px solid rgba(74,158,255,0.25)',
+                background: 'linear-gradient(135deg, rgba(74,158,255,0.15), rgba(45,107,228,0.1))',
+                border: '1px solid rgba(74,158,255,0.25)',
                 borderRadius: 16,
                 padding: 16,
                 marginBottom: 16,
@@ -764,59 +559,31 @@ function HomeContent() {
               <div
                 style={{
                   display: 'flex',
-                  justifyContent:
-                    'space-between',
+                  justifyContent: 'space-between',
                   alignItems: 'flex-start',
                   marginBottom: 10,
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                  }}
-                >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div
                     style={{
                       width: 44,
                       height: 44,
                       borderRadius: 12,
-                      background:
-                        'rgba(74,158,255,0.2)',
+                      background: 'rgba(74,158,255,0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Users
-                      size={22}
-                      color="#4a9eff"
-                    />
+                    <Users size={22} color="#4a9eff" />
                   </div>
-
                   <div>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: '#fff',
-                        margin: 0,
-                      }}
-                    >
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>
                       Follow Rewaiq
                     </p>
-
-                    <p
-                      style={{
-                        fontSize: 11,
-                        color: '#8A9BB0',
-                        margin:
-                          '2px 0 0',
-                      }}
-                    >
-                      Follow us on Instagram and
-                      earn
+                    <p style={{ fontSize: 11, color: '#8A9BB0', margin: '2px 0 0' }}>
+                      Follow us on Instagram and earn
                     </p>
                   </div>
                 </div>
@@ -826,67 +593,25 @@ function HomeContent() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 4,
-                    background:
-                      'rgba(74,158,255,0.15)',
+                    background: 'rgba(74,158,255,0.15)',
                     padding: '4px 10px',
                     borderRadius: 20,
                   }}
                 >
-                  <Coins
-                    size={12}
-                    color="#4a9eff"
-                  />
-
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#4a9eff',
-                    }}
-                  >
-                    +50
-                  </span>
+                  <Coins size={12} color="#4a9eff" />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#4a9eff' }}>+50</span>
                 </div>
               </div>
 
-              <div
-                style={{
-                  height: 1,
-                  background:
-                    'rgba(255,255,255,0.06)',
-                  marginBottom: 10,
-                }}
-              />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 10 }} />
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent:
-                    'space-between',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: '#8A9BB0',
-                  }}
-                >
-                  Takes 30 seconds
-                </span>
-
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: '#4a9eff',
-                    fontWeight: 600,
-                  }}
-                >
-                  Do this now
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12, color: '#8A9BB0' }}>Takes 30 seconds</span>
+                <span style={{ fontSize: 12, color: '#4a9eff', fontWeight: 600 }}>Do this now</span>
               </div>
             </div>
 
-            {/* TRACKS */}
+            {/* TRACKS STREAM FEED */}
             {tracks.length === 0 ? (
               <Empty
                 icon="🎵"
@@ -896,11 +621,7 @@ function HomeContent() {
             ) : (
               tracks.map((track) => (
                 <TrackCard
-                  key={
-                    track.id ||
-                    track._id ||
-                    track.track_id
-                  }
+                  key={track.id || track._id || track.track_id}
                   track={track}
                   router={router}
                 />
@@ -911,77 +632,40 @@ function HomeContent() {
       </div>
 
       <InstallPrompt />
-
       <BottomNav active="home" />
     </div>
   );
 }
 
 /* =========================================================
-   EMPTY
+   EMPTY STATE
    ========================================================= */
 
 function Empty({ icon, title, sub }) {
   return (
-    <div
-      style={{
-        textAlign: 'center',
-        padding: '60px 0',
-        color: '#8A9BB0',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 44,
-          marginBottom: 12,
-        }}
-      >
-        {icon}
-      </div>
-
-      <p
-        style={{
-          fontWeight: 600,
-          color: '#fff',
-          marginBottom: 4,
-        }}
-      >
-        {title}
-      </p>
-
+    <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>
+      <div style={{ fontSize: 44, marginBottom: 12 }}>{icon}</div>
+      <p style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>{title}</p>
       <p style={{ fontSize: 13 }}>{sub}</p>
     </div>
   );
 }
 
 /* =========================================================
-   TRACK CARD
+   TRACK CARD (Artwork, Audiomack Pill, & Media Player UI)
    ========================================================= */
 
 function TrackCard({ track, router }) {
   const resolvedTrackId =
-    track?.id ||
-    track?._id ||
-    track?.track_id ||
-    track?.trackId;
+    track?.id || track?._id || track?.track_id || track?.trackId;
+
+  const artwork = track?.cover_image_url || track?.cover_url || track?.artwork_url;
+  const reward = track?.campaign_coins || track?.reward_coins || 10;
+  const platform = track?.content_type || track?.platform || 'audiomack';
 
   const handleOpenTrack = () => {
-    console.log('TRACK CLICKED:', track);
-    console.log('RESOLVED TRACK ID:', resolvedTrackId);
-
-    if (!resolvedTrackId) {
-      console.error(
-        'Cannot open stream: track has no ID',
-        track
-      );
-      return;
-    }
-
-    router.push(
-      `/stream?id=${encodeURIComponent(
-        String(resolvedTrackId)
-      )}`
-    );
+    if (!resolvedTrackId) return;
+    router.push(`/stream?id=${encodeURIComponent(String(resolvedTrackId))}`);
   };
 
   return (
@@ -992,66 +676,81 @@ function TrackCard({ track, router }) {
         borderRadius: 16,
         marginBottom: 16,
         overflow: 'hidden',
-        cursor: resolvedTrackId
-          ? 'pointer'
-          : 'default',
+        border: '1px solid rgba(255,255,255,0.06)',
+        cursor: resolvedTrackId ? 'pointer' : 'default',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
       }}
     >
+      {/* Artwork Screen */}
       <div
         style={{
           height: 180,
-          background:
-            'linear-gradient(135deg, #0D1F3C, #1a3a8f, #0D1F3C)',
+          background: artwork
+            ? `url(${artwork}) center/cover no-repeat`
+            : 'linear-gradient(135deg, #091733, #153775, #091733)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
         }}
       >
+        {/* Darkening overlay when image exists */}
+        {artwork && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(10, 22, 40, 0.45)',
+              backdropFilter: 'blur(1px)',
+            }}
+          />
+        )}
+
+        {/* Play Icon */}
         <div
           style={{
-            width: 56,
-            height: 56,
+            width: 58,
+            height: 58,
             borderRadius: '50%',
-            background:
-              'rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.22)',
+            backdropFilter: 'blur(8px)',
+            border: '1.5px solid rgba(255,255,255,0.35)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            zIndex: 2,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
           }}
         >
-          <Play
-            size={24}
-            color="#fff"
-            fill="#fff"
-          />
+          <Play size={24} color="#fff" fill="#fff" style={{ marginLeft: 3 }} />
         </div>
 
+        {/* Coin Badge */}
         <div
           style={{
             position: 'absolute',
             top: 12,
             right: 12,
-            background: '#4a9eff',
-            padding: '4px 12px',
+            background: 'rgba(10, 22, 40, 0.85)',
+            backdropFilter: 'blur(6px)',
+            border: '1px solid rgba(74, 158, 255, 0.3)',
+            padding: '4px 10px',
             borderRadius: 20,
             fontSize: 12,
             fontWeight: 700,
-            color: '#fff',
+            color: '#4a9eff',
             display: 'flex',
             alignItems: 'center',
             gap: 4,
+            zIndex: 2,
           }}
         >
-          <Coins
-            size={12}
-            color="#fff"
-          />
-
-          +{track?.campaign_coins || 0}
+          <Coins size={12} color="#4a9eff" />
+          +{reward}
         </div>
       </div>
 
+      {/* Info Description */}
       <div style={{ padding: '14px 16px' }}>
         <div
           style={{
@@ -1063,10 +762,10 @@ function TrackCard({ track, router }) {
         >
           <div
             style={{
-              width: 28,
-              height: 28,
+              width: 26,
+              height: 26,
               borderRadius: '50%',
-              background: '#4a9eff',
+              background: '#1A6CFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1078,34 +777,32 @@ function TrackCard({ track, router }) {
             {track?.artist_name?.[0] || 'A'}
           </div>
 
-          <span
-            style={{
-              fontSize: 13,
-              color: '#8A9BB0',
-            }}
-          >
+          <span style={{ fontSize: 13, color: '#8A9BB0', fontWeight: 500 }}>
             {track?.artist_name || 'Artist'}
           </span>
 
           <span
             style={{
-              fontSize: 11,
-              color: '#8A9BB0',
+              fontSize: 10,
+              color: platform.toLowerCase().includes('audiomack') ? '#FFA500' : '#4a9eff',
               marginLeft: 'auto',
-              background:
-                'rgba(255,255,255,0.06)',
+              background: platform.toLowerCase().includes('audiomack')
+                ? 'rgba(255,165,0,0.12)'
+                : 'rgba(74,158,255,0.12)',
               padding: '2px 8px',
-              borderRadius: 10,
+              borderRadius: 6,
+              fontWeight: 700,
+              textTransform: 'lowercase',
             }}
           >
-            {track?.content_type || 'Music'}
+            {platform}
           </span>
         </div>
 
         <p
           style={{
             fontSize: 15,
-            fontWeight: 600,
+            fontWeight: 700,
             color: '#fff',
             marginBottom: 4,
           }}
@@ -1119,12 +816,11 @@ function TrackCard({ track, router }) {
               fontSize: 12,
               color: '#8A9BB0',
               lineHeight: 1.5,
+              margin: 0,
             }}
           >
-            {track.description.slice(0, 80)}
-            {track.description.length > 80
-              ? '...'
-              : ''}
+            {track.description.slice(0, 95)}
+            {track.description.length > 95 ? '...' : ''}
           </p>
         )}
       </div>
@@ -1143,11 +839,7 @@ function TaskCard({ task, router }) {
         !task.completed &&
         router.push(
           `/task?id=${encodeURIComponent(
-            String(
-              task.id ||
-                task._id ||
-                task.task_id
-            )
+            String(task.id || task._id || task.task_id)
           )}`
         )
       }
@@ -1159,10 +851,9 @@ function TaskCard({ task, router }) {
         display: 'flex',
         alignItems: 'center',
         gap: 14,
-        cursor: task.completed
-          ? 'default'
-          : 'pointer',
+        cursor: task.completed ? 'default' : 'pointer',
         opacity: task.completed ? 0.6 : 1,
+        border: '1px solid rgba(255,255,255,0.04)',
       }}
     >
       <div
@@ -1170,8 +861,7 @@ function TaskCard({ task, router }) {
           width: 48,
           height: 48,
           borderRadius: 12,
-          background:
-            'rgba(74,158,255,0.12)',
+          background: 'rgba(74,158,255,0.12)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1179,15 +869,9 @@ function TaskCard({ task, router }) {
         }}
       >
         {task.completed ? (
-          <CheckCircle
-            size={24}
-            color="#1A7A4A"
-          />
+          <CheckCircle size={24} color="#1A7A4A" />
         ) : (
-          <Circle
-            size={24}
-            color="#4a9eff"
-          />
+          <Circle size={24} color="#4a9eff" />
         )}
       </div>
 
@@ -1203,13 +887,7 @@ function TaskCard({ task, router }) {
           {task.title}
         </p>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: 10,
-            alignItems: 'center',
-          }}
-        >
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <span
             style={{
               fontSize: 11,
@@ -1221,37 +899,16 @@ function TaskCard({ task, router }) {
           </span>
 
           {task.completion_count > 0 && (
-            <span
-              style={{
-                fontSize: 11,
-                color: '#8A9BB0',
-              }}
-            >
+            <span style={{ fontSize: 11, color: '#8A9BB0' }}>
               {task.completion_count} completed
             </span>
           )}
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-        }}
-      >
-        <Coins
-          size={14}
-          color="#4a9eff"
-        />
-
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: '#4a9eff',
-          }}
-        >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Coins size={14} color="#4a9eff" />
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#4a9eff' }}>
           +{task.reward_coins}
         </span>
       </div>
@@ -1265,10 +922,8 @@ function TaskCard({ task, router }) {
 
 export default function HomePage() {
   return (
-    <Suspense
-      fallback={<Spinner fullscreen />}
-    >
+    <Suspense fallback={<Spinner fullscreen />}>
       <HomeContent />
     </Suspense>
   );
-              }
+}
