@@ -1298,6 +1298,7 @@ function StreamContent() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            cursor: 'pointer',
           }}
         >
           <ArrowLeft
@@ -1537,7 +1538,7 @@ function StreamContent() {
                 }}
               />
 
-              {/* RESTORED & ALIGNED STEP 1 INSTRUCTIONAL OVERLAY */}
+              {/* STEP 1 INSTRUCTIONAL OVERLAY */}
               {showOnboarding &&
                 onboardingStep === 1 && (
                   <div
@@ -1546,7 +1547,7 @@ function StreamContent() {
                       position: 'absolute',
                       inset: 0,
                       zIndex: 10,
-                      pointerEvents: 'none', // Lets user click the Audiomack player Play button
+                      pointerEvents: 'none',
                     }}
                   >
                     {/* Step 1 Header Prompt Banner */}
@@ -1654,7 +1655,7 @@ function StreamContent() {
                       }}
                     />
 
-                    {/* Directional arrow directly targeting the Audiomack play ring */}
+                    {/* Directional arrow */}
                     <div
                       className="guided-play-arrow"
                       style={{
@@ -2275,7 +2276,7 @@ function StreamContent() {
         )}
       </main>
 
-      {/* FULLSCREEN LOCK OVERLAY (Keeps entire page locked until steps complete) */}
+      {/* FULLSCREEN LOCK OVERLAY */}
 
       {showOnboarding && (
         <div
@@ -2293,7 +2294,7 @@ function StreamContent() {
         />
       )}
 
-      {/* CHALLENGE MODAL */}
+      {/* CHALLENGE MODAL (PERFECTLY CENTERED) */}
 
       {challengeVisible &&
         status ===
@@ -2303,39 +2304,54 @@ function StreamContent() {
             position: 'fixed',
             inset: 0,
             zIndex: 300,
-            background:
-              'rgba(3,8,18,.85)',
+            background: 'rgba(3,8,18,0.85)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
-            alignItems:
-              'center',
-            justifyContent:
-              'center',
-            padding: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            overflowY: 'auto',
           }}
         >
           <div
             className="challenge-pop"
             style={{
               width: '100%',
-              maxWidth: 350,
-              padding: 23,
-              borderRadius: 20,
-              background:
-                'linear-gradient(145deg,#162E50,#102440)',
+              maxWidth: 340,
+              margin: 'auto',
+              padding: '28px 24px',
+              borderRadius: 24,
+              background: 'linear-gradient(145deg, #162E50, #102440)',
+              border: '1px solid rgba(74, 158, 255, 0.25)',
               textAlign: 'center',
+              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.7)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
             }}
           >
-            <ShieldCheck
-              size={36}
-              color="#4a9eff"
-            />
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                background: 'rgba(74, 158, 255, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <ShieldCheck size={28} color="#4a9eff" />
+            </div>
 
             <p
               style={{
-                fontSize: 18,
+                fontSize: 19,
                 fontWeight: 900,
-                margin:
-                  '12px 0 5px',
+                color: '#fff',
+                margin: '0 0 8px',
+                fontFamily: 'Montserrat, sans-serif',
               }}
             >
               Quick listening check
@@ -2343,52 +2359,37 @@ function StreamContent() {
 
             <p
               style={{
-                color:
-                  '#9DB0C7',
-                fontSize: 12,
-                margin:
-                  '0 0 14px',
+                color: '#9DB0C7',
+                fontSize: 13,
+                margin: '0 0 20px',
+                lineHeight: 1.5,
               }}
             >
-              Are you still listening
-              to the track?
+              Are you still listening to the track?
             </p>
-
-            <ArrowDown
-              className="down-arrow"
-              size={21}
-              color="#4a9eff"
-            />
 
             <div
               style={{
-                transform:
-                  `translateX(${challengeOffsetX}px)`,
-                marginTop: 8,
+                width: '100%',
+                transform: `translateX(${challengeOffsetX}px)`,
+                transition: 'transform 0.2s ease',
               }}
             >
               <button
-                onClick={
-                  handleChallenge
-                }
-                disabled={
-                  challengeSubmitting
-                }
+                onClick={handleChallenge}
+                disabled={challengeSubmitting}
                 style={{
                   width: '100%',
-                  padding: 14,
+                  padding: 15,
                   border: 'none',
-                  borderRadius: 13,
-                  background:
-                    'linear-gradient(135deg,#4a9eff,#2d6be4)',
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #1A6CFF, #4a9eff)',
                   color: '#fff',
                   fontWeight: 800,
-                  fontSize: 14,
+                  fontSize: 15,
                   cursor: challengeSubmitting ? 'not-allowed' : 'pointer',
-                  opacity:
-                    challengeSubmitting
-                      ? 0.6
-                      : 1,
+                  opacity: challengeSubmitting ? 0.6 : 1,
+                  boxShadow: '0 6px 20px rgba(26, 108, 255, 0.35)',
                 }}
               >
                 {challengeSubmitting
