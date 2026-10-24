@@ -105,8 +105,8 @@ function TaskContent() {
   const handleSubmit = async () => {
     const isSocial = isSocialTask();
 
-    if (!isSocial && !proof) {
-      setError('Please upload a screenshot or paste a link as proof.');
+    if (!proof) {
+      setError('Please upload a screenshot or paste a direct screenshot link as proof.');
       return;
     }
 
@@ -119,27 +119,14 @@ function TaskContent() {
     setError('');
 
     try {
-      // Corrected endpoint matching backend: POST /api/tasks/complete
+      // Every task submission requires proof and remains pending until admin approval.
       const res = await API.post('/api/tasks/complete', {
         task_id: taskId,
-        proof_url: proof || task.target_url || 'social_verified',
+        proof_url: proof,
       });
 
-      const awarded = res.data?.coins_awarded || task.reward_coins || 0;
-      setCoinsAwarded(awarded);
-
-      // Update local storage wallet balance if returned
-      if (res.data?.coin_balance !== undefined && typeof window !== 'undefined') {
-        const stored = localStorage.getItem('rewaiq_user');
-        if (stored) {
-          try {
-            const user = JSON.parse(stored);
-            user.coin_balance = res.data.coin_balance;
-            localStorage.setItem('rewaiq_user', JSON.stringify(user));
-          } catch (_) {}
-        }
-      }
-
+      // Never display or locally apply a reward before the backend confirms approval.
+      setCoinsAwarded(Number(res.data?.coins_awarded || 0));
       setSuccess(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Submission failed. Please try again.');
@@ -156,14 +143,16 @@ function TaskContent() {
       case 'follow':
         return [
           'Tap "Open Task Link" below to visit the official page',
-          'Follow the account',
-          'Return here and tap "Verify & Claim Coins"',
+          'Complete the follow or engagement action',
+          'Take a screenshot showing the completed action',
+          'Upload the screenshot and submit it for review',
         ];
       case 'telegram':
         return [
           'Tap "Open Task Link" below to join the channel',
           'Join the community channel',
-          'Return here and tap "Verify & Claim Coins"',
+          'Take a screenshot showing that you joined',
+          'Upload the screenshot and submit it for review',
         ];
       case 'watch':
         return [
@@ -191,8 +180,6 @@ function TaskContent() {
   if (loading) return <Spinner fullscreen />;
 
   if (success) {
-    const isSocial = isSocialTask();
-
     return (
       <div
         style={{
@@ -231,7 +218,7 @@ function TaskContent() {
             textAlign: 'center',
           }}
         >
-          {isSocial ? 'Task Completed!' : 'Submitted for Review'}
+          Submitted for Review
         </h2>
 
         <p
@@ -244,9 +231,7 @@ function TaskContent() {
             maxWidth: 300,
           }}
         >
-          {isSocial
-            ? 'Your coins have been credited to your wallet balance.'
-            : 'Your submission is being reviewed. Coins will be credited once approved.'}
+          Your screenshot has been submitted for admin review. Coins will be credited to your wallet only if your submission is approved.
         </p>
 
         <div
@@ -263,7 +248,7 @@ function TaskContent() {
         >
           <Coins size={22} color="#FBBF24" />
           <span style={{ fontSize: 17, fontWeight: 800, color: '#FBBF24' }}>
-            +{coinsAwarded || task?.reward_coins} coins {isSocial ? 'added' : 'pending'}
+            +{task?.reward_coins || coinsAwarded} coins pending approval
           </span>
         </div>
 
@@ -491,9 +476,8 @@ function TaskContent() {
           </button>
         )}
 
-        {/* Proof Upload (Only shown for non-social or proof-based tasks) */}
-        {!isSocial && (
-          <div style={{ marginBottom: 20 }}>
+        {/* Proof Upload (required for every task type) */}
+        <div style={{ marginBottom: 20 }}>
             <label
               style={{
                 fontSize: 12,
@@ -593,7 +577,6 @@ function TaskContent() {
               }}
             />
           </div>
-        )}
 
         {error && (
           <div
@@ -618,7 +601,7 @@ function TaskContent() {
           disabled={
             submitting ||
             uploadingProof ||
-            (!isSocial && !proof && !proofPreview) ||
+            !proof ||
             (isSocial && task.target_url && !hasOpenedLink)
           }
           style={{
@@ -630,14 +613,14 @@ function TaskContent() {
                 ? 'rgba(255,255,255,0.08)'
                 : 'linear-gradient(135deg, #4a9eff, #2d6be4)',
             color:
-              submitting || uploadingProof || (!isSocial && !proof && !proofPreview)
+              submitting || uploadingProof || !proof
                 ? '#8A9BB0'
                 : '#fff',
             fontSize: 15,
             fontWeight: 800,
             border: 'none',
             cursor:
-              submitting || uploadingProof || (!isSocial && !proof && !proofPreview)
+              submitting || uploadingProof || !proof
                 ? 'not-allowed'
                 : 'pointer',
             display: 'flex',
@@ -653,10 +636,6 @@ function TaskContent() {
           ) : submitting ? (
             <>
               <Loader2 size={16} className="spin" /> Verifying...
-            </>
-          ) : isSocial ? (
-            <>
-              <Sparkles size={16} /> Verify & Claim Coins
             </>
           ) : (
             <>
@@ -674,9 +653,7 @@ function TaskContent() {
             lineHeight: 1.5,
           }}
         >
-          {isSocial
-            ? 'Coins will be credited automatically once verified.'
-            : 'Fake or invalid submissions will be rejected.'}
+          Coins are not awarded immediately. An admin must review your screenshot first; fake or invalid submissions will be rejected.
         </p>
       </div>
 
