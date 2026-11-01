@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SplashScreen from '@/components/SplashScreen';
 import OnboardingScreen from '@/components/OnboardingScreen';
+import LaunchAnnouncement from '@/components/LaunchAnnouncement';
 
 export default function Home() {
   const [phase, setPhase] = useState('splash');
