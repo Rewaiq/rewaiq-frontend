@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -10,12 +11,20 @@ import {
   Circle,
   Bell,
   Users,
+  X,
+  Share2,
 } from 'lucide-react';
 
 import API from '@/lib/api';
 import BottomNav from '@/components/BottomNav';
 import InstallPrompt from '@/components/InstallPrompt';
 import Spinner from '@/components/Spinner';
+
+const FOUNDERS_LIVE_URL =
+  'https://votefounderslive.com/?video=57932c57-f700-4ed5-9ecb-f2ff8e52c1bd';
+
+const FOUNDERS_LIVE_MESSAGE =
+  'Support Rewaiq on Founders Live! Rewaiq is building digital opportunities that help young people and micro-merchants discover opportunities, participate in campaigns, and earn rewards. Please cast your vote and share our campaign with your friends, student groups, and communities. Every vote helps us reach more people.';
 
 const CAROUSEL_SLIDES = [
   {
@@ -38,7 +47,7 @@ const CAROUSEL_SLIDES = [
   {
     id: 3,
     type: 'promo',
-    title: '🎉 Hub Now Open in Aba!',
+    title: 'Hub Now Open in Aba!',
     sub: 'Learn Data Analysis, Web Dev, UI/UX at Yellow Avenue, Aba',
     cta: 'Join First Cohort →',
     action: 'https://wa.me/2348168099351',
@@ -48,7 +57,7 @@ const CAROUSEL_SLIDES = [
   {
     id: 4,
     type: 'promo',
-    title: '🎵 Are You an Artist?',
+    title: 'Are You an Artist?',
     sub: 'Get your music streamed by thousands of Nigerian youth',
     cta: 'Promote Your Music →',
     action: '/artist/promote',
@@ -56,6 +65,39 @@ const CAROUSEL_SLIDES = [
     textColor: '#fff',
   },
 ];
+
+async function shareFoundersLive() {
+  const shareData = {
+    title: 'Vote for Rewaiq on Founders Live',
+    text: FOUNDERS_LIVE_MESSAGE,
+    url: FOUNDERS_LIVE_URL,
+  };
+
+  try {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      await navigator.share(shareData);
+      return;
+    }
+
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(
+        `${FOUNDERS_LIVE_MESSAGE}\n\n${FOUNDERS_LIVE_URL}`
+      );
+      window.alert('Campaign message and voting link copied. Share them with others!');
+      return;
+    }
+
+    window.prompt('Copy and share this voting link:', FOUNDERS_LIVE_URL);
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      window.prompt('Copy and share this voting link:', FOUNDERS_LIVE_URL);
+    }
+  }
+}
+
+/* =========================================================
+   HOME PAGE CONTENT
+   ========================================================= */
 
 function HomeContent() {
   const router = useRouter();
@@ -67,9 +109,11 @@ function HomeContent() {
 
   const [tab, setTab] = useState(() => {
     const urlTab = searchParams.get('tab');
+
     if (urlTab === 'tasks' || urlTab === 'trending' || urlTab === 'for-you') {
       return urlTab;
     }
+
     return 'for-you';
   });
 
@@ -79,8 +123,12 @@ function HomeContent() {
   const [taskFilter, setTaskFilter] = useState('all');
   const [carouselIndex, setCarouselIndex] = useState(0);
 
+  // The ad appears whenever the home page mounts.
+  const [showFoundersLiveAd, setShowFoundersLiveAd] = useState(true);
+
   useEffect(() => {
     const urlTab = searchParams.get('tab');
+
     if (urlTab === 'tasks' || urlTab === 'trending' || urlTab === 'for-you') {
       setTab(urlTab);
     } else {
@@ -90,6 +138,7 @@ function HomeContent() {
 
   useEffect(() => {
     const u = localStorage.getItem('rewaiq_user');
+
     if (!u) {
       router.push('/welcome');
       return;
@@ -110,11 +159,16 @@ function HomeContent() {
   const fetchUserBalance = async () => {
     try {
       const res = await API.get('/api/coins/balance');
+
       if (res.data?.coin_balance !== undefined) {
-        setUser((prev) => ({
-          ...prev,
-          coin_balance: res.data.coin_balance,
-        }));
+        setUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                coin_balance: res.data.coin_balance,
+              }
+            : prev
+        );
       }
     } catch {}
   };
@@ -123,13 +177,18 @@ function HomeContent() {
     const pollNotifications = async () => {
       try {
         const res = await API.get('/api/notifications');
-        const unread = (res.data.notifications || []).filter((n) => !n.is_read).length;
+        const unread = (res.data.notifications || []).filter(
+          (n) => !n.is_read
+        ).length;
+
         setUnreadCount(unread);
       } catch {}
     };
 
     pollNotifications();
+
     const interval = setInterval(pollNotifications, 30000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -170,10 +229,245 @@ function HomeContent() {
   };
 
   const filteredTasks =
-    taskFilter === 'all' ? tasks : tasks.filter((t) => t.task_type === taskFilter);
+    taskFilter === 'all'
+      ? tasks
+      : tasks.filter((t) => t.task_type === taskFilter);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0A1628', paddingBottom: 85 }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#0A1628',
+        paddingBottom: 85,
+      }}
+    >
+      {/* =====================================================
+          FULL-SCREEN FOUNDERS LIVE AD
+          ===================================================== */}
+
+      {showFoundersLiveAd && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="founders-live-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background:
+              'radial-gradient(circle at top right, rgba(74,158,255,0.25), transparent 38%), linear-gradient(145deg, #071326, #0A1628 55%, #10264A)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            overflowY: 'auto',
+          }}
+        >
+          {/* Close button */}
+          <button
+            type="button"
+            aria-label="Close Founders Live announcement"
+            onClick={() => setShowFoundersLiveAd(false)}
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              border: '1px solid rgba(255,255,255,0.2)',
+              background: 'rgba(255,255,255,0.08)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 2,
+            }}
+          >
+            <X size={23} />
+          </button>
+
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 440,
+              textAlign: 'center',
+              padding: '30px 4px',
+              margin: 'auto',
+            }}
+          >
+            <div
+              style={{
+                display: 'inline-block',
+                padding: '8px 14px',
+                borderRadius: 30,
+                border: '1px solid rgba(240,192,64,0.4)',
+                background: 'rgba(240,192,64,0.1)',
+                color: '#F0C040',
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: 1.5,
+                marginBottom: 24,
+              }}
+            >
+              SUPPORT THE REWAIQ COMMUNITY
+            </div>
+
+            <div
+              style={{
+                width: 76,
+                height: 76,
+                margin: '0 auto 22px',
+                borderRadius: 22,
+                background: 'linear-gradient(135deg, #1a3a8f, #4a9eff)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 12px 45px rgba(74,158,255,0.25)',
+              }}
+            >
+              <Users size={38} color="#fff" />
+            </div>
+
+            <p
+              style={{
+                color: '#4a9eff',
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: 2,
+                marginBottom: 12,
+              }}
+            >
+              REWAIQ ON FOUNDERS LIVE
+            </p>
+
+            <h1
+              id="founders-live-title"
+              style={{
+                color: '#fff',
+                fontSize: 'clamp(30px, 7vw, 43px)',
+                fontWeight: 900,
+                lineHeight: 1.12,
+                letterSpacing: -1.2,
+                margin: '0 0 18px',
+              }}
+            >
+              Help Rewaiq
+              <span style={{ color: '#F0C040' }}> Go Further.</span>
+            </h1>
+
+            <p
+              style={{
+                color: '#C0CDDF',
+                fontSize: 15,
+                lineHeight: 1.8,
+                margin: '0 auto 16px',
+                maxWidth: 370,
+              }}
+            >
+              Rewaiq is building digital opportunities that help young people
+              and micro-merchants discover opportunities, participate in
+              campaigns, and earn rewards.
+            </p>
+
+            <p
+              style={{
+                color: '#fff',
+                fontSize: 14,
+                lineHeight: 1.8,
+                fontWeight: 600,
+                margin: '0 auto 26px',
+                maxWidth: 370,
+              }}
+            >
+              You can support our journey by voting for Rewaiq on Founders
+              Live. After voting, share the campaign with your friends, student
+              groups, and communities. Every vote and share helps us reach more
+              people.
+            </p>
+
+            {/* Vote button */}
+            <button
+              type="button"
+              onClick={() =>
+                window.open(
+                  FOUNDERS_LIVE_URL,
+                  '_blank',
+                  'noopener,noreferrer'
+                )
+              }
+              style={{
+                width: '100%',
+                minHeight: 54,
+                border: 'none',
+                borderRadius: 14,
+                background: 'linear-gradient(135deg, #F0C040, #D4A017)',
+                color: '#0A1628',
+                fontSize: 15,
+                fontWeight: 900,
+                cursor: 'pointer',
+                marginBottom: 12,
+              }}
+            >
+              VOTE FOR REWAIQ →
+            </button>
+
+            {/* Share button */}
+            <button
+              type="button"
+              onClick={shareFoundersLive}
+              style={{
+                width: '100%',
+                minHeight: 52,
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: 14,
+                background: 'rgba(255,255,255,0.06)',
+                color: '#fff',
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 9,
+              }}
+            >
+              <Share2 size={18} />
+              SHARE WITH FRIENDS
+            </button>
+
+            <p
+              style={{
+                color: '#8294AD',
+                fontSize: 11,
+                lineHeight: 1.6,
+                marginTop: 18,
+              }}
+            >
+              Thank you for supporting Rewaiq. Every vote and share counts.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setShowFoundersLiveAd(false)}
+              style={{
+                marginTop: 8,
+                padding: '10px 18px',
+                border: 'none',
+                background: 'transparent',
+                color: '#AAB8CC',
+                fontSize: 13,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Continue to Rewaiq
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div
         style={{
@@ -218,7 +512,7 @@ function HomeContent() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Real-time sync Coin Pill */}
+          {/* Coin balance */}
           <div
             onClick={() => router.push('/wallet')}
             style={{
@@ -278,7 +572,7 @@ function HomeContent() {
             )}
           </div>
 
-          {/* Profile Circle */}
+          {/* Profile */}
           <div
             onClick={() => router.push('/profile')}
             style={{
@@ -310,7 +604,14 @@ function HomeContent() {
       </div>
 
       {/* TABS */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '12px 20px 0', gap: 8 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '12px 20px 0',
+          gap: 8,
+        }}
+      >
         {['for-you', 'tasks', 'trending'].map((t) => (
           <button
             key={t}
@@ -327,7 +628,11 @@ function HomeContent() {
               transition: 'background 0.2s',
             }}
           >
-            {t === 'for-you' ? 'For You' : t === 'tasks' ? 'Tasks' : 'Trending'}
+            {t === 'for-you'
+              ? 'For You'
+              : t === 'tasks'
+                ? 'Tasks'
+                : 'Trending'}
           </button>
         ))}
 
@@ -346,14 +651,24 @@ function HomeContent() {
               justifyContent: 'center',
             }}
           >
-            <SlidersHorizontal size={18} color={showFilter ? '#4a9eff' : '#8A9BB0'} />
+            <SlidersHorizontal
+              size={18}
+              color={showFilter ? '#4a9eff' : '#8A9BB0'}
+            />
           </div>
         )}
       </div>
 
       {/* TASK FILTER CHIPS */}
       {showFilter && tab === 'tasks' && (
-        <div style={{ padding: '10px 20px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            padding: '10px 20px 0',
+            display: 'flex',
+            gap: 8,
+            flexWrap: 'wrap',
+          }}
+        >
           {['all', 'follow', 'watch', 'share', 'review', 'campaign'].map((f) => (
             <button
               key={f}
@@ -361,7 +676,10 @@ function HomeContent() {
               style={{
                 padding: '6px 14px',
                 borderRadius: 20,
-                background: taskFilter === f ? '#4a9eff' : 'rgba(255,255,255,0.06)',
+                background:
+                  taskFilter === f
+                    ? '#4a9eff'
+                    : 'rgba(255,255,255,0.06)',
                 color: taskFilter === f ? '#fff' : '#8A9BB0',
                 fontSize: 12,
                 fontWeight: 600,
@@ -378,13 +696,22 @@ function HomeContent() {
 
       {/* MAIN CONTENT AREA */}
       <div style={{ padding: '16px 20px 0' }}>
-        {/* CAROUSEL */}
+        {/* EXISTING CAROUSEL — PRESERVED */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ borderRadius: 16, overflow: 'hidden' }}>
             {CAROUSEL_SLIDES.map((slide, i) => (
-              <div key={slide.id} style={{ display: i === carouselIndex ? 'block' : 'none' }}>
+              <div
+                key={slide.id}
+                style={{ display: i === carouselIndex ? 'block' : 'none' }}
+              >
                 {slide.type === 'workflow' ? (
-                  <div style={{ background: slide.bg, borderRadius: 16, padding: '20px 20px 24px' }}>
+                  <div
+                    style={{
+                      background: slide.bg,
+                      borderRadius: 16,
+                      padding: '20px 20px 24px',
+                    }}
+                  >
                     <p
                       style={{
                         fontSize: 11,
@@ -397,13 +724,34 @@ function HomeContent() {
                     >
                       Get started
                     </p>
-                    <p style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 20 }}>
+
+                    <p
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 800,
+                        color: '#fff',
+                        marginBottom: 20,
+                      }}
+                    >
                       {slide.title}
                     </p>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
                       {slide.steps.map((step, idx) => (
-                        <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div
+                          key={step}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                          }}
+                        >
                           <div style={{ textAlign: 'center' }}>
                             <div
                               style={{
@@ -422,6 +770,7 @@ function HomeContent() {
                             >
                               {idx + 1}
                             </div>
+
                             <p
                               style={{
                                 fontSize: 10,
@@ -455,7 +804,11 @@ function HomeContent() {
                       if (slide.action.startsWith('/')) {
                         router.push(slide.action);
                       } else {
-                        window.open(slide.action, '_blank');
+                        window.open(
+                          slide.action,
+                          '_blank',
+                          'noopener,noreferrer'
+                        );
                       }
                     }}
                     style={{
@@ -466,9 +819,17 @@ function HomeContent() {
                       minHeight: 110,
                     }}
                   >
-                    <p style={{ fontSize: 17, fontWeight: 900, color: slide.textColor, marginBottom: 6 }}>
+                    <p
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 900,
+                        color: slide.textColor,
+                        marginBottom: 6,
+                      }}
+                    >
                       {slide.title}
                     </p>
+
                     <p
                       style={{
                         fontSize: 13,
@@ -480,6 +841,7 @@ function HomeContent() {
                     >
                       {slide.sub}
                     </p>
+
                     <span
                       style={{
                         fontSize: 13,
@@ -498,8 +860,15 @@ function HomeContent() {
             ))}
           </div>
 
-          {/* Dots Indicator */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+          {/* Carousel dots */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 6,
+              marginTop: 10,
+            }}
+          >
             {CAROUSEL_SLIDES.map((_, i) => (
               <div
                 key={i}
@@ -508,7 +877,10 @@ function HomeContent() {
                   width: i === carouselIndex ? 20 : 6,
                   height: 6,
                   borderRadius: 3,
-                  background: i === carouselIndex ? '#4a9eff' : 'rgba(255,255,255,0.2)',
+                  background:
+                    i === carouselIndex
+                      ? '#4a9eff'
+                      : 'rgba(255,255,255,0.2)',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                 }}
@@ -519,12 +891,22 @@ function HomeContent() {
 
         {/* FEED SECTIONS */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '60px 0',
+              color: '#8A9BB0',
+            }}
+          >
             Loading feed...
           </div>
         ) : tab === 'tasks' ? (
           filteredTasks.length === 0 ? (
-            <Empty icon="📋" title="No tasks yet" sub="Tasks will appear here soon" />
+            <Empty
+              icon="📋"
+              title="No tasks yet"
+              sub="Tasks will appear here soon"
+            />
           ) : (
             filteredTasks.map((task) => (
               <TaskCard key={task.id} task={task} router={router} />
@@ -532,7 +914,11 @@ function HomeContent() {
           )
         ) : tab === 'trending' ? (
           tracks.length === 0 ? (
-            <Empty icon="🔥" title="Nothing trending yet" sub="Check back soon" />
+            <Empty
+              icon="🔥"
+              title="Nothing trending yet"
+              sub="Check back soon"
+            />
           ) : (
             tracks.map((track) => (
               <TrackCard
@@ -548,7 +934,8 @@ function HomeContent() {
             <div
               onClick={() => router.push('/task?id=follow-rewaiq')}
               style={{
-                background: 'linear-gradient(135deg, rgba(74,158,255,0.15), rgba(45,107,228,0.1))',
+                background:
+                  'linear-gradient(135deg, rgba(74,158,255,0.15), rgba(45,107,228,0.1))',
                 border: '1px solid rgba(74,158,255,0.25)',
                 borderRadius: 16,
                 padding: 16,
@@ -564,7 +951,13 @@ function HomeContent() {
                   marginBottom: 10,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}
+                >
                   <div
                     style={{
                       width: 44,
@@ -578,11 +971,26 @@ function HomeContent() {
                   >
                     <Users size={22} color="#4a9eff" />
                   </div>
+
                   <div>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>
+                    <p
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: '#fff',
+                        margin: 0,
+                      }}
+                    >
                       Follow Rewaiq
                     </p>
-                    <p style={{ fontSize: 11, color: '#8A9BB0', margin: '2px 0 0' }}>
+
+                    <p
+                      style={{
+                        fontSize: 11,
+                        color: '#8A9BB0',
+                        margin: '2px 0 0',
+                      }}
+                    >
                       Follow us on Instagram and earn
                     </p>
                   </div>
@@ -599,15 +1007,44 @@ function HomeContent() {
                   }}
                 >
                   <Coins size={12} color="#4a9eff" />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#4a9eff' }}>+50</span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#4a9eff',
+                    }}
+                  >
+                    +50
+                  </span>
                 </div>
               </div>
 
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 10 }} />
+              <div
+                style={{
+                  height: 1,
+                  background: 'rgba(255,255,255,0.06)',
+                  marginBottom: 10,
+                }}
+              />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, color: '#8A9BB0' }}>Takes 30 seconds</span>
-                <span style={{ fontSize: 12, color: '#4a9eff', fontWeight: 600 }}>Do this now</span>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span style={{ fontSize: 12, color: '#8A9BB0' }}>
+                  Takes 30 seconds
+                </span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: '#4a9eff',
+                    fontWeight: 600,
+                  }}
+                >
+                  Do this now
+                </span>
               </div>
             </div>
 
@@ -643,28 +1080,39 @@ function HomeContent() {
 
 function Empty({ icon, title, sub }) {
   return (
-    <div style={{ textAlign: 'center', padding: '60px 0', color: '#8A9BB0' }}>
+    <div
+      style={{
+        textAlign: 'center',
+        padding: '60px 0',
+        color: '#8A9BB0',
+      }}
+    >
       <div style={{ fontSize: 44, marginBottom: 12 }}>{icon}</div>
-      <p style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>{title}</p>
+      <p style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>
+        {title}
+      </p>
       <p style={{ fontSize: 13 }}>{sub}</p>
     </div>
   );
 }
 
 /* =========================================================
-   TRACK CARD (Artwork, Audiomack Pill, & Media Player UI)
+   TRACK CARD
    ========================================================= */
 
 function TrackCard({ track, router }) {
   const resolvedTrackId =
     track?.id || track?._id || track?.track_id || track?.trackId;
 
-  const artwork = track?.cover_image_url || track?.cover_url || track?.artwork_url;
+  const artwork =
+    track?.cover_image_url || track?.cover_url || track?.artwork_url;
+
   const reward = track?.campaign_coins || track?.reward_coins || 10;
   const platform = track?.content_type || track?.platform || 'audiomack';
 
   const handleOpenTrack = () => {
     if (!resolvedTrackId) return;
+
     router.push(`/stream?id=${encodeURIComponent(String(resolvedTrackId))}`);
   };
 
@@ -681,7 +1129,6 @@ function TrackCard({ track, router }) {
         boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
       }}
     >
-      {/* Artwork Screen */}
       <div
         style={{
           height: 180,
@@ -694,7 +1141,6 @@ function TrackCard({ track, router }) {
           position: 'relative',
         }}
       >
-        {/* Darkening overlay when image exists */}
         {artwork && (
           <div
             style={{
@@ -706,7 +1152,6 @@ function TrackCard({ track, router }) {
           />
         )}
 
-        {/* Play Icon */}
         <div
           style={{
             width: 58,
@@ -722,10 +1167,14 @@ function TrackCard({ track, router }) {
             boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
           }}
         >
-          <Play size={24} color="#fff" fill="#fff" style={{ marginLeft: 3 }} />
+          <Play
+            size={24}
+            color="#fff"
+            fill="#fff"
+            style={{ marginLeft: 3 }}
+          />
         </div>
 
-        {/* Coin Badge */}
         <div
           style={{
             position: 'absolute',
@@ -750,7 +1199,6 @@ function TrackCard({ track, router }) {
         </div>
       </div>
 
-      {/* Info Description */}
       <div style={{ padding: '14px 16px' }}>
         <div
           style={{
@@ -777,14 +1225,18 @@ function TrackCard({ track, router }) {
             {track?.artist_name?.[0] || 'A'}
           </div>
 
-          <span style={{ fontSize: 13, color: '#8A9BB0', fontWeight: 500 }}>
+          <span
+            style={{ fontSize: 13, color: '#8A9BB0', fontWeight: 500 }}
+          >
             {track?.artist_name || 'Artist'}
           </span>
 
           <span
             style={{
               fontSize: 10,
-              color: platform.toLowerCase().includes('audiomack') ? '#FFA500' : '#4a9eff',
+              color: platform.toLowerCase().includes('audiomack')
+                ? '#FFA500'
+                : '#4a9eff',
               marginLeft: 'auto',
               background: platform.toLowerCase().includes('audiomack')
                 ? 'rgba(255,165,0,0.12)'
