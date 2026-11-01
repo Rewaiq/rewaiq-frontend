@@ -9,25 +9,21 @@ const WHATSAPP_URL =
 const VOTING_URL =
   'https://votefounderslive.com/?video=57932c57-f700-4ed5-9ecb-f2ff8e52c1bd';
 
-export default function LaunchAnnouncement() {
+export default function LaunchAnnouncement({ onClose }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem('rewaiq-launch-ad-dismissed') === 'yes') {
-        return;
-      }
-      setVisible(true);
-    } catch {
-      setVisible(true);
-    }
+    setVisible(true);
   }, []);
 
   function closeAd() {
     setVisible(false);
+
     try {
       sessionStorage.setItem('rewaiq-launch-ad-dismissed', 'yes');
     } catch {}
+
+    onClose?.();
   }
 
   if (!visible) return null;
@@ -52,6 +48,7 @@ export default function LaunchAnnouncement() {
       }}
     >
       <button
+        type="button"
         onClick={closeAd}
         aria-label="Close launch announcement"
         style={{
@@ -167,10 +164,24 @@ export default function LaunchAnnouncement() {
           >
             OFFICIAL LAUNCH
           </div>
-          <div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>
+
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              marginTop: 8,
+            }}
+          >
             NOVEMBER 2, 2026
           </div>
-          <div style={{ color: '#AAB8CE', fontSize: 12, marginTop: 6 }}>
+
+          <div
+            style={{
+              color: '#AAB8CE',
+              fontSize: 12,
+              marginTop: 6,
+            }}
+          >
             THE MOVEMENT STARTS WITH YOU.
           </div>
         </div>
@@ -178,7 +189,8 @@ export default function LaunchAnnouncement() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
             gap: 12,
             marginTop: 28,
           }}
@@ -245,6 +257,7 @@ export default function LaunchAnnouncement() {
         </p>
 
         <button
+          type="button"
           onClick={closeAd}
           style={{
             marginTop: 8,
