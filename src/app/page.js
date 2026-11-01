@@ -1,4 +1,6 @@
+
 'use client';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SplashScreen from '@/components/SplashScreen';
@@ -8,6 +10,7 @@ import LaunchAnnouncement from '@/components/LaunchAnnouncement';
 export default function Home() {
   const [phase, setPhase] = useState('splash');
   const [mounted, setMounted] = useState(false);
+  const [showLaunchAnnouncement, setShowLaunchAnnouncement] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -15,9 +18,15 @@ export default function Home() {
   }, []);
 
   const handleSplashComplete = () => {
-    // Check if user has seen onboarding before
+    setShowLaunchAnnouncement(true);
+  };
+
+  const handleLaunchAnnouncementClose = () => {
+    setShowLaunchAnnouncement(false);
+
     const seen = localStorage.getItem('rewaiq_onboarded');
     const token = localStorage.getItem('rewaiq_token');
+
     if (token) {
       router.push('/home');
     } else if (seen) {
@@ -39,8 +48,13 @@ export default function Home() {
       {phase === 'splash' && (
         <SplashScreen onComplete={handleSplashComplete} />
       )}
+
       {phase === 'onboarding' && (
         <OnboardingScreen onComplete={handleOnboardingComplete} />
+      )}
+
+      {showLaunchAnnouncement && (
+        <LaunchAnnouncement onClose={handleLaunchAnnouncementClose} />
       )}
     </main>
   );
